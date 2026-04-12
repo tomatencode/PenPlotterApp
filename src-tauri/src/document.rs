@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::{AppHandle, Manager};
 
-// ── Document model ────────────────────────────────────────────────────────────
+// Document model
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PageSettings {
@@ -47,7 +47,7 @@ impl PnplttrDocument {
     }
 }
 
-// ── Paths ─────────────────────────────────────────────────────────────────────
+// Paths
 
 pub fn plotters_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     let docs = app.path().document_dir().map_err(|e| e.to_string())?;
@@ -65,7 +65,7 @@ fn recent_files_path(app: &AppHandle) -> std::path::PathBuf {
     data_dir.join("recent_files.json")
 }
 
-// ── Recent files ──────────────────────────────────────────────────────────────
+// Recent files
 
 pub fn load_recent_files(app: &AppHandle) -> Vec<String> {
     let path = recent_files_path(app);
@@ -94,7 +94,7 @@ pub fn push_recent(app: &AppHandle, file_path: &str) {
     save_recent_files(app, &recents);
 }
 
-// ── Return type ───────────────────────────────────────────────────────────────
+// Return type
 
 #[derive(Serialize)]
 pub struct OpenedDocument {
@@ -102,7 +102,7 @@ pub struct OpenedDocument {
     pub json: String,
 }
 
-// ── Tauri commands ────────────────────────────────────────────────────────────
+// Tauri commands
 
 #[tauri::command]
 pub fn get_recent_files(app: AppHandle) -> Vec<String> {
