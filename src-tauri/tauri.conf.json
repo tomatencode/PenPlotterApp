@@ -12,13 +12,25 @@
   "app": {
     "windows": [
       {
-        "title": "penplotterapp",
-        "width": 800,
-        "height": 600
+        "title": "Pen Plotter Interfacer",
+        "width": 900,
+        "height": 650,
+        "transparent": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "draggable-window",
+          "windows": [
+            "*"
+          ],
+          "permissions": [
+            "core:window:allow-start-dragging"
+          ]
+        }
+      ]
     }
   },
   "bundle": {
