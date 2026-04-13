@@ -11,7 +11,6 @@ pub struct PageSettings {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct MetaSettings {
-    pub author: String,
     pub created: String,
     pub doctype_version: u16,
 }
@@ -70,10 +69,9 @@ pub struct PnplttrDocument {
 }
 
 impl PnplttrDocument {
-    pub fn new_default(author: String, workspace_width: f64, workspace_height: f64) -> Self {
+    pub fn new_default(workspace_width: f64, workspace_height: f64) -> Self {
         PnplttrDocument {
             meta: MetaSettings {
-                author: author,
                 created: chrono::Utc::now().to_rfc3339(),
                 doctype_version: 1,
             },
