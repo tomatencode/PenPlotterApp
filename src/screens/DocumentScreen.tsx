@@ -13,7 +13,7 @@ export default function DocumentScreen() {
   const fileName = path ? path.split(/[\\/]/).pop() : "Untitled";
 
   return (
-    <div className="min-h-screen bg-[#0a0c10] text-gray-100 flex flex-col">
+    <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col">
       {/* Toolbar */}
       <header className="flex items-center gap-3 px-5 py-3 bg-[#111520] border-b border-slate-700/60 shadow-md shadow-black/30">
         <button

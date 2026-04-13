@@ -15,7 +15,8 @@
         "title": "Pen Plotter Interfacer",
         "width": 900,
         "height": 650,
-        "transparent": false
+        "transparent": false,
+        "decorations": false
       }
     ],
     "security": {

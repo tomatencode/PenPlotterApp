@@ -73,7 +73,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c10] text-gray-100 flex">
+    <div className="h-full bg-[#0a0c10] text-gray-100 flex">
 
       {/* ── Left sidebar ── */}
       <aside className="w-72 shrink-0 flex flex-col justify-between border-r border-slate-700/60 bg-[#0d1017] p-8">
