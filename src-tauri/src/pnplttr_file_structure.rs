@@ -15,13 +15,49 @@ pub struct MetaSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct Element {
-    pub id: String,
-    pub pen: String,
-    pub z: i32,
-    #[serde(rename = "type")]
-    pub element_type: String,
-    pub properties: serde_json::Value,
+#[serde(tag = "type")]
+pub enum Element {
+    Line {
+        id: String,
+        pen: String,
+        z: i32,
+        properties: LineProps,
+    },
+    Rect {
+        id: String,
+        pen: String,
+        z: i32,
+        properties: RectProps,
+    },
+    Circle {
+        id: String,
+        pen: String,
+        z: i32,
+        properties: CircleProps,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LineProps {
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RectProps {
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CircleProps {
+    pub cx: f64,
+    pub cy: f64,
+    pub r: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
