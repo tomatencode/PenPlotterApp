@@ -277,12 +277,12 @@ export default function DocumentScreen() {
             ) : (
               <div className="flex flex-col gap-2">
                 {shapeProps.map(({ label, value }) => (
-                  <div key={label} className="flex items-center justify-between gap-2">
+                  <div key={label} className="flex items-center gap-2 min-w-0">
                     <span className="text-xs text-slate-600 w-16 shrink-0">{label}</span>
                     <input
                       readOnly
                       value={value}
-                      className="flex-1 px-2 py-1 rounded-md bg-[#0a0c10] border border-slate-700/60 text-xs text-slate-300 outline-none text-right tabular-nums"
+                      className="w-full min-w-0 px-2 py-1 rounded-md bg-[#0a0c10] border border-slate-700/60 text-xs text-slate-300 outline-none text-right tabular-nums"
                     />
                   </div>
                 ))}
