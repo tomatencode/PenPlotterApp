@@ -11,13 +11,14 @@ pub struct PageSettings {
 pub struct MetaSettings {
     pub author: String,
     pub created: String,
+    pub doctype_version: u16,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Element {
     pub id: String,
     pub pen: String,
-    pub layer: i32,
+    pub z: i32,
     #[serde(rename = "type")]
     pub element_type: String,
     pub properties: serde_json::Value,
@@ -36,6 +37,7 @@ impl PnplttrDocument {
             meta: MetaSettings {
                 author: author,
                 created: chrono::Utc::now().to_rfc3339(),
+                doctype_version: 1,
             },
             page: PageSettings {
                 width: width,
