@@ -3,8 +3,10 @@ use chrono;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PageSettings {
-    pub width: f64,
-    pub height: f64,
+    pub page_width: f64,
+    pub page_height: f64,
+    pub workspace_width: f64,
+    pub workspace_height: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -68,7 +70,7 @@ pub struct PnplttrDocument {
 }
 
 impl PnplttrDocument {
-    pub fn new_default(author: String, width: f64, height: f64) -> Self {
+    pub fn new_default(author: String, workspace_width: f64, workspace_height: f64) -> Self {
         PnplttrDocument {
             meta: MetaSettings {
                 author: author,
@@ -76,8 +78,10 @@ impl PnplttrDocument {
                 doctype_version: 1,
             },
             page: PageSettings {
-                width: width,
-                height: height,
+                page_width: 210.0, // A4 default
+                page_height: 297.0, // A4 default
+                workspace_width,
+                workspace_height,
             },
             elements: vec![],
         }
