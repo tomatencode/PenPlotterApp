@@ -1,51 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fs;
 use tauri::{AppHandle, Manager};
-
-// Document model
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PageSettings {
-    pub width: f64,
-    pub height: f64,
-    pub unit: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Layer {
-    pub id: String,
-    pub name: String,
-    pub pen: u32,
-    pub visible: bool,
-    pub elements: Vec<serde_json::Value>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PnplttrDocument {
-    pub version: u32,
-    pub page: PageSettings,
-    pub layers: Vec<Layer>,
-}
-
-impl PnplttrDocument {
-    pub fn new_default() -> Self {
-        PnplttrDocument {
-            version: 1,
-            page: PageSettings {
-                width: 185.0,
-                height: 265.0,
-                unit: "mm".to_string(),
-            },
-            layers: vec![Layer {
-                id: "layer-1".to_string(),
-                name: "Layer 1".to_string(),
-                pen: 0,
-                visible: true,
-                elements: vec![],
-            }],
-        }
-    }
-}
+use crate::pnplttr_file_structure::PnplttrDocument;
 
 // Paths
 
@@ -144,7 +100,7 @@ pub fn create_document(app: AppHandle, name: String) -> Result<OpenedDocument, S
         counter += 1;
     }
 
-    let doc = PnplttrDocument::new_default();
+    let doc = PnplttrDocument::new_default("Unknown".to_string(), 185.0, 265.0);
     let json = serde_json::to_string_pretty(&doc).map_err(|e| e.to_string())?;
     fs::write(&file_path, &json).map_err(|e| e.to_string())?;
 
