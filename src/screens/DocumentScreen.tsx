@@ -160,6 +160,10 @@ export default function DocumentScreen() {
     setLayers((prev) => prev.map((l) => l.id === id ? { ...l, penId } : l));
   }
 
+  function renameLayer(id: string, name: string) {
+    setLayers((prev) => prev.map((l) => l.id === id ? { ...l, name: name.trim() || l.name } : l));
+  }
+
   const fileName = path ? path.split(/[\\/]/).pop() : "Untitled";
 
   return (
@@ -308,7 +312,18 @@ export default function DocumentScreen() {
                           className="w-3 h-3 rounded-full shrink-0 border border-white/10"
                           style={{ backgroundColor: pen.color }}
                         />
-                        <span className="flex-1 text-xs font-medium truncate">{layer.name}</span>
+                        {isActive ? (
+                          <input
+                            value={layer.name}
+                            onChange={(e) => renameLayer(layer.id, e.target.value)}
+                            onBlur={(e) => { if (!e.target.value.trim()) renameLayer(layer.id, layer.name); }}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur(); }}
+                            className="flex-1 min-w-0 text-xs font-medium bg-transparent border-b border-slate-600 text-gray-200 outline-none pb-px"
+                          />
+                        ) : (
+                          <span className="flex-1 text-xs font-medium truncate">{layer.name}</span>
+                        )}
 
                         {/* Reorder + delete — only visible on active / hover */}
                         <div className={`flex items-center gap-0.5 ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
