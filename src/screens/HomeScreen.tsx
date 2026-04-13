@@ -90,7 +90,7 @@ export default function HomeScreen() {
     <div className="h-full bg-[#0a0c10] text-gray-100 flex overflow-hidden">
 
       {/* ── Left sidebar ── */}
-      <aside className="w-64 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017]">
+      <aside className="w-80 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017]">
         {/* Branding */}
         <div className="px-6 pt-8 pb-6 border-b border-slate-700/60">
           <h1 className="text-xl font-bold tracking-tight bg-gradient-to-br from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent leading-tight">
@@ -186,28 +186,9 @@ export default function HomeScreen() {
       {/* ── Main content ── */}
       <main className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Tab bar */}
-        <div className="flex items-center gap-1 px-6 pt-5 pb-0 shrink-0">
-          {(["Documents", "GCode Files"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-colors capitalize
-                ${activeTab === tab
-                  ? "text-blue-400 border-blue-500 bg-[#111520]"
-                  : "text-slate-600 border-transparent hover:text-slate-400"}`}
-            >
-              {tab === "Documents" ? "Documents" : "GCode Files"}
-            </button>
-          ))}
-        </div>
-        <div className="h-px bg-slate-800 mx-6" />
-
         <div className="flex-1 overflow-auto p-6">
-
-          {/* ── Recent files tab ── */}
-          {activeTab === "Documents" && (
-            recentFiles.length > 0 ? (
+          {/* ── Recent files ── */}
+          {recentFiles.length > 0 ? (
               <ul className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 content-start">
                 {recentFiles.map((filePath) => (
                   <li key={filePath}>
@@ -236,42 +217,9 @@ export default function HomeScreen() {
                 <p className="text-slate-700 text-xs">Create a new document or open an existing one to get started</p>
               </div>
             )
-          )}
-
-          {/* ── GCode Files tab ── */}
-          {activeTab === "GCode Files" && (
-            gcodeFiles.length > 0 ? (
-              <ul className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 content-start">
-                {gcodeFiles.map((filePath) => (
-                  <li key={filePath}>
-                    <button
-                      onClick={() => handleOpenRecent(filePath)}
-                      className="w-full h-full text-left px-5 py-4 rounded-xl bg-[#111520] hover:bg-[#141926] border border-slate-700/50 hover:border-blue-600/40 transition-colors group shadow-sm shadow-black/30"
-                      title={filePath}
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="mt-0.5 text-slate-600 group-hover:text-blue-400 transition-colors text-base leading-none">⬡</span>
-                        <div className="min-w-0">
-                          <span className="block font-semibold text-sm text-gray-200 group-hover:text-blue-300 transition-colors truncate">
-                            {filePath.split(/[\\/]/).pop()}
-                          </span>
-                          <span className="block text-xs text-slate-600 truncate mt-1">{filePath}</span>
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center h-full">
-                <span className="text-5xl opacity-10 select-none">⬡</span>
-                <p className="text-slate-600 text-sm">No recent GCode files</p>
-              </div>
-            )
-          )}
+          }
         </div>
       </main>
     </div>
   );
 }
-
