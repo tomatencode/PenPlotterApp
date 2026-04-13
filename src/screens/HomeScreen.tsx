@@ -73,91 +73,115 @@ export default function HomeScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c10] text-gray-100 flex flex-col items-center justify-center gap-8 p-8">
-      {/* Title */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent">
-          Pen Plotter Interfacer
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">Create and manage your plotter documents</p>
-      </div>
+    <div className="min-h-screen bg-[#0a0c10] text-gray-100 flex">
 
-      {/* Action card */}
-      <div className="w-full max-w-xl bg-[#111520] border border-slate-700/60 rounded-xl p-6 shadow-lg shadow-black/40">
-        {showNameInput ? (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleCreate(); }}
-            className="flex gap-2 items-center"
-          >
-            <input
-              ref={nameInputRef}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Document name…"
-              className="flex-1 px-4 py-2 rounded-lg bg-[#0a0c10] border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 outline-none text-sm text-gray-100 placeholder-slate-500"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-lg font-medium text-sm transition-colors shadow-sm shadow-blue-900/40"
-            >
-              Create
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowNameInput(false); setNewName(""); }}
-              className="px-4 py-2 bg-[#0a0c10] hover:bg-slate-800 border border-slate-600 rounded-lg font-medium text-sm text-slate-300 transition-colors"
-            >
-              Cancel
-            </button>
-          </form>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowNameInput(true)}
-              className="flex-1 px-5 py-3 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-lg font-semibold text-sm transition-colors shadow-sm shadow-blue-900/40"
-            >
-              + New Document
-            </button>
-            <button
-              onClick={handleOpen}
-              className="flex-1 px-5 py-3 bg-[#0a0c10] hover:bg-slate-800 border border-slate-600 hover:border-purple-500/60 rounded-lg font-semibold text-sm text-slate-200 transition-colors"
-            >
-              Open File…
-            </button>
+      {/* ── Left sidebar ── */}
+      <aside className="w-72 shrink-0 flex flex-col justify-between border-r border-slate-700/60 bg-[#0d1017] p-8">
+        <div className="flex flex-col gap-8">
+          {/* Branding */}
+          <div>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight bg-gradient-to-br from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent leading-tight">
+              Pen Plotter<br />Interfacer
+            </h1>
+            <p className="mt-2 text-xs text-slate-600 leading-relaxed">
+              Create and manage your plotter documents
+            </p>
           </div>
-        )}
 
-        {error && (
-          <div className="mt-4 px-4 py-2 rounded-lg bg-red-950/60 border border-red-700/60 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-      </div>
-
-      {/* Recent files card */}
-      {recentFiles.length > 0 && (
-        <div className="w-full max-w-xl bg-[#111520] border border-slate-700/60 rounded-xl p-5 shadow-lg shadow-black/40">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
-            Recent Files
-          </h2>
-          <ul className="flex flex-col gap-1">
-            {recentFiles.map((filePath) => (
-              <li key={filePath}>
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            {showNameInput ? (
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleCreate(); }}
+                className="flex flex-col gap-2"
+              >
+                <input
+                  ref={nameInputRef}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Document name…"
+                  className="w-full px-3 py-2 rounded-lg bg-[#0a0c10] border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 outline-none text-sm text-gray-100 placeholder-slate-500"
+                />
                 <button
-                  onClick={() => handleOpenRecent(filePath)}
-                  className="w-full text-left px-4 py-3 rounded-lg bg-[#0a0c10] hover:bg-slate-800/80 border border-slate-700/40 hover:border-green-500/40 transition-colors text-sm group"
-                  title={filePath}
+                  type="submit"
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-lg font-semibold text-sm transition-colors shadow-sm shadow-blue-900/40"
                 >
-                  <span className="font-medium text-gray-200 group-hover:text-green-300 transition-colors">
-                    {filePath.split(/[\\/]/).pop()}
-                  </span>
-                  <span className="block text-xs text-slate-600 truncate mt-0.5">{filePath}</span>
+                  Create
                 </button>
-              </li>
-            ))}
-          </ul>
+                <button
+                  type="button"
+                  onClick={() => { setShowNameInput(false); setNewName(""); }}
+                  className="w-full px-4 py-2 bg-transparent hover:bg-slate-800 border border-slate-700 rounded-lg font-medium text-sm text-slate-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowNameInput(true)}
+                  className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-lg font-semibold text-sm transition-colors shadow-sm shadow-blue-900/40 text-left"
+                >
+                  + New Document
+                </button>
+                <button
+                  onClick={handleOpen}
+                  className="w-full px-4 py-2.5 bg-transparent hover:bg-slate-800 border border-slate-700 hover:border-purple-500/60 rounded-lg font-semibold text-sm text-slate-300 transition-colors text-left"
+                >
+                  Open File…
+                </button>
+              </>
+            )}
+
+            {error && (
+              <div className="mt-1 px-3 py-2 rounded-lg bg-red-950/60 border border-red-700/60 text-red-400 text-xs">
+                {error}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Footer */}
+        <p className="text-xs text-slate-700">PenPlotter App</p>
+      </aside>
+
+      {/* ── Main content ── */}
+      <main className="flex-1 flex flex-col p-8 overflow-auto">
+        {recentFiles.length > 0 ? (
+          <>
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
+              Recent Files
+            </h2>
+            <ul className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 content-start">
+              {recentFiles.map((filePath) => (
+                <li key={filePath}>
+                  <button
+                    onClick={() => handleOpenRecent(filePath)}
+                    className="w-full h-full text-left px-5 py-4 rounded-xl bg-[#111520] hover:bg-[#141926] border border-slate-700/50 hover:border-green-500/40 transition-colors group shadow-sm shadow-black/30"
+                    title={filePath}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 text-slate-600 group-hover:text-green-400 transition-colors text-base leading-none">⬡</span>
+                      <div className="min-w-0">
+                        <span className="block font-semibold text-sm text-gray-200 group-hover:text-green-300 transition-colors truncate">
+                          {filePath.split(/[\\/]/).pop()}
+                        </span>
+                        <span className="block text-xs text-slate-600 truncate mt-1">{filePath}</span>
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
+            <span className="text-5xl opacity-10 select-none">⬡</span>
+            <p className="text-slate-600 text-sm">No recent files</p>
+            <p className="text-slate-700 text-xs">Create a new document or open an existing one to get started</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
