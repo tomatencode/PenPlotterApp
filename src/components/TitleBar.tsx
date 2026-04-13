@@ -1,44 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export default function TitleBar() {
+  const appWindow = useRef(getCurrentWindow());
   const [isMaximized, setIsMaximized] = useState(false);
-  const appWindow = getCurrentWindow();
 
   useEffect(() => {
-    appWindow.isMaximized().then(setIsMaximized);
-    const unlisten = appWindow.onResized(() => {
-      appWindow.isMaximized().then(setIsMaximized);
-    });
-    return () => { unlisten.then((f) => f()); };
+    const win = appWindow.current;
+    win.isMaximized().then(setIsMaximized);
+    let cleanup: (() => void) | undefined;
+    win.onResized(() => {
+      win.isMaximized().then(setIsMaximized);
+    }).then((unlisten) => { cleanup = unlisten; });
+    return () => { cleanup?.(); };
   }, []);
 
+  async function handleMinimize() {
+    await appWindow.current.minimize();
+  }
+
   async function handleMaximize() {
-    if (isMaximized) {
-      await appWindow.unmaximize();
-    } else {
-      await appWindow.maximize();
-    }
+    await appWindow.current.toggleMaximize();
+  }
+
+  async function handleClose() {
+    await appWindow.current.close();
   }
 
   return (
-    <div
-      data-tauri-drag-region
-      className="flex items-center justify-between h-9 px-4 bg-[#0d1017] border-b border-slate-700/60 select-none shrink-0"
-    >
-      {/* App label */}
-      <span
-        data-tauri-drag-region
-        className="text-xs font-semibold tracking-widest text-slate-600 uppercase pointer-events-none"
-      >
-        Pen Plotter Interfacer
-      </span>
+    <div className="flex items-center h-9 bg-[#0d1017] border-b border-slate-700/60 select-none shrink-0">
 
-      {/* Window controls */}
-      <div className="flex items-center gap-1.5">
+      {/* Drag region — sibling to controls, NOT a parent of the buttons */}
+      <div
+        data-tauri-drag-region
+        className="flex-1 h-full flex items-center px-4"
+      >
+        <span className="text-xs font-semibold tracking-widest text-slate-600 uppercase pointer-events-none">
+          Pen Plotter Interfacer
+        </span>
+      </div>
+
+      {/* Window controls — outside the drag region */}
+      <div className="flex items-center gap-1.5 px-2">
         {/* Minimize */}
         <button
-          onClick={() => appWindow.minimize()}
+          onClick={handleMinimize}
           className="group w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-700/60 transition-colors"
           title="Minimize"
           tabIndex={-1}
@@ -69,7 +75,7 @@ export default function TitleBar() {
 
         {/* Close */}
         <button
-          onClick={() => appWindow.close()}
+          onClick={handleClose}
           className="group w-7 h-7 flex items-center justify-center rounded-md hover:bg-red-600/80 transition-colors"
           title="Close"
           tabIndex={-1}
