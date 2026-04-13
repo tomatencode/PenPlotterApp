@@ -302,7 +302,7 @@ export default function DocumentScreen() {
                       onClick={() => setActiveLayerId(layer.id)}
                       className={`w-full px-2.5 py-2 rounded-lg border transition-colors text-left group
                         ${isActive
-                          ? "bg-[#0a0c10] border-blue-500/40 text-gray-200"
+                          ? "bg-[#0a0c10] border-gray-500/40 text-gray-200"
                           : "bg-transparent border-transparent hover:bg-[#0a0c10] hover:border-slate-700/50 text-slate-400"
                         }`}
                     >
@@ -375,10 +375,10 @@ export default function DocumentScreen() {
                               ))}
                             </select>
                             {/* Color swatch inside select left */}
-                            <div
-                              className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-white/10 pointer-events-none"
-                              style={{ backgroundColor: pen.color }}
-                            />
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0 absolute left-2 top-1/2 -translate-y-1/2" style={{ color: pen.color }}>
+                              <path d="M11 2l3 3-8 8H3v-3L11 2z" />
+                              <path d="M9 4l3 3" />
+                            </svg>
                             <svg viewBox="0 0 12 12" fill="currentColor" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600 pointer-events-none">
                               <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
