@@ -191,7 +191,7 @@ export default function HomeScreen() {
               return (
                 <button
                   key={plotter.id}
-                  onClick={() => navigate("/plotter", { state: { id: plotter.id } })}
+                  onClick={() => navigate("/plotter")}
                   className="flex items-center gap-3 w-full px-3 py-3 rounded-lg bg-[#0a0c10] hover:bg-slate-800/60 border border-slate-700/50 hover:border-blue-500/30 transition-colors group text-left"
                 >
                   <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
