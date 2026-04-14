@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getVersion } from "@tauri-apps/api/app";
 
 interface OpenedDocument {
   path: string;
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const [newName, setNewName] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [plotters] = useState<Plotter[]>(STUB_PLOTTERS);
+  const [version, setVersion] = useState<string>("");
 
   function refreshRecents() {
     invoke<string[]>("get_recent_files").then(setRecentFiles).catch(console.error);
@@ -83,6 +85,8 @@ export default function HomeScreen() {
       refreshRecents();
     }
   }
+
+  useEffect(() => { getVersion().then(setVersion); }, []);
 
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex overflow-hidden">
@@ -211,7 +215,7 @@ export default function HomeScreen() {
         </div>
 
         <div className="flex-1" />
-        <p className="px-6 py-4 text-xs text-slate-800">PenPlotter App</p>
+        <p className="px-6 py-4 text-xs text-slate-800">V {version}</p>
       </aside>
 
       {/* ── Main content ── */}
