@@ -32,7 +32,12 @@ export default function PlotterView({ position, activePenColor, onPositionChange
   const workspaceWidthMm = 185;
   const workspaceHeightMm = 265;
 
-  const viewBox = `${-BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} ${-BODY_BEAM_OVERSHOOT_TOP_MM} ${workspaceWidthMm + BODY_BEAM_MARGIN_MM * 2} ${workspaceHeightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM}`;
+  const view_box_x = -BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM;
+  const view_box_y = -BODY_BEAM_OVERSHOOT_TOP_MM;
+  const view_box_width = workspaceWidthMm + (BODY_BEAM_MARGIN_MM + BODY_BEAM_WIDTH_MM) * 2;
+  const view_box_height = workspaceHeightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM;
+
+  const viewBox = `${view_box_x} ${view_box_y} ${view_box_width} ${view_box_height}`;
 
   // Uses the SVG's own transform matrix so preserveAspectRatio letterboxing
   // is handled correctly — no manual rect math needed.
