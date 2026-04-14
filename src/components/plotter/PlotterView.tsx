@@ -6,27 +6,33 @@
 // clicking/dragging anywhere updates the head position (future manual control).
 
 import { useRef } from "react";
-import type { PlotterPosition } from "./types";
-import { BODY_MARGIN_MM } from "./types";
+import type { PlotterPosition } from "./dimensions";
+import {
+    BODY_BEAM_MARGIN_MM,
+    BODY_BEAM_WIDTH_MM,
+    BODY_BEAM_OVERSHOOT_TOP_MM,
+    BODY_FRONT_HEIGHT_MM,
+    BODY_FRONT_MARGIN_MM
+} from "./dimensions";
 import PlotterBody from "./PlotterBody";
 import XAxisBeam from "./XAxisBeam";
 import PlotterHead from "./PlotterHead";
 
 interface Props {
-  widthMm: number;
-  heightMm: number;
   position: PlotterPosition;
   activePenColor?: string;
   // Provide to enable drag-to-move manual control; omit for view-only
   onPositionChange?: (pos: PlotterPosition) => void;
 }
 
-export default function PlotterView({ widthMm, heightMm, position, activePenColor, onPositionChange }: Props) {
+export default function PlotterView({ position, activePenColor, onPositionChange }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
-  const m = BODY_MARGIN_MM;
-  const viewBox = `${-m} ${-m} ${widthMm + m * 2} ${heightMm + m * 2}`;
+  const workspaceWidthMm = 185;
+  const workspaceHeightMm = 265;
+
+  const viewBox = `${-BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} ${-BODY_BEAM_OVERSHOOT_TOP_MM} ${workspaceWidthMm + BODY_BEAM_MARGIN_MM * 2} ${workspaceHeightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM}`;
 
   // Uses the SVG's own transform matrix so preserveAspectRatio letterboxing
   // is handled correctly — no manual rect math needed.
@@ -38,8 +44,8 @@ export default function PlotterView({ widthMm, heightMm, position, activePenColo
     pt.y = clientY;
     const p = pt.matrixTransform(svg.getScreenCTM()!.inverse());
     return {
-      x: Math.max(0, Math.min(widthMm, p.x)),
-      y: Math.max(0, Math.min(heightMm, p.y)),
+      x: Math.max(0, Math.min(workspaceWidthMm, p.x)),
+      y: Math.max(0, Math.min(workspaceHeightMm, p.y)),
     };
   }
 
@@ -49,7 +55,6 @@ export default function PlotterView({ widthMm, heightMm, position, activePenColo
       viewBox={viewBox}
       preserveAspectRatio="xMidYMid meet"
       className="w-full h-full select-none"
-      style={{ cursor: onPositionChange ? "crosshair" : "default" }}
       onMouseDown={(e) => {
         if (!onPositionChange) return;
         dragging.current = true;
@@ -66,24 +71,13 @@ export default function PlotterView({ widthMm, heightMm, position, activePenColo
       onMouseLeave={() => { dragging.current = false; }}
     >
       {/* ── Z-layer 0: Static body (chassis + Y rails) ── */}
-      <PlotterBody widthMm={widthMm} heightMm={heightMm} />
+      <PlotterBody widthMm={workspaceWidthMm} heightMm={workspaceHeightMm} />
 
       {/* ── Z-layer 1: X-axis beam — travels along Y ── */}
-      <XAxisBeam widthMm={widthMm} yMm={position.y} />
+      <XAxisBeam widthMm={workspaceWidthMm} yMm={position.y} />
 
       {/* ── Z-layer 2: Head — travels along the beam ── */}
       <PlotterHead xMm={position.x} yMm={position.y} penColor={activePenColor} />
-
-      {/* ── Position readout overlay ── */}
-      <text
-        x={widthMm} y={heightMm + m * 0.65}
-        textAnchor="end"
-        fontSize={8}
-        fill="#334155"
-        fontFamily="monospace"
-      >
-        {position.x.toFixed(1)}, {position.y.toFixed(1)} mm
-      </text>
     </svg>
   );
 }

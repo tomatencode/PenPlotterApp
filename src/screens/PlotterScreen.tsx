@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScreenHeader from "../components/ScreenHeader";
 import PlotterView from "../components/plotter/PlotterView";
-import type { PlotterPosition } from "../components/plotter/types";
+import type { PlotterPosition } from "../components/plotter/dimensions";
 import { PENS } from "../components/document/types";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ const STUB_PLOTTER: PlotterDetails = {
 export default function PlotterScreen() {
   const navigate = useNavigate();
   const [plotter, setPlotter] = useState<PlotterDetails>(STUB_PLOTTER);
-  const [headPosition, _setHeadPosition] = useState<PlotterPosition>({ x: 0, y: 0 }); // wire _setHeadPosition to onPositionChange to enable drag control
+  const [headPosition, setHeadPosition] = useState<PlotterPosition>({ x: 0, y: 0 }); // wire _setHeadPosition to onPositionChange to enable drag control
   const [editingSlot, setEditingSlot] = useState<number | null>(null);
 
   const style = STATE_STYLES[plotter.state];
@@ -130,14 +130,12 @@ export default function PlotterScreen() {
 
         {/* ── Center: plotter graphic ── */}
         <main className="flex-1 flex flex-col overflow-hidden bg-[#0a0c10]">
-          {/* TODO: jog controls toolbar (home, step size, direction buttons) */}
+          {/* TODO: controls toolbar (home, Pen Up/Down) */}
           <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
             <PlotterView
-              widthMm={plotter.workspaceWidthMm}
-              heightMm={plotter.workspaceHeightMm}
               position={headPosition}
               activePenColor={activePen?.color}
-              // onPositionChange={setHeadPosition} — uncomment to enable drag-to-move
+              onPositionChange={setHeadPosition}
             />
           </div>
         </main>

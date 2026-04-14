@@ -5,7 +5,13 @@
 // The chassis extends BODY_MARGIN_MM beyond the workspace on all sides.
 // The Y-axis rails (which the X-axis beam slides along) are part of this component.
 
-import { BODY_MARGIN_MM } from "./types";
+import {
+    BODY_BEAM_MARGIN_MM,
+    BODY_BEAM_WIDTH_MM,
+    BODY_BEAM_OVERSHOOT_TOP_MM,
+    BODY_FRONT_MARGIN_MM,
+    BODY_FRONT_HEIGHT_MM
+} from "./dimensions";
 
 interface Props {
   widthMm: number;
@@ -13,17 +19,9 @@ interface Props {
 }
 
 export default function PlotterBody({ widthMm, heightMm }: Props) {
-  const m = BODY_MARGIN_MM;
 
   return (
     <g data-layer="body">
-      {/* Outer machine chassis */}
-      <rect
-        x={-m} y={-m}
-        width={widthMm + m * 2} height={heightMm + m * 2}
-        fill="#0d1017" stroke="#334155" strokeWidth={2} rx={6}
-      />
-
       {/* Workspace boundary (dashed) */}
       <rect
         x={0} y={0}
@@ -32,10 +30,17 @@ export default function PlotterBody({ widthMm, heightMm }: Props) {
       />
 
       {/* Left Y-axis rail */}
-      <rect x={-m} y={-m} width={m * 0.55} height={heightMm + m * 2} fill="#1e293b" rx={2} />
+      <rect x={-BODY_BEAM_MARGIN_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={heightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
 
       {/* Right Y-axis rail */}
-      <rect x={widthMm + m * 0.45} y={-m} width={m * 0.55} height={heightMm + m * 2} fill="#1e293b" rx={2} />
+      <rect x={widthMm + BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={heightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
+    
+      {/* machine front */}
+      <rect
+        x={-BODY_BEAM_MARGIN_MM} y={heightMm + BODY_FRONT_MARGIN_MM}
+        width={widthMm + BODY_BEAM_MARGIN_MM * 2} height={BODY_FRONT_HEIGHT_MM}
+        fill="#0d1017" stroke="#334155" strokeWidth={2} rx={6}
+      />
     </g>
   );
 }
