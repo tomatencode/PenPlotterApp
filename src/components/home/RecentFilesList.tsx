@@ -1,11 +1,33 @@
+import { useState } from "react";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
+
+interface ContextMenu {
+  x: number;
+  y: number;
+  filePath: string;
+}
+
 interface Props {
   files: string[];
   onOpen: (path: string) => void;
 }
 
 export default function RecentFilesList({ files, onOpen }: Props) {
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+
+  function handleContextMenu(e: React.MouseEvent, filePath: string) {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, filePath });
+  }
+
+  function handleReveal() {
+    if (!contextMenu) return;
+    revealItemInDir(contextMenu.filePath);
+    setContextMenu(null);
+  }
+
   return (
-    <main className="flex-1 flex flex-col overflow-hidden">
+    <main className="flex-1 flex flex-col overflow-hidden" onClick={() => setContextMenu(null)}>
       <div className="px-6 pt-6 pb-3 shrink-0">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Recent Files</p>
       </div>
@@ -17,6 +39,7 @@ export default function RecentFilesList({ files, onOpen }: Props) {
               <li key={filePath}>
                 <button
                   onClick={() => onOpen(filePath)}
+                  onContextMenu={(e) => handleContextMenu(e, filePath)}
                   className="w-full h-full text-left px-5 py-4 rounded-xl bg-[#111520] hover:bg-[#141926] border border-slate-700/50 hover:border-green-500/40 transition-colors group shadow-sm shadow-black/30"
                   title={filePath}
                 >
@@ -41,6 +64,24 @@ export default function RecentFilesList({ files, onOpen }: Props) {
           </div>
         )}
       </div>
+
+      {contextMenu && (
+        <div
+          className="fixed z-50 min-w-44 rounded-lg bg-[#1a1f2e] border border-slate-700/80 shadow-xl shadow-black/50"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleReveal}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors text-left"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+              <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H7l2 2h3.5A1.5 1.5 0 0 1 14 6.5V12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12V4.5z" />
+            </svg>
+            Reveal in File Explorer
+          </button>
+        </div>
+      )}
     </main>
   );
 }
