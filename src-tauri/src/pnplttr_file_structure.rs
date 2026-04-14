@@ -16,6 +16,38 @@ pub struct MetaSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct Layer {
+    pub name: String,
+    pub penid: String,
+    pub elements: Vec<Element>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PnplttrDocument {
+    pub meta: MetaSettings,
+    pub page: PageSettings,
+    pub layers: Vec<Layer>,
+}
+
+impl PnplttrDocument {
+    pub fn new_default(workspace_width: f64, workspace_height: f64) -> Self {
+        PnplttrDocument {
+            meta: MetaSettings {
+                created: chrono::Utc::now().to_rfc3339(),
+                doctype_version: 1,
+            },
+            page: PageSettings {
+                page_width: 210.0, // A4 default
+                page_height: 297.0, // A4 default
+                workspace_width,
+                workspace_height,
+            },
+            layers: vec![],
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub enum Element {
     Line {
@@ -59,29 +91,4 @@ pub struct CircleProps {
     pub cx: f64,
     pub cy: f64,
     pub r: f64,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PnplttrDocument {
-    pub meta: MetaSettings,
-    pub page: PageSettings,
-    pub elements: Vec<Element>,
-}
-
-impl PnplttrDocument {
-    pub fn new_default(workspace_width: f64, workspace_height: f64) -> Self {
-        PnplttrDocument {
-            meta: MetaSettings {
-                created: chrono::Utc::now().to_rfc3339(),
-                doctype_version: 1,
-            },
-            page: PageSettings {
-                page_width: 210.0, // A4 default
-                page_height: 297.0, // A4 default
-                workspace_width,
-                workspace_height,
-            },
-            elements: vec![],
-        }
-    }
 }
