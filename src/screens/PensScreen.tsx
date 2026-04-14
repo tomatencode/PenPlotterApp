@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ScreenHeader from "../components/ScreenHeader";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 interface PenPreset {
@@ -83,20 +84,7 @@ export default function PensScreen() {
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
 
-      {/* ── Header ── */}
-      <header className="flex items-center gap-3 px-5 py-3 bg-[#0d1017] border-b border-slate-700/60 shrink-0">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-blue-400 transition-colors px-2 py-1.5 rounded-md hover:bg-slate-800/70"
-        >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-            <path d="M10 3L5 8l5 5" />
-          </svg>
-          Home
-        </button>
-        <div className="w-px h-5 bg-slate-700/80" />
-        <span className="text-sm font-semibold text-gray-200">Pen Presets</span>
-        <div className="flex-1" />
+      <ScreenHeader onBack={() => navigate("/")} title="Pen Presets">
         <button
           onClick={openNewForm}
           className="flex items-center gap-2 px-4 py-1.5 bg-purple-700/80 hover:bg-purple-600/80 border border-purple-600/60 hover:border-purple-500 rounded-lg text-sm font-semibold text-purple-100 transition-colors"
@@ -106,7 +94,7 @@ export default function PensScreen() {
           </svg>
           New Pen
         </button>
-      </header>
+      </ScreenHeader>
 
       {/* ── Body ── */}
       <div className="flex-1 flex overflow-hidden">
