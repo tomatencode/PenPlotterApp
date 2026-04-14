@@ -4,7 +4,7 @@
 // xMm is its position along the beam; yMm matches the beam's Y position.
 // penColor comes from the active pen in the current slot.
 
-import { X_AXIS_BEAM_HEIGHT_MM, HEAD_WIDTH_MM, X_AXIS_TO_PEN_MM } from "./dimensions";
+import { X_AXIS_BEAM_HEIGHT_MM, HEAD_WIDTH_MM, X_AXIS_TO_PEN_MM, HEAD_PEN_COLOR_HINT_SIZE_MM } from "./dimensions";
 
 interface Props {
   xMm: number;
@@ -23,7 +23,7 @@ export default function PlotterHead({ xMm, yMm, penColor = "#94a3b8" }: Props) {
       />
 
       {/* Pen position dot */}
-      <circle cx={0} cy={0} r={X_AXIS_BEAM_HEIGHT_MM * 0.25} fill={penColor} />
+      <circle cx={0} cy={0} r={HEAD_PEN_COLOR_HINT_SIZE_MM/2} fill={penColor} />
     </g>
   );
 }
