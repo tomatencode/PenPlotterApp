@@ -88,14 +88,14 @@ export default function HomeScreen() {
     <div className="h-full bg-[#0a0c10] text-gray-100 flex overflow-hidden">
 
       {/* ── Left sidebar ── */}
-      <aside className="w-72 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto">
+      <aside className="w-75 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto">
 
         {/* Branding */}
         <div className="px-6 pt-7 pb-5">
-          <h1 className="text-xl font-bold tracking-tight bg-gradient-to-br from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent leading-tight">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-br from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent leading-tight">
             Pen Plotter<br />Interfacer
           </h1>
-          <p className="mt-1.5 text-xs text-slate-600">Create and manage your plotter documents</p>
+          <p className="mt-1.5 text-xs text-slate-600">Manage your plotter, create and edit documents</p>
         </div>
 
         <div className="h-px bg-slate-800 mx-4" />
