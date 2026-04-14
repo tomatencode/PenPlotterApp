@@ -6,6 +6,8 @@
 // The Y-axis rails (which the X-axis beam slides along) are part of this component.
 
 import {
+    WORKSPACE_WIDTH_MM,
+    WORKSPACE_HEIGHT_MM,
     BODY_BEAM_MARGIN_MM,
     BODY_BEAM_WIDTH_MM,
     BODY_BEAM_OVERSHOOT_TOP_MM,
@@ -13,27 +15,23 @@ import {
     BODY_FRONT_HEIGHT_MM
 } from "./dimensions";
 
-interface Props {
-  widthMm: number;
-  heightMm: number;
-}
 
-export default function PlotterBody({ widthMm, heightMm }: Props) {
+export default function PlotterBody() {
 
   return (
     <g data-layer="body">
       {/* Workspace boundary (dashed) */}
       <rect
         x={0} y={0}
-        width={widthMm} height={heightMm}
+        width={WORKSPACE_WIDTH_MM} height={WORKSPACE_HEIGHT_MM}
         fill="#0a0c10" stroke="#1e293b" strokeWidth={1} strokeDasharray="4 3"
       />
 
       {/* Left Y-axis rail */}
-      <rect x={-BODY_BEAM_MARGIN_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={heightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
+      <rect x={-BODY_BEAM_MARGIN_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
 
       {/* Right Y-axis rail */}
-      <rect x={widthMm + BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={heightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
+      <rect x={WORKSPACE_WIDTH_MM + BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
     
       {/* Machine front — U-shape open at the top (towards workspace)
             Outer corners are rounded (radius r).
@@ -43,8 +41,8 @@ export default function PlotterBody({ widthMm, heightMm }: Props) {
         */}
       {(() => {
         const x  = -BODY_BEAM_MARGIN_MM;
-        const y  = heightMm;
-        const w  = widthMm + BODY_BEAM_MARGIN_MM * 2;
+        const y  = WORKSPACE_HEIGHT_MM;
+        const w  = WORKSPACE_WIDTH_MM + BODY_BEAM_MARGIN_MM * 2;
         const h  = BODY_FRONT_HEIGHT_MM;
         const arm  = BODY_BEAM_WIDTH_MM;  // side leg width
         const base = h - BODY_FRONT_MARGIN_MM;                   // bottom crossbar thickness (mm)

@@ -8,6 +8,8 @@
 import { useRef } from "react";
 import type { PlotterPosition } from "./dimensions";
 import {
+    WORKSPACE_WIDTH_MM,
+    WORKSPACE_HEIGHT_MM,
     BODY_BEAM_MARGIN_MM,
     BODY_BEAM_WIDTH_MM,
     BODY_BEAM_OVERSHOOT_TOP_MM,
@@ -29,13 +31,10 @@ export default function PlotterView({ position, activePenColor, onPositionChange
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
-  const workspaceWidthMm = 185;
-  const workspaceHeightMm = 265;
-
   const view_box_x = -BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM;
   const view_box_y = -BODY_BEAM_OVERSHOOT_TOP_MM;
-  const view_box_width = workspaceWidthMm + (BODY_BEAM_MARGIN_MM + BODY_BEAM_WIDTH_MM) * 2;
-  const view_box_height = workspaceHeightMm + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM;
+  const view_box_width = WORKSPACE_WIDTH_MM + (BODY_BEAM_MARGIN_MM + BODY_BEAM_WIDTH_MM) * 2;
+  const view_box_height = WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM;
 
   const viewBox = `${view_box_x} ${view_box_y} ${view_box_width} ${view_box_height}`;
 
@@ -49,8 +48,8 @@ export default function PlotterView({ position, activePenColor, onPositionChange
     pt.y = clientY;
     const p = pt.matrixTransform(svg.getScreenCTM()!.inverse());
     return {
-      x: Math.max(0, Math.min(workspaceWidthMm, p.x)),
-      y: Math.max(0, Math.min(workspaceHeightMm, p.y)),
+      x: Math.max(0, Math.min(WORKSPACE_WIDTH_MM, p.x)),
+      y: Math.max(0, Math.min(WORKSPACE_HEIGHT_MM, p.y)),
     };
   }
 
@@ -76,13 +75,13 @@ export default function PlotterView({ position, activePenColor, onPositionChange
       onMouseLeave={() => { dragging.current = false; }}
     >
       {/* ── Z-layer 0: Static body (chassis + Y rails) ── */}
-      <PlotterBody widthMm={workspaceWidthMm} heightMm={workspaceHeightMm} />
+      <PlotterBody/>
 
       {/* ── Z-layer 1: X-axis beam — travels along Y ── */}
-      <XAxisBeam widthMm={workspaceWidthMm} yMm={position.y} />
+      <XAxisBeam yMm={position.y} />
 
       {/* ── Z-layer 2: Head — travels along the beam ── */}
       <PlotterHead xMm={position.x} yMm={position.y} penColor={activePenColor} />
     </svg>
-  );
+  ); 
 }
