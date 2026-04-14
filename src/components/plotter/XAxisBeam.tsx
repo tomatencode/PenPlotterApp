@@ -1,9 +1,3 @@
-// ── PLACEHOLDER — replace with your styled X-axis beam ───────────────────────
-// Rendered in SVG units where 1 unit = 1 mm.
-// Z layer: above PlotterBody, below PlotterHead.
-// The beam spans rail-to-rail across the full body width.
-// Its Y position is driven by the current head position — it slides along the Y rails.
-
 import {
   WORKSPACE_WIDTH_MM,
   BODY_BEAM_MARGIN_MM,

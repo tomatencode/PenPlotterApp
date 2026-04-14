@@ -19,11 +19,11 @@ interface Plotter {
 }
 
 const STATE_STYLES: Record<PlotterState, { dot: string; label: string; text: string }> = {
-  idle:    { dot: "bg-green-400",  label: "Idle",    text: "text-green-400"  },
+  idle: { dot: "bg-green-400", label: "Idle", text: "text-green-400" },
   running: { dot: "bg-blue-400 animate-pulse", label: "Running", text: "text-blue-400" },
-  paused:  { dot: "bg-yellow-400", label: "Paused",  text: "text-yellow-400" },
-  error:   { dot: "bg-red-500",    label: "Error",   text: "text-red-400"    },
-  offline: { dot: "bg-slate-600",  label: "Offline", text: "text-slate-500"  },
+  paused: { dot: "bg-yellow-400", label: "Paused", text: "text-yellow-400" },
+  error: { dot: "bg-red-500", label: "Error", text: "text-red-400" },
+  offline: { dot: "bg-slate-600", label: "Offline", text: "text-slate-500" },
 };
 
 // Placeholder plotters — replace with real fetch later

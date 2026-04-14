@@ -1,23 +1,15 @@
-// ── PLACEHOLDER — replace with your styled static body ───────────────────────
-// Rendered in SVG units where 1 unit = 1 mm.
-// This is the lowest Z layer; it never moves.
-// widthMm / heightMm are the workspace bounds.
-// The chassis extends BODY_MARGIN_MM beyond the workspace on all sides.
-// The Y-axis rails (which the X-axis beam slides along) are part of this component.
-
 import {
-    WORKSPACE_WIDTH_MM,
-    WORKSPACE_HEIGHT_MM,
-    BODY_BEAM_MARGIN_MM,
-    BODY_BEAM_WIDTH_MM,
-    BODY_BEAM_OVERSHOOT_TOP_MM,
-    BODY_FRONT_MARGIN_MM,
-    BODY_FRONT_HEIGHT_MM
+  WORKSPACE_WIDTH_MM,
+  WORKSPACE_HEIGHT_MM,
+  BODY_BEAM_MARGIN_MM,
+  BODY_BEAM_WIDTH_MM,
+  BODY_BEAM_OVERSHOOT_TOP_MM,
+  BODY_FRONT_MARGIN_MM,
+  BODY_FRONT_HEIGHT_MM
 } from "./dimensions";
 
 
 export default function PlotterBody() {
-
   return (
     <g data-layer="body">
       {/* Workspace boundary (dashed) */}
@@ -28,23 +20,24 @@ export default function PlotterBody() {
       />
 
       {/* Left Y-axis rail */}
-      <rect x={-BODY_BEAM_MARGIN_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
+      <rect x={-BODY_BEAM_MARGIN_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM / 2} fill="#1e293b" rx={2} />
 
       {/* Right Y-axis rail */}
-      <rect x={WORKSPACE_WIDTH_MM + BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM/2} fill="#1e293b" rx={2} />
-    
-      {/* Machine front — U-shape open at the top (towards workspace)
-            Outer corners are rounded (radius r).
-            arm  = wall thickness of each side leg
-            base = thickness of the bottom crossbar
-            Path goes clockwise from top-left outer corner
-        */}
+      <rect x={WORKSPACE_WIDTH_MM + BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={WORKSPACE_HEIGHT_MM + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM / 2} fill="#1e293b" rx={2} />
+
+      {/* 
+        Machine front — U-shape open at the top (towards workspace)
+        Outer corners are rounded (radius r).
+        arm  = wall thickness of each side leg
+        base = thickness of the bottom crossbar
+        Path goes clockwise from top-left outer corner
+      */}
       {(() => {
-        const x  = -BODY_BEAM_MARGIN_MM;
-        const y  = WORKSPACE_HEIGHT_MM;
-        const w  = WORKSPACE_WIDTH_MM + BODY_BEAM_MARGIN_MM * 2;
-        const h  = BODY_FRONT_HEIGHT_MM;
-        const arm  = BODY_BEAM_WIDTH_MM;  // side leg width
+        const x = -BODY_BEAM_MARGIN_MM;
+        const y = WORKSPACE_HEIGHT_MM;
+        const w = WORKSPACE_WIDTH_MM + BODY_BEAM_MARGIN_MM * 2;
+        const h = BODY_FRONT_HEIGHT_MM;
+        const arm = BODY_BEAM_WIDTH_MM;  // side leg width
         const base = h - BODY_FRONT_MARGIN_MM;                   // bottom crossbar thickness (mm)
         const d = [
           `M ${x}             ${y}`,                       // top-left outer

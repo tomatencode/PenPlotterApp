@@ -1,4 +1,4 @@
-// ── Plotter top-down view ─────────────────────────────────────────────────────
+// Plotter top-down view ─────────────────────────────────────────────────────
 // SVG coordinate system: 1 unit = 1 mm, origin at top-left of workspace.
 // Z ordering (bottom → top): PlotterBody → XAxisBeam → PlotterHead.
 //
@@ -39,7 +39,7 @@ export default function PlotterView({ position, activePenColor, onPositionChange
   const viewBox = `${view_box_x} ${view_box_y} ${view_box_width} ${view_box_height}`;
 
   // Uses the SVG's own transform matrix so preserveAspectRatio letterboxing
-  // is handled correctly — no manual rect math needed.
+  // is handled correctly, no manual rect math needed.
   function svgPoint(clientX: number, clientY: number): PlotterPosition | null {
     const svg = svgRef.current;
     if (!svg) return null;
@@ -74,13 +74,13 @@ export default function PlotterView({ position, activePenColor, onPositionChange
       onMouseUp={() => { dragging.current = false; }}
       onMouseLeave={() => { dragging.current = false; }}
     >
-      {/* ── Z-layer 0: Static body (chassis + Y rails) ── */}
+      {/* Z-layer 0: Static body (chassis + Y rails) */}
       <PlotterBody/>
 
-      {/* ── Z-layer 1: X-axis beam — travels along Y ── */}
+      {/* Z-layer 1: X-axis beam — travels along Y */}
       <XAxisBeam yMm={position.y} />
 
-      {/* ── Z-layer 2: Head — travels along the beam ── */}
+      {/* Z-layer 2: Head — travels along the beam */}
       <PlotterHead xMm={position.x} yMm={position.y} penColor={activePenColor} />
     </svg>
   ); 

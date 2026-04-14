@@ -1,4 +1,4 @@
-// ── Head position in workspace coordinates (mm) ──────────────────────────────
+// Head position in workspace coordinates (mm)
 export interface PlotterPosition {
   x: number; // mm from left edge of workspace
   y: number; // mm from top edge of workspace
