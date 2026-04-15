@@ -43,16 +43,7 @@ export const TOOLS: ToolDef[] = [
         <circle cx="8" cy="8" r="5.5" />
       </svg>
     ),
-  },
-  {
-    id: "text",
-    label: "Text",
-    icon: (
-      <svg viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-        <path d="M2 3.5A.5.5 0 0 1 2.5 3h11a.5.5 0 0 1 .5.5V5a.5.5 0 0 1-1 0V4H9v8.5a.5.5 0 0 1-1 0V4H4v1a.5.5 0 0 1-1 0V3.5z" />
-      </svg>
-    ),
-  },
+  }
 ];
 
 interface Props {

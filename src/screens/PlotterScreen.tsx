@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ScreenHeader from "../components/ScreenHeader";
 import PlotterView from "../components/plotter/PlotterView";
 import type { PlotterPosition } from "../components/plotter/dimensions";
-import { PENS } from "../components/document/types";
+import { PRESET_PENS } from "../components/document/types";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type PlotterState = "idle" | "running" | "paused" | "error" | "offline";
@@ -21,7 +21,7 @@ interface PlotterDetails {
   iteration: PlotterIteration;
   workspaceWidthMm: number;
   workspaceHeightMm: number;
-  penSlots: (string | null)[]; // penId or null per slot index
+  penSlots: (number | null)[]; // PRESET_PENS index or null per slot
 }
 
 const STATE_STYLES: Record<PlotterState, { dot: string; label: string; text: string; bg: string }> = {
@@ -42,7 +42,7 @@ const STUB_PLOTTER: PlotterDetails = {
   iteration: "V1",
   workspaceWidthMm: 185,
   workspaceHeightMm: 265,
-  penSlots: [PENS[0].id],
+  penSlots: [0],
 };
 
 export default function PlotterScreen() {
@@ -56,12 +56,12 @@ export default function PlotterScreen() {
   const slotCount = ITERATION_SLOTS[plotter.iteration];
 
   // The active pen is whichever is in slot 0 (will be driven by active layer later)
-  const activePen = PENS.find((p) => p.id === plotter.penSlots[0]) ?? null;
+  const activePen = plotter.penSlots[0] != null ? PRESET_PENS[plotter.penSlots[0]] ?? null : null;
 
-  function setSlotPen(slotIdx: number, penId: string | null) {
+  function setSlotPen(slotIdx: number, penIndex: number | null) {
     setPlotter((prev) => {
       const slots = [...prev.penSlots];
-      slots[slotIdx] = penId;
+      slots[slotIdx] = penIndex;
       return { ...prev, penSlots: slots };
     });
     setEditingSlot(null);
@@ -151,8 +151,8 @@ export default function PlotterScreen() {
 
           <ul className="flex flex-col gap-1 px-2 pb-2 overflow-y-auto flex-1">
             {Array.from({ length: slotCount }, (_, idx) => {
-              const penId = plotter.penSlots[idx] ?? null;
-              const pen = penId ? PENS.find((p) => p.id === penId) ?? null : null;
+              const penIndex = plotter.penSlots[idx] ?? null;
+              const pen = penIndex != null ? PRESET_PENS[penIndex] ?? null : null;
               const isOpen = editingSlot === idx;
               return (
                 <li key={idx} className="flex flex-col">
@@ -170,7 +170,7 @@ export default function PlotterScreen() {
                       {pen ? (
                         <>
                           <div className="w-4 h-4 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: pen.color }} />
-                          <span className="text-xs text-slate-300 truncate flex-1">{pen.label}</span>
+                          <span className="text-xs text-slate-300 truncate flex-1">{pen.name}</span>
                         </>
                       ) : (
                         <span className="text-xs text-slate-700 italic flex-1">Empty</span>
@@ -189,7 +189,7 @@ export default function PlotterScreen() {
                         <button
                           onClick={() => setSlotPen(idx, null)}
                           className={`w-full text-left px-3 py-2 rounded-md text-xs border transition-colors
-                            ${penId === null
+                            ${penIndex === null
                               ? "bg-[#0a0c10] border-slate-600/60 text-slate-400"
                               : "border-transparent hover:bg-slate-800/60 text-slate-600 hover:text-slate-400"
                             }`}
@@ -197,19 +197,19 @@ export default function PlotterScreen() {
                           Empty (no pen)
                         </button>
                       </li>
-                      {PENS.map((p) => (
-                        <li key={p.id}>
+                      {PRESET_PENS.map((p, i) => (
+                        <li key={i}>
                           <button
-                            onClick={() => setSlotPen(idx, p.id)}
+                            onClick={() => setSlotPen(idx, i)}
                             className={`w-full text-left px-3 py-2 rounded-md border transition-colors group/opt
-                              ${penId === p.id
+                              ${penIndex === i
                                 ? "bg-[#0a0c10] border-blue-500/40"
                                 : "border-transparent hover:bg-slate-800/60"
                               }`}
                           >
                             <div className="flex items-center gap-2">
                               <div className="w-3.5 h-3.5 rounded-full border border-white/10 shrink-0" style={{ backgroundColor: p.color }} />
-                              <span className="text-xs text-slate-300 truncate group-hover/opt:text-blue-300 transition-colors">{p.label}</span>
+                              <span className="text-xs text-slate-300 truncate group-hover/opt:text-blue-300 transition-colors">{p.name}</span>
                             </div>
                           </button>
                         </li>

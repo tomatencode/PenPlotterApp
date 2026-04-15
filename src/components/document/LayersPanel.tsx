@@ -1,21 +1,20 @@
-import type { Layer, Pen } from "./types";
+import type { Layer } from "./types";
+import { PRESET_PENS } from "./types";
 
 interface Props {
   layers: Layer[];
   activeLayerId: string;
-  pens: Pen[];
   onSetActiveLayerId: (id: string) => void;
   onAddLayer: () => void;
   onDeleteLayer: (id: string) => void;
   onMoveLayer: (id: string, direction: -1 | 1) => void;
-  onSetLayerPen: (id: string, penId: string) => void;
+  onSetLayerPen: (id: string, penIndex: number) => void;
   onRenameLayer: (id: string, name: string) => void;
 }
 
 export default function LayersPanel({
   layers,
   activeLayerId,
-  pens,
   onSetActiveLayerId,
   onAddLayer,
   onDeleteLayer,
@@ -43,8 +42,8 @@ export default function LayersPanel({
       <ul className="flex flex-col gap-1 px-2 overflow-y-auto pb-2">
         {[...layers].reverse().map((layer, reversedIdx) => {
           const idx = layers.length - 1 - reversedIdx;
-          const pen = pens.find((p) => p.id === layer.penId) ?? pens[0];
           const isActive = layer.id === activeLayerId;
+          const pen = layer.pen;
           return (
             <li key={layer.id}>
               <button
@@ -117,12 +116,12 @@ export default function LayersPanel({
                   <div className="mx-2 mt-1 mb-1">
                     <div className="relative">
                       <select
-                        value={layer.penId}
-                        onChange={(e) => onSetLayerPen(layer.id, e.target.value)}
+                        value={PRESET_PENS.findIndex((p) => p.name === pen.name && p.color === pen.color)}
+                        onChange={(e) => onSetLayerPen(layer.id, parseInt(e.target.value))}
                         className="w-full appearance-none pl-7 pr-6 py-1.5 rounded-md bg-[#111520] border border-slate-700/60 text-xs text-slate-300 outline-none focus:border-blue-500/50 cursor-pointer"
                       >
-                        {pens.map((p) => (
-                          <option key={p.id} value={p.id}>{p.label}</option>
+                        {PRESET_PENS.map((p, i) => (
+                          <option key={i} value={i}>{p.name}</option>
                         ))}
                       </select>
                       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0 absolute left-2 top-1/2 -translate-y-1/2" style={{ color: pen.color }}>
@@ -135,8 +134,8 @@ export default function LayersPanel({
                     </div>
                     {/* Stroke width hint */}
                     <div className="flex items-center gap-2 mt-1.5 px-1">
-                      <div className="rounded-full" style={{ width: 32, height: Math.max(1, pen.widthMm * 2), backgroundColor: pen.color, opacity: 0.6 }} />
-                      <span className="text-xs text-slate-700">{pen.widthMm} mm</span>
+                      <div className="rounded-full" style={{ width: 32, height: Math.max(1, pen.width * 2), backgroundColor: pen.color, opacity: 0.6 }} />
+                      <span className="text-xs text-slate-700">{pen.width} mm</span>
                     </div>
                   </div>
                 )}

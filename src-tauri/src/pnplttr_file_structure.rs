@@ -22,26 +22,78 @@ pub struct Pen {
     pub width: f64,
 }
 
+/// A single plotter command — one continuous pen-down move.
+/// All coordinates are in millimetres, absolute document space.
+///
+/// CANONICAL IMPLEMENTATION — if you change this, update the TypeScript
+/// mirror in src/utils/strokes.ts to match.
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+pub enum PlotterMove {
+    Line        { x2: f64, y2: f64 },
+    QuadBezier  { cx: f64, cy: f64, x2: f64, y2: f64 },
+    CubicBezier { cx1: f64, cy1: f64, cx2: f64, cy2: f64, x2: f64, y2: f64 },
+}
+
+/// A sequence of plotter moves preceded by a single pen-down at `start`.
+/// One Stroke = one contiguous drawn line. Multiple strokes = pen lifts between them.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Stroke {
+    pub start: (f64, f64),
+    pub moves: Vec<PlotterMove>,
+}
+
+/// A drawing element stored in the document.
+/// Each element carries a unique `id` (assigned by the frontend, not used by Rust logic).
+///
+/// CANONICAL IMPLEMENTATION — if you change this, update the TypeScript
+/// mirror in src/utils/strokes.ts to match.
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub enum Element {
-    Line {
-        x1: f64,
-        y1: f64,
-        x2: f64,
-        y2: f64,
-    },
-    Rect {
-        x: f64,
-        y: f64,
-        w: f64,
-        h: f64,
-    },
-    Circle {
-        cx: f64,
-        cy: f64,
-        r: f64,
-    },
+    Line   { id: String, x1: f64, y1: f64, x2: f64, y2: f64 },
+    Rect   { id: String, x: f64, y: f64, w: f64, h: f64 },
+    Circle { id: String, cx: f64, cy: f64, r: f64 },
+}
+
+impl Element {
+    /// Converts this element into plotter strokes.
+    /// CANONICAL IMPLEMENTATION — mirror in src/utils/strokes.ts must match.
+    pub fn to_strokes(&self) -> Vec<Stroke> {
+        match self {
+            // A Line: pen down at (x1,y1), one line move to (x2,y2).
+            Element::Line { x1, y1, x2, y2, .. } => vec![Stroke {
+                start: (*x1, *y1),
+                moves: vec![PlotterMove::Line { x2: *x2, y2: *y2 }],
+            }],
+
+            // A Rect: start top-left, go clockwise, close back to start.
+            Element::Rect { x, y, w, h, .. } => vec![Stroke {
+                start: (*x, *y),
+                moves: vec![
+                    PlotterMove::Line { x2: x + w, y2: *y       },
+                    PlotterMove::Line { x2: x + w, y2: y + h    },
+                    PlotterMove::Line { x2: *x,    y2: y + h    },
+                    PlotterMove::Line { x2: *x,    y2: *y       },
+                ],
+            }],
+
+            // A Circle: 4 cubic bezier arcs, clockwise from top (cx, cy-r).
+            // Approximation constant k = 0.5522847 gives a good circle.
+            Element::Circle { cx, cy, r, .. } => {
+                let k = 0.5522847 * r;
+                vec![Stroke {
+                    start: (*cx, cy - r),
+                    moves: vec![
+                        PlotterMove::CubicBezier { cx1: cx + k, cy1: cy - r, cx2: cx + r, cy2: cy - k, x2: cx + r, y2: *cy     },
+                        PlotterMove::CubicBezier { cx1: cx + r, cy1: cy + k, cx2: cx + k, cy2: cy + r, x2: *cx,    y2: cy + r  },
+                        PlotterMove::CubicBezier { cx1: cx - k, cy1: cy + r, cx2: cx - r, cy2: cy + k, x2: cx - r, y2: *cy     },
+                        PlotterMove::CubicBezier { cx1: cx - r, cy1: cy - k, cx2: cx - k, cy2: cy - r, x2: *cx,    y2: cy - r  },
+                    ],
+                }]
+            }
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
