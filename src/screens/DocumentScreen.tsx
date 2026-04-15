@@ -180,14 +180,17 @@ export default function DocumentScreen() {
       }
   }, [path, isSaving, docMeta, layers]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      // Ctrl+S / Cmd+S to save
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
         if (!isDirty) return;
         handleSave();
       }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedId) {
+      // Backspace to delete selected element
+      if ((e.key === "Backspace") && selectedId) {
         // Don't fire if the user is typing in an input/textarea
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         for (const layer of layers) {
