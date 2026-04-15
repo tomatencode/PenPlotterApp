@@ -42,20 +42,14 @@ function rectToStrokes(el: Extract<Element, { type: "Rect" }>): Stroke[] {
   }];
 }
 
-// A Circle is approximated as 4 cubic bezier strokes forming a closed loop.
-// Approximation constant k = 0.5522847 gives a good circle via cubic beziers.
-// Starts at the top (cx, cy - r) and goes clockwise: top→right→bottom→left→top.
-// This produces one stroke (no pen lift needed — the end connects to the start).
+// A Circle produces one stroke: two semicircle arcs (top→bottom, bottom→top).
+// A single SVG arc cannot draw a full circle because start and end XY would coincide.
 function circleToStrokes(el: Extract<Element, { type: "Circle" }>): Stroke[] {
-  const { cx, cy, r } = el;
-  const k = 0.5522847 * r;
   return [{
-    start: [cx, cy - r],
+    start: [el.cx, el.cy - el.r],
     moves: [
-      { type: "CubicBezier", cx1: cx + k, cy1: cy - r, cx2: cx + r, cy2: cy - k, x2: cx + r, y2: cy     },
-      { type: "CubicBezier", cx1: cx + r, cy1: cy + k, cx2: cx + k, cy2: cy + r, x2: cx,     y2: cy + r },
-      { type: "CubicBezier", cx1: cx - k, cy1: cy + r, cx2: cx - r, cy2: cy + k, x2: cx - r, y2: cy     },
-      { type: "CubicBezier", cx1: cx - r, cy1: cy - k, cx2: cx - k, cy2: cy - r, x2: cx,     y2: cy - r },
+      { type: "Arc", cx: el.cx, cy: el.cy, r: el.r, startAngle: -Math.PI / 2, endAngle:  Math.PI / 2 },
+      { type: "Arc", cx: el.cx, cy: el.cy, r: el.r, startAngle:  Math.PI / 2, endAngle:  Math.PI * 1.5 },
     ],
   }];
 }
@@ -102,6 +96,16 @@ export function strokeToSvgPath(stroke: Stroke): string {
       case "Line":
         parts.push(`L ${move.x2} ${move.y2}`);
         break;
+      case "Arc": {
+        // Normalise span into (0, 2π] so wrapping angles and full circles work correctly.
+        const span = (move.endAngle - move.startAngle + 2 * Math.PI) % (2 * Math.PI) || 2 * Math.PI;
+        const largeArcFlag = span > Math.PI ? 1 : 0;
+        const sweepFlag = 1; // Always clockwise
+        const endX = move.cx + move.r * Math.cos(move.endAngle);
+        const endY = move.cy + move.r * Math.sin(move.endAngle);
+        parts.push(`A ${move.r} ${move.r} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`);
+        break;
+      }
       case "QuadBezier":
         parts.push(`Q ${move.cx} ${move.cy} ${move.x2} ${move.y2}`);
         break;
