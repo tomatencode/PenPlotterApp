@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
   type Layer, type Element, type PnplttrDocument, type Tool,
-  newId, DEFAULT_PEN, PRESET_PENS,
+  newId, DEFAULT_PEN, PRESET_PENS, translateElement,
 } from "../components/document/types";
 import DocumentToolbar from "../components/document/DocumentToolbar";
 import ToolPalette from "../components/document/ToolPalette";
@@ -240,6 +240,13 @@ export default function DocumentScreen() {
           viewport={viewport}
           onAddElement={handleAddElement}
           onSelectElement={setSelectedId}
+          onMoveElement={(id, dx, dy) => {
+            const layer = layers.find(l => l.elements.some(el => el.id === id));
+            if (!layer) { console.log("element to move not found:", id); return; }
+            const el = layer.elements.find(e => e.id === id)!;
+            act({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
+            console.log("Move element", id, "by", dx, dy);
+          }}
           onViewportChange={setViewport}
         />
 

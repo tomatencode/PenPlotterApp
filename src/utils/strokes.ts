@@ -6,6 +6,7 @@
 
 export type PlotterMove =
   | { type: "Line";        x2: number; y2: number }
+  | { type: "Arc";         cx: number; cy: number; r: number; startAngle: number; endAngle: number }
   | { type: "QuadBezier";  cx: number; cy: number; x2: number; y2: number }
   | { type: "CubicBezier"; cx1: number; cy1: number; cx2: number; cy2: number; x2: number; y2: number };
 
@@ -65,6 +66,29 @@ export function elementToStrokes(el: Element): Stroke[] {
     case "Rect":   return rectToStrokes(el);
     case "Circle": return circleToStrokes(el);
   }
+}
+
+export function transformStroke(strokes: Stroke, dx: number, dy: number): Stroke {
+  return {
+    start: [strokes.start[0] + dx, strokes.start[1] + dy],
+    moves: strokes.moves.map(move => {
+      switch (move.type) {
+        case "Line":
+          return { type: "Line", x2: move.x2 + dx, y2: move.y2 + dy };
+        case "Arc":
+          return { type: "Arc", cx: move.cx + dx, cy: move.cy + dy, r: move.r, startAngle: move.startAngle, endAngle: move.endAngle };
+        case "QuadBezier":
+          return { type: "QuadBezier", cx: move.cx + dx, cy: move.cy + dy, x2: move.x2 + dx, y2: move.y2 + dy };
+        case "CubicBezier":
+          return {
+            type: "CubicBezier",
+            cx1: move.cx1 + dx, cy1: move.cy1 + dy,
+            cx2: move.cx2 + dx, cy2: move.cy2 + dy,
+            x2: move.x2 + dx,   y2: move.y2 + dy,
+          };
+      }
+    }),
+  };
 }
 
 // ── Stroke → SVG path string ──────────────────────────────────────────────────
