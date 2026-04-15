@@ -250,7 +250,7 @@ export default function DocumentScreen() {
           onViewportChange={setViewport}
         />
 
-        <aside className="w-60 shrink-0 flex flex-col bg-[#0d1017] border-l border-slate-700/60 overflow-hidden">
+        <aside className="w-60 shrink-0 flex-col bg-[#0d1017] border-l border-slate-700/60 overflow-hidden">
           <LayersPanel
             layers={layers}
             activeLayerId={activeLayerId}
