@@ -21,7 +21,7 @@ interface LocationState {
 
 // ── Layer reducer ─────────────────────────────────────────────────────────────
 
-type LayerAction =
+type DocAction =
   | { type: "ADD_ELEMENT";    layerId: string; element: Element }
   | { type: "DELETE_ELEMENT"; layerId: string; elementId: string }
   | { type: "UPDATE_ELEMENT"; layerId: string; element: Element }
@@ -32,72 +32,76 @@ type LayerAction =
   | { type: "RENAME_LAYER";   layerId: string; name: string }
   | { type: "SET_LAYERS";     layers: Layer[] };
 
-function layerReducer(layers: Layer[], action: LayerAction): Layer[] {
+function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
   switch (action.type) {
     case "ADD_ELEMENT":
-      return layers.map((l) =>
+      return { ...doc, layers: doc.layers.map((l) =>
         l.id === action.layerId
           ? { ...l, elements: [...l.elements, action.element] }
           : l
-      );
+      ) };
     case "DELETE_ELEMENT":
-      return layers.map((l) =>
+      return { ...doc, layers: doc.layers.map((l) =>
         l.id === action.layerId
           ? { ...l, elements: l.elements.filter((e) => e.id !== action.elementId) }
           : l
-      );
+      ) };
     case "UPDATE_ELEMENT":
-      return layers.map((l) =>
+      return { ...doc, layers: doc.layers.map((l) =>
         l.id === action.layerId
           ? { ...l, elements: l.elements.map((e) => e.id === action.element.id ? action.element : e) }
           : l
-      );
+      ) };
     case "ADD_LAYER":
-      return [...layers, action.layer];
+      return { ...doc, layers: [...doc.layers, action.layer] };
     case "DELETE_LAYER": {
-      if (layers.length === 1) return layers;
-      return layers.filter((l) => l.id !== action.layerId);
+      if (doc.layers.length === 1) return doc;
+      return { ...doc, layers: doc.layers.filter((l) => l.id !== action.layerId) };
     }
     case "MOVE_LAYER": {
-      const idx = layers.findIndex((l) => l.id === action.layerId);
+      const idx = doc.layers.findIndex((l) => l.id === action.layerId);
       const target = idx + action.direction;
-      if (target < 0 || target >= layers.length) return layers;
-      const next = [...layers];
+      if (target < 0 || target >= doc.layers.length) return doc;
+      const next = [...doc.layers];
       [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
+      return { ...doc, layers: next };
     }
     case "RENAME_LAYER":
-      return layers.map((l) =>
+      return { ...doc, layers: doc.layers.map((l) =>
         l.id === action.layerId ? { ...l, name: action.name || l.name } : l
-      );
+      ) };
     case "SET_LAYER_PEN":
-      return layers.map((l) =>
+      return { ...doc, layers: doc.layers.map((l) =>
         l.id === action.layerId ? { ...l, pen: PRESET_PENS[action.penIndex] ?? l.pen } : l
-      );
+      ) };
     case "SET_LAYERS":
-      return action.layers;
+      return { ...doc, layers: action.layers };
     default:
-      return layers;
+      return doc;
   }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function initialLayers(json: string): Layer[] {
+function initialDoc(json: string): PnplttrDocument {
   try {
     const doc = JSON.parse(json) as PnplttrDocument;
     if (doc.layers && doc.layers.length > 0) {
       // Assign UI ids to layers (not stored in file)
-      return doc.layers.map((l) => ({ ...l, id: newId() }));
+      return { ...doc, layers: doc.layers.map((l) => ({ ...l, id: newId() })) };
     }
   } catch { /* fall through */ }
-  return [{ id: newId(), name: "Layer 1", pen: { ...DEFAULT_PEN }, elements: [] }];
+
+  return { 
+    meta: { created: new Date().toISOString(), doctype_version: 1 },
+    page: { page_width: 210, page_height: 297, workspace_width: 210, workspace_height: 297 },
+    layers: [{id: newId(), name: "Layer 1", pen: { ...DEFAULT_PEN }, elements: []}] 
+  } as PnplttrDocument;
 }
 
-function docToJson(doc: PnplttrDocument, layers: Layer[]): string {
+function docToJson(doc: PnplttrDocument): string {
   // Strip the UI-only `id` from layers before saving
-  const saveLayers = layers.map(({ id: _id, ...rest }) => rest);
-  return JSON.stringify({ ...doc, layers: saveLayers }, null, 2);
+  return JSON.stringify(doc, null, 2);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -107,18 +111,8 @@ export default function DocumentScreen() {
   const navigate = useNavigate();
   const { json, path } = (location.state as LocationState) ?? { json: "{}", path: null };
 
-  const [docMeta] = useState<PnplttrDocument>(() => {
-    try {
-      let doc = JSON.parse(json) as PnplttrDocument;
-      // remove layers, these wuld be out of sync
-      doc.layers = [];
-      return doc;
-    } catch {
-      return {} as PnplttrDocument;
-    }
-  });
-  const [layers, dispatch] = useReducer(layerReducer, json, initialLayers);
-  const [activeLayerId, setActiveLayerId] = useState<string>(layers[0].id);
+  const [doc, dispatch] = useReducer(docReducer, json, initialDoc);
+  const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
   const [isDirty, setIsDirty] = useState(false);
@@ -127,10 +121,10 @@ export default function DocumentScreen() {
   // Initial viewport: centre the A4 page with a reasonable zoom
   const [viewport, setViewport] = useState<Viewport>({ zoom: 2, panX: 60, panY: 40 });
 
-  const activeLayer = layers.find((l) => l.id === activeLayerId) ?? layers[0];
+  const activeLayer = doc.layers.find((l) => l.id === activeLayerId) ?? doc.layers[0];
 
   // Wrap dispatch to also mark dirty
-  function act(action: LayerAction) {
+  function act(action: DocAction) {
     dispatch(action);
     setIsDirty(true);
   }
@@ -140,15 +134,15 @@ export default function DocumentScreen() {
   }, []);
 
   function addLayer() {
-    const layer: Layer = { id: newId(), name: `Layer ${layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
+    const layer: Layer = { id: newId(), name: `Layer ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
     act({ type: "ADD_LAYER", layer });
     setActiveLayerId(layer.id);
   }
 
   function deleteLayer(id: string) {
     if (activeLayerId === id) {
-      const idx = layers.findIndex((l) => l.id === id);
-      const next = layers.filter((l) => l.id !== id);
+      const idx = doc.layers.findIndex((l) => l.id === id);
+      const next = doc.layers.filter((l) => l.id !== id);
       setActiveLayerId(next[Math.max(0, idx - 1)].id);
     }
     act({ type: "DELETE_LAYER", layerId: id });
@@ -170,7 +164,7 @@ export default function DocumentScreen() {
     if (!path || isSaving) return;
       setIsSaving(true);
       try {
-        const content = docToJson(docMeta, layers);
+        const content = docToJson(doc);
         await invoke("save_document", { path, content });
         setIsDirty(false);
       } catch (e) {
@@ -178,7 +172,7 @@ export default function DocumentScreen() {
       } finally {
         setIsSaving(false);
       }
-  }, [path, isSaving, docMeta, layers]);
+  }, [path, isSaving, doc, doc.layers]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -193,7 +187,7 @@ export default function DocumentScreen() {
       if ((e.key === "Backspace") && selectedId) {
         // Don't fire if the user is typing in an input/textarea
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-        for (const layer of layers) {
+        for (const layer of doc.layers) {
           if (layer.elements.some((el) => el.id === selectedId)) {
             act({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
             setSelectedId(null);
@@ -208,10 +202,10 @@ export default function DocumentScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, isDirty, selectedId, layers]);
+  }, [handleSave, isDirty, selectedId, doc.layers]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
-  const totalElements = layers.reduce((n, l) => n + l.elements.length, 0);
+  const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
 
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
@@ -229,11 +223,11 @@ export default function DocumentScreen() {
         <ToolPalette activeTool={activeTool} onToolChange={setActiveTool} />
 
         <CanvasArea
-          pageWidth={docMeta.page.page_width ?? 210}
-          pageHeight={docMeta.page.page_height ?? 297}
-          workspaceWidth={docMeta.page.workspace_width ?? docMeta.page.page_width ?? 210}
-          workspaceHeight={docMeta.page.workspace_height ?? docMeta.page.page_height ?? 297}
-          layers={layers}
+          pageWidth={doc.page.page_width ?? 210}
+          pageHeight={doc.page.page_height ?? 297}
+          workspaceWidth={doc.page.workspace_width ?? doc.page.page_width ?? 210}
+          workspaceHeight={doc.page.workspace_height ?? doc.page.page_height ?? 297}
+          layers={doc.layers}
           activeLayerId={activeLayerId}
           activeTool={activeTool}
           selectedId={selectedId}
@@ -241,7 +235,7 @@ export default function DocumentScreen() {
           onAddElement={handleAddElement}
           onSelectElement={setSelectedId}
           onMoveElement={(id, dx, dy) => {
-            const layer = layers.find(l => l.elements.some(el => el.id === id));
+            const layer = doc.layers.find(l => l.elements.some(el => el.id === id));
             if (!layer) { console.log("element to move not found:", id); return; }
             const el = layer.elements.find(e => e.id === id)!;
             act({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
@@ -252,7 +246,7 @@ export default function DocumentScreen() {
 
         <aside className="w-60 shrink-0 flex-col bg-[#0d1017] border-l border-slate-700/60 overflow-hidden">
           <LayersPanel
-            layers={layers}
+            layers={doc.layers}
             activeLayerId={activeLayerId}
             onSetActiveLayerId={setActiveLayerId}
             onAddLayer={addLayer}
@@ -265,7 +259,7 @@ export default function DocumentScreen() {
           <div className="h-px bg-slate-800 mx-3 shrink-0" />
 
           <PropertiesPanel
-            layers={layers}
+            layers={doc.layers}
             selectedId={selectedId}
             onUpdateElement={(layerId, el) => act({ type: "UPDATE_ELEMENT", layerId, element: el })}
             onDeleteElement={(layerId, elementId) => {
