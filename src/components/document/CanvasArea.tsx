@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { Element, Layer, Tool } from "./types";
+import type { Element, PnplttrDocument, Layer, Tool } from "./types";
 import { newId } from "./types";
 import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
 
@@ -41,11 +41,7 @@ function ghostToElement(g: Ghost): Element {
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  pageWidth: number;
-  pageHeight: number;
-  workspaceWidth: number;
-  workspaceHeight: number;
-  layers: Layer[];
+  doc: PnplttrDocument;
   activeLayerId: string;
   activeTool: Tool;
   selectedId: string | null;
@@ -59,11 +55,7 @@ interface Props {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CanvasArea({
-  pageWidth,
-  pageHeight,
-  workspaceWidth,
-  workspaceHeight,
-  layers,
+  doc,
   activeLayerId,
   activeTool,
   selectedId,
@@ -212,7 +204,7 @@ export default function CanvasArea({
   }, [viewport, onViewportChange]);
 
   // All element strokes across all layers, for rendering
-  const allLayers = layers.map((layer) => ({
+  const allLayers = doc.layers.map((layer) => ({
     layer,
     strokes: layer.elements.flatMap((el) =>
       elementToStrokes(el).map((s) => ({ stroke: s, elementId: el.id }))
@@ -245,7 +237,7 @@ export default function CanvasArea({
       >
         <g transform={transform}>
           {/* Paper */}
-          <rect x={0} y={0} width={pageWidth} height={pageHeight} fill="#c4c7cf" />
+          <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height} fill="#c4c7cf" />
 
           {/* Committed elements, one <path> per stroke */}
           {allLayers.map(({ layer, strokes }) =>
@@ -307,8 +299,8 @@ export default function CanvasArea({
           <rect
             x={0}
             y={0}
-            width={pageWidth}
-            height={pageHeight}
+            width={doc.page.page_width}
+            height={doc.page.page_height}
             fill="none"
             stroke="#475569"
             strokeWidth={0.5 / viewport.zoom}
@@ -316,10 +308,10 @@ export default function CanvasArea({
 
           {/* Workspace border */}
           <rect
-            x={pageWidth / 2 - workspaceWidth / 2}
-            y={pageHeight / 2 - workspaceHeight / 2}
-            width={workspaceWidth}
-            height={workspaceHeight}
+            x={doc.page.page_width / 2 - doc.page.workspace_width / 2}
+            y={doc.page.page_height / 2 - doc.page.workspace_height / 2}
+            width={doc.page.workspace_width}
+            height={doc.page.workspace_height}
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"

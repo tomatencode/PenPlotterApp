@@ -223,11 +223,7 @@ export default function DocumentScreen() {
         <ToolPalette activeTool={activeTool} onToolChange={setActiveTool} />
 
         <CanvasArea
-          pageWidth={doc.page.page_width}
-          pageHeight={doc.page.page_height}
-          workspaceWidth={doc.page.workspace_width}
-          workspaceHeight={doc.page.workspace_height}
-          layers={doc.layers}
+          doc={doc}
           activeLayerId={activeLayerId}
           activeTool={activeTool}
           selectedId={selectedId}
