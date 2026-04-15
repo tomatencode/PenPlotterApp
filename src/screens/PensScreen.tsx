@@ -226,15 +226,31 @@ export default function PensScreen() {
               <div>
                 <label className="block text-xs text-slate-500 uppercase tracking-widest mb-1.5">Tip Width</label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0.1"
-                    max="10"
-                    step="0.1"
-                    value={formWidth}
-                    onChange={(e) => setFormWidth(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#0a0c10] border border-slate-700/60 focus:border-purple-500/60 outline-none text-sm text-gray-100"
-                  />
+                  <div className="flex items-center flex-1 rounded-lg bg-[#0a0c10] border border-slate-700/60 focus-within:border-purple-500/60 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setFormWidth((v) => String(Math.max(0.1, Math.round((parseFloat(v || "0") - 0.1) * 10) / 10)))}
+                      className="px-2.5 py-2 text-slate-500 hover:text-slate-200 hover:bg-slate-700/40 rounded-xl transition-colors select-none text-base leading-none"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number" 
+                      min="0.1"
+                      max="10"
+                      step="0.1"
+                      value={formWidth}
+                      onChange={(e) => setFormWidth(e.target.value)}
+                      className="flex-1 py-2 bg-transparent outline-none text-sm text-gray-100 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormWidth((v) => String(Math.min(10, Math.round((parseFloat(v || "0") + 0.1) * 10) / 10)))}
+                      className="px-2.5 py-2 text-slate-500 hover:text-slate-200 hover:bg-slate-700/40 rounded-xl transition-colors select-none text-base leading-none"
+                    >
+                      +
+                    </button>
+                  </div>
                   <span className="text-xs text-slate-500 shrink-0">mm</span>
                 </div>
               </div>
