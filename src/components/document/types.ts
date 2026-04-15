@@ -49,11 +49,11 @@ export const DEFAULT_PEN: Pen = { name: "Black 0.3 mm", color: "#e2e8f0", width:
 
 // Preset pens shown in the layer pen picker
 export const PRESET_PENS: Pen[] = [
-  { name: "Black 0.3 mm",  color: "#e2e8f0", width: 0.3 },
-  { name: "Black 0.5 mm",  color: "#e2e8f0", width: 0.5 },
-  { name: "Blue 0.3 mm",   color: "#60a5fa", width: 0.3 },
-  { name: "Green 0.5 mm",  color: "#4ade80", width: 0.5 },
-  { name: "Red 0.5 mm",    color: "#f87171", width: 0.5 },
+  { name: "Black 0.3 mm",  color: "#1f1f1f", width: 0.3 },
+  { name: "Black 1.2 mm",  color: "#1f1f1f", width: 1.2 },
+  { name: "Blue 0.8 mm",   color: "#60a5fa", width: 0.8 },
+  { name: "Green 1.0 mm",  color: "#4ade80", width: 1.0 },
+  { name: "Red 1.5 mm",    color: "#f87171", width: 1.5 },
   { name: "Purple 0.8 mm", color: "#c084fc", width: 0.8 },
 ];
 
