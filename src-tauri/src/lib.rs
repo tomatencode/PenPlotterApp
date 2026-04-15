@@ -1,4 +1,4 @@
-mod document;
+mod file_actions;
 pub mod pnplttr_file_structure;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -8,12 +8,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            document::get_recent_files,
-            document::remove_recent_file,
-            document::get_documents_dir,
-            document::create_document,
-            document::open_document,
-            document::save_document,
+            file_actions::get_recent_files,
+            file_actions::remove_recent_file,
+            file_actions::get_documents_dir,
+            file_actions::create_document,
+            file_actions::open_document,
+            file_actions::save_document,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
