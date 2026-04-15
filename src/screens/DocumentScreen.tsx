@@ -201,6 +201,10 @@ export default function DocumentScreen() {
           }
         }
       }
+      // Escape to switch to select tool
+      if (e.key === "Escape") {
+        setActiveTool("select");
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
