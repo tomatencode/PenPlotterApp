@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { Element, PnplttrDocument, Layer, Tool } from "./types";
+import type { Element, PnplttrDocument, Tool } from "./types";
 import { newId } from "./types";
 import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
 
@@ -307,18 +307,20 @@ export default function CanvasArea({
           />
 
           {/* Workspace border */}
-          <rect
-            x={doc.page.page_width / 2 - doc.page.workspace_width / 2}
-            y={doc.page.page_height / 2 - doc.page.workspace_height / 2}
-            width={doc.page.workspace_width}
-            height={doc.page.workspace_height}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            stroke="#ee503b"
-            strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
-            strokeWidth={1 / viewport.zoom}
-          />
+          {(doc.page.page_width >= doc.page.workspace_width || doc.page.page_height >= doc.page.workspace_height) && (
+            <rect
+              x={doc.page.page_width / 2 - doc.page.workspace_width / 2}
+              y={doc.page.page_height / 2 - doc.page.workspace_height / 2}
+              width={doc.page.workspace_width}
+              height={doc.page.workspace_height}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              stroke="#ee503b"
+              strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
+              strokeWidth={1 / viewport.zoom}
+            />
+          )}
         </g>
       </svg>
 

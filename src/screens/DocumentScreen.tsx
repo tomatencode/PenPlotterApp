@@ -2,13 +2,14 @@ import { useReducer, useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  type Layer, type Element, type PnplttrDocument, type Tool,
+  type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings,
   newId, DEFAULT_PEN, PRESET_PENS, translateElement,
 } from "../components/document/types";
 import DocumentToolbar from "../components/document/DocumentToolbar";
 import ToolPalette from "../components/document/ToolPalette";
 import CanvasArea, { type Viewport } from "../components/document/CanvasArea";
 import LayersPanel from "../components/document/LayersPanel";
+import PagePanel from "../components/document/PagePanel";
 import PropertiesPanel from "../components/document/PropertiesPanel";
 import DocumentStatusBar from "../components/document/DocumentStatusBar";
 
@@ -30,7 +31,8 @@ type DocAction =
   | { type: "MOVE_LAYER";     layerId: string; direction: -1 | 1 }
   | { type: "SET_LAYER_PEN";  layerId: string; penIndex: number }
   | { type: "RENAME_LAYER";   layerId: string; name: string }
-  | { type: "SET_LAYERS";     layers: Layer[] };
+  | { type: "SET_LAYERS";     layers: Layer[] }
+  | { type: "UPDATE_PAGE";    page: PageSettings };
 
 function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
   switch (action.type) {
@@ -76,6 +78,8 @@ function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
       ) };
     case "SET_LAYERS":
       return { ...doc, layers: action.layers };
+    case "UPDATE_PAGE":
+      return { ...doc, page: action.page };
     default:
       return doc;
   }
@@ -241,6 +245,13 @@ export default function DocumentScreen() {
         />
 
         <aside className="w-60 shrink-0 flex-col bg-[#0d1017] border-l border-slate-700/60 overflow-hidden">
+          <PagePanel
+            page={doc.page}
+            onUpdatePage={(page) => act({ type: "UPDATE_PAGE", page })}
+          />
+
+          <div className="h-px bg-slate-800 mx-3 shrink-0" />
+
           <LayersPanel
             layers={doc.layers}
             activeLayerId={activeLayerId}
