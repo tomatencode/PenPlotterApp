@@ -123,7 +123,18 @@ export default function DocumentScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Initial viewport: centre the A4 page with a reasonable zoom
-  const [viewport, setViewport] = useState<Viewport>({ zoom: 2, panX: 60, panY: 40 });
+  const [viewport, setViewport] = useState<Viewport>(() => {
+    const width = window.innerWidth - 60 - 300; // minus side panels
+    const height = window.innerHeight - 64 - 24; // minus toolbar and status bar
+    const pageW = doc.page.page_width;
+    const pageH = doc.page.page_height;
+    const zoom = Math.min(width / pageW, height / pageH) * 0.85;
+    return {
+      zoom,
+      panX: (width  - pageW * zoom) / 2,
+      panY: (height - pageH * zoom) / 2,
+    }
+  });
 
   const activeLayer = doc.layers.find((l) => l.id === activeLayerId) ?? doc.layers[0];
 
