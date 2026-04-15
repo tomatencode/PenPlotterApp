@@ -10,9 +10,10 @@ interface ContextMenu {
 interface Props {
   files: string[];
   onOpen: (path: string) => void;
+  onRemoveRecent: (path: string) => void;
 }
 
-export default function RecentFilesList({ files, onOpen }: Props) {
+export default function RecentFilesList({ files, onOpen, onRemoveRecent }: Props) {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
 
   function handleContextMenu(e: React.MouseEvent, filePath: string) {
@@ -79,6 +80,21 @@ export default function RecentFilesList({ files, onOpen }: Props) {
               <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H7l2 2h3.5A1.5 1.5 0 0 1 14 6.5V12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12V4.5z" />
             </svg>
             Reveal in File Explorer
+          </button>
+          <button
+            onClick={() => {
+              if (contextMenu) {
+                onRemoveRecent(contextMenu.filePath);
+                setContextMenu(null);
+              }
+            }}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors text-left"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <line x1="3" y1="13" x2="13" y2="3" />
+            </svg>
+            Remove from Recent
           </button>
         </div>
       )}

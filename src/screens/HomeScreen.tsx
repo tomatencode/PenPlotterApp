@@ -27,6 +27,13 @@ export default function HomeScreen() {
     invoke<string[]>("get_recent_files").then(setRecentFiles).catch(console.error);
   }
 
+  function handleRemoveRecent(path: string) {
+    invoke("remove_recent_file", { filePath: path })
+      .then(() => setRecentFiles((files) => files.filter((f) => f !== path)))
+      .catch(console.error);
+    refreshRecents();
+  }
+
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
@@ -127,7 +134,7 @@ export default function HomeScreen() {
         <p className="px-6 py-4 text-xs text-slate-800">V {version}</p>
       </aside>
 
-      <RecentFilesList files={recentFiles} onOpen={handleOpenRecent} />
+      <RecentFilesList files={recentFiles} onOpen={handleOpenRecent} onRemoveRecent={handleRemoveRecent} />
     </div>
   );
 }

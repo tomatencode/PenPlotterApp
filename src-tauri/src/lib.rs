@@ -9,6 +9,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             document::get_recent_files,
+            document::remove_recent_file,
             document::get_documents_dir,
             document::create_document,
             document::open_document,

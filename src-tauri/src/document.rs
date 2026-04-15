@@ -50,6 +50,12 @@ pub fn push_recent(app: &AppHandle, file_path: &str) {
     save_recent_files(app, &recents);
 }
 
+pub fn remove_recent(app: &AppHandle, file_path: &str) {
+    let mut recents = load_recent_files(app);
+    recents.retain(|p| p != file_path);
+    save_recent_files(app, &recents);
+}
+
 // Return type
 
 #[derive(Serialize)]
@@ -63,6 +69,11 @@ pub struct OpenedDocument {
 #[tauri::command]
 pub fn get_recent_files(app: AppHandle) -> Vec<String> {
     load_recent_files(&app)
+}
+
+#[tauri::command]
+pub fn remove_recent_file(app: AppHandle, file_path: String) {
+    remove_recent(&app, &file_path);
 }
 
 #[tauri::command]
