@@ -225,9 +225,17 @@ export default function CanvasArea({
 
   return (
     <main className={`flex-1 overflow-hidden bg-[#0a0c10] relative ${cursorClass}`}>
+      {/* Grid backdrop */}
+      <div
+        className="absolute inset-0 opacity-[0.06] pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      />
       <svg
         ref={svgRef}
-        className="w-full h-full"
+        className="relative z-[1] w-full h-full"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -237,7 +245,7 @@ export default function CanvasArea({
       >
         <g transform={transform}>
           {/* Paper */}
-          <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height} fill="#c4c7cf" />
+          <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height} fill="#e8eaf1" />
 
           {/* Committed elements, one <path> per stroke */}
           {allLayers.map(({ layer, strokes }) =>
@@ -316,22 +324,13 @@ export default function CanvasArea({
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
-              stroke="#ee503b"
+              stroke="#eea03b"
               strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
               strokeWidth={1 / viewport.zoom}
             />
           )}
         </g>
       </svg>
-
-      {/* Grid backdrop */}
-      <div
-        className="absolute inset-0 opacity-[0.06] pointer-events-none"
-        style={{
-          backgroundImage: "linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
     </main>
   );
 }
