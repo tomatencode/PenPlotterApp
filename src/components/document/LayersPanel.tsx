@@ -1,4 +1,6 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { HexColorPicker } from "react-colorful";
 import type { Layer, Pen } from "./types";
 
 interface Props {
@@ -22,7 +24,22 @@ export default function LayersPanel({
   onSetLayerPen,
   onRenameLayer,
 }: Props) {
-  const colorInputRef = useRef<HTMLInputElement>(null);
+  const [pickerOpenId, setPickerOpenId] = useState<string | null>(null);
+  const [pickerPos, setPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const swatchRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)
+          && swatchRef.current && !swatchRef.current.contains(e.target as Node)) {
+        setPickerOpenId(null);
+      }
+    }
+    if (pickerOpenId) document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [pickerOpenId]);
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
@@ -118,20 +135,33 @@ export default function LayersPanel({
                     {/* Color row */}
                     <div className="flex items-center gap-2">
                       <button
+                        ref={swatchRef}
                         title="Pick color"
                         className="w-5 h-5 rounded-full shrink-0 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         style={{ backgroundColor: pen.color }}
-                        onClick={() => colorInputRef.current?.click()}
-                      />
-                      <input
-                        ref={colorInputRef}
-                        type="color"
-                        value={pen.color}
-                        onChange={(e) => onSetLayerPen(layer.id, { ...pen, color: e.target.value })}
-                        className="sr-only"
+                        onClick={(e) => {
+                          if (pickerOpenId === layer.id) { setPickerOpenId(null); return; }
+                          const r = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                          setPickerPos({ top: r.bottom + 6, left: r.left });
+                          setPickerOpenId(layer.id);
+                        }}
                       />
                       <span className="text-xs text-slate-500 font-mono">{pen.color}</span>
                     </div>
+                    {pickerOpenId === layer.id && createPortal(
+                      <div
+                        ref={pickerRef}
+                        style={{ position: "fixed", top: pickerPos.top, left: pickerPos.left, zIndex: 9999 }}
+                        className="rounded-lg overflow-hidden shadow-xl shadow-black/60 border border-slate-700/60"
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <HexColorPicker
+                          color={pen.color}
+                          onChange={(c) => onSetLayerPen(layer.id, { ...pen, color: c })}
+                        />
+                      </div>,
+                      document.body
+                    )}
                     {/* Width row */}
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-500">Stroke</span>

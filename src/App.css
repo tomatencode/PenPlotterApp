@@ -36,3 +36,28 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* react-colorful — compact dark theme */
+.react-colorful {
+  width: 180px !important;
+  height: 180px !important;
+  background: #0d1017;
+  padding: 10px;
+  gap: 8px;
+}
+
+.react-colorful__saturation {
+  border-radius: 6px !important;
+  border-bottom: none !important;
+}
+
+.react-colorful__hue {
+  border-radius: 4px !important;
+  height: 10px !important;
+}
+
+.react-colorful__pointer {
+  width: 14px !important;
+  height: 14px !important;
+  border-width: 2px !important;
+}
