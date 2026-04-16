@@ -151,6 +151,17 @@ export default function DocumentScreen() {
     setDocHistory((h) => [...h, docRef.current]);
   }, []);
 
+  const handleUndo = useCallback(() => {
+    if (docHistory.length <= 1) return;
+    const prev = (docHistory[docHistory.length - 1] !== docRef.current) ?
+      docHistory[docHistory.length - 1] : docHistory[docHistory.length - 2];
+
+    dispatch({ type: "SET_LAYERS", layers: prev.layers });
+    dispatch({ type: "UPDATE_PAGE", page: prev.page });
+    setDocHistory(docHistory.slice(0, -1));
+    setIsDirty(true);
+  }, [docHistory, dispatch, docRef]);
+
   const handleAddElement = useCallback((layerId: string, el: Element) => {
     recordHistory();
     act({ type: "ADD_ELEMENT", layerId, element: el });
@@ -226,15 +237,7 @@ export default function DocumentScreen() {
       // Ctrl+Z / Cmd+Z to undo
       if ((e.ctrlKey || e.metaKey) && e.key === "z") {
         e.preventDefault();
-        if (docHistory.length <= 1) return;
-
-        const prev = (docHistory[docHistory.length - 1] !== docRef.current) ?
-          docHistory[docHistory.length - 1] : docHistory[docHistory.length - 2];
-
-        dispatch({ type: "SET_LAYERS", layers: prev.layers });
-        dispatch({ type: "UPDATE_PAGE", page: prev.page });
-        setDocHistory(docHistory.slice(0, -1));
-        setIsDirty(true);
+        handleUndo();
       }
 
       // Backspace to delete selected element
@@ -256,7 +259,7 @@ export default function DocumentScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, isDirty, selectedId, docRef, docHistory]);
+  }, [handleSave, handleUndo, isDirty, selectedId, docRef, docHistory]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
   const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
@@ -267,6 +270,8 @@ export default function DocumentScreen() {
         fileName={fileName}
         path={path}
         isDirty={isDirty}
+        canUndo={docHistory.length > 1}
+        onUndo={handleUndo}
         isSaving={isSaving}
         onBack={() => navigate("/")}
         onSave={handleSave}

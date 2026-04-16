@@ -5,14 +5,27 @@ interface Props {
   path: string | null;
   isDirty: boolean;
   isSaving: boolean;
+  canUndo: boolean;
+  onUndo: () => void;
   onBack: () => void;
   onSave: () => void;
   onExport: () => void;
 }
 
-export default function DocumentToolbar({ fileName, path, isDirty, isSaving, onBack, onSave, onExport }: Props) {
+export default function DocumentToolbar({ fileName, path, isDirty, isSaving, canUndo, onUndo, onBack, onSave, onExport }: Props) {
   return (
     <ScreenHeader onBack={onBack} title={`${fileName}${isDirty ? " ●" : ""}`} subtitle={path ?? undefined}>
+      <button
+        onClick={onUndo}
+        disabled={!canUndo}
+        className="flex items-center gap-2 px-4 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-sm font-semibold text-slate-200 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+          <path d="M2 6h7a4 4 0 0 1 0 8H6" />
+          <polyline points="5 3 2 6 5 9" />
+        </svg>
+        Undo
+      </button>
       <button
         onClick={onSave}
         disabled={!isDirty || isSaving || !path}
@@ -24,7 +37,7 @@ export default function DocumentToolbar({ fileName, path, isDirty, isSaving, onB
           <rect x="5" y="9" width="6" height="4" />
           <rect x="5" y="3" width="4" height="3" />
         </svg>
-        {isSaving ? "Saving…" : "Save"}
+        {isSaving ? "Saving" : "Save"}
       </button>
       <button
         onClick={onExport}
