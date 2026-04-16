@@ -329,7 +329,6 @@ export default function DocumentScreen() {
 
       <DocumentStatusBar
         activeTool={activeTool}
-        activeLayerPen={activeLayer.pen}
         zoom={viewport.zoom}
         totalElements={totalElements}
       />
