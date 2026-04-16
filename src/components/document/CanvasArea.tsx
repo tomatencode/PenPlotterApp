@@ -327,24 +327,22 @@ export default function CanvasArea({
             height={doc.page.page_height}
             fill="none"
             stroke="#475569"
-            strokeWidth={0.5 / viewport.zoom}
+            strokeWidth={1 / viewport.zoom}
           />
 
           {/* Workspace border */}
-          {(doc.page.page_width >= doc.page.workspace_width || doc.page.page_height >= doc.page.workspace_height) && (
-            <rect
-              x={doc.page.page_width / 2 - doc.page.workspace_width / 2}
-              y={doc.page.page_height / 2 - doc.page.workspace_height / 2}
-              width={doc.page.workspace_width}
-              height={doc.page.workspace_height}
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              stroke="#eea03b"
-              strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
-              strokeWidth={1 / viewport.zoom}
-            />
-          )}
+          <rect
+            x={Math.max(doc.page.page_width / 2 - doc.page.workspace_width / 2, 0)}
+            y={Math.max(doc.page.page_height / 2 - doc.page.workspace_height / 2, 0)}
+            width={Math.min(doc.page.workspace_width, doc.page.page_width)}
+            height={Math.min(doc.page.workspace_height, doc.page.page_height)}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            stroke="#eea03b"
+            strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
+            strokeWidth={1 / viewport.zoom}
+          />
         </g>
       </svg>
     </main>
