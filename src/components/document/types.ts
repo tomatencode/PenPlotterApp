@@ -4,7 +4,6 @@
 // Canonical source of truth: Rust. If you change one, change the other.
 
 export interface Pen {
-  name: string;
   color: string;
   width: number; // mm
 }
@@ -45,17 +44,7 @@ export function newId(): string {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export const DEFAULT_PEN: Pen = { name: "Black 0.3 mm", color: "#e2e8f0", width: 0.3 };
-
-// Preset pens shown in the layer pen picker
-export const PRESET_PENS: Pen[] = [
-  { name: "Black 0.3 mm",  color: "#1f1f1f", width: 0.3 },
-  { name: "Black 1.2 mm",  color: "#1f1f1f", width: 1.2 },
-  { name: "Blue 0.8 mm",   color: "#60a5fa", width: 0.8 },
-  { name: "Green 1.0 mm",  color: "#4ade80", width: 1.0 },
-  { name: "Red 1.5 mm",    color: "#f87171", width: 1.5 },
-  { name: "Purple 0.8 mm", color: "#c084fc", width: 0.8 },
-];
+export const DEFAULT_PEN: Pen = { color: "#19191a", width: 1.2 };
 
 export function translateElement(el: Element, dx: number, dy: number): Element {
   switch (el.type) {

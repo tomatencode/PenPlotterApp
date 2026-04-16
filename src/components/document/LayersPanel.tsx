@@ -1,5 +1,5 @@
-import type { Layer } from "./types";
-import { PRESET_PENS } from "./types";
+import { useRef } from "react";
+import type { Layer, Pen } from "./types";
 
 interface Props {
   layers: Layer[];
@@ -8,7 +8,7 @@ interface Props {
   onAddLayer: () => void;
   onDeleteLayer: (id: string) => void;
   onMoveLayer: (id: string, direction: -1 | 1) => void;
-  onSetLayerPen: (id: string, penIndex: number) => void;
+  onSetLayerPen: (id: string, pen: Pen) => void;
   onRenameLayer: (id: string, name: string) => void;
 }
 
@@ -22,6 +22,7 @@ export default function LayersPanel({
   onSetLayerPen,
   onRenameLayer,
 }: Props) {
+  const colorInputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
@@ -111,31 +112,52 @@ export default function LayersPanel({
                   </div>
                 </div>
 
-                {/* Pen picker — only shown for active layer */}
+                {/* Pen editor — only shown for active layer */}
                 {isActive && (
-                  <div className="mx-2 mt-1 mb-1">
-                    <div className="relative">
-                      <select
-                        value={PRESET_PENS.findIndex((p) => p.name === pen.name && p.color === pen.color)}
-                        onChange={(e) => onSetLayerPen(layer.id, parseInt(e.target.value))}
-                        className="w-full appearance-none pl-7 pr-6 py-1.5 rounded-md bg-[#111520] border border-slate-700/60 text-xs text-slate-300 outline-none focus:border-blue-500/50 cursor-pointer"
-                      >
-                        {PRESET_PENS.map((p, i) => (
-                          <option key={i} value={i}>{p.name}</option>
-                        ))}
-                      </select>
-                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0 absolute left-2 top-1/2 -translate-y-1/2" style={{ color: pen.color }}>
-                        <path d="M11 2l3 3-8 8H3v-3L11 2z" />
-                        <path d="M9 4l3 3" />
-                      </svg>
-                      <svg viewBox="0 0 12 12" fill="currentColor" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600 pointer-events-none">
-                        <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                  <div className="mx-1 mt-2 mb-1 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+                    {/* Color row */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        title="Pick color"
+                        className="w-5 h-5 rounded-full shrink-0 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        style={{ backgroundColor: pen.color }}
+                        onClick={() => colorInputRef.current?.click()}
+                      />
+                      <input
+                        ref={colorInputRef}
+                        type="color"
+                        value={pen.color}
+                        onChange={(e) => onSetLayerPen(layer.id, { ...pen, color: e.target.value })}
+                        className="sr-only"
+                      />
+                      <span className="text-xs text-slate-500 font-mono">{pen.color}</span>
                     </div>
-                    {/* Stroke width hint */}
-                    <div className="flex items-center gap-2 mt-1.5 px-1">
-                      <div className="rounded-full" style={{ width: 32, height: Math.max(1, pen.width * 2), backgroundColor: pen.color, opacity: 0.6 }} />
-                      <span className="text-xs text-slate-700">{pen.width} mm</span>
+                    {/* Width row */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">Stroke</span>
+                      <div className="flex items-center rounded border border-slate-700/60 bg-[#111520] overflow-hidden">
+                        <button
+                          onClick={() => { const v = Math.max(0.1, parseFloat((pen.width - 0.1).toFixed(1))); onSetLayerPen(layer.id, { ...pen, width: v }); }}
+                          className="px-1.5 py-0.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/40 transition-colors text-xs leading-none"
+                        >−</button>
+                        <input
+                          type="number"
+                          min="0.1"
+                          max="10"
+                          step="0.1"
+                          value={pen.width}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            if (!isNaN(v) && v > 0) onSetLayerPen(layer.id, { ...pen, width: v });
+                          }}
+                          className="w-10 py-0.5 bg-transparent text-xs text-slate-300 outline-none text-center"
+                        />
+                        <button
+                          onClick={() => { const v = Math.min(10, parseFloat((pen.width + 0.1).toFixed(1))); onSetLayerPen(layer.id, { ...pen, width: v }); }}
+                          className="px-1.5 py-0.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/40 transition-colors text-xs leading-none"
+                        >+</button>
+                      </div>
+                      <span className="text-xs text-slate-500">mm</span>
                     </div>
                   </div>
                 )}

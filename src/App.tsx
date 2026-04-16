@@ -1,7 +1,6 @@
 import { HashRouter, Route, Routes } from "react-router-dom";
 import HomeScreen from "./screens/HomeScreen";
 import DocumentScreen from "./screens/DocumentScreen";
-import PensScreen from "./screens/PensScreen";
 import PlotterScreen from "./screens/PlotterScreen";
 import TitleBar from "./components/TitleBar";
 import "./App.css";
@@ -15,7 +14,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/document" element={<DocumentScreen />} />
-            <Route path="/pens" element={<PensScreen />} />
             <Route path="/plotter" element={<PlotterScreen />} />
           </Routes>
         </div>

@@ -2,8 +2,8 @@ import { useReducer, useState, useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings,
-  newId, DEFAULT_PEN, PRESET_PENS, translateElement,
+  type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings, type Pen,
+  newId, DEFAULT_PEN, translateElement,
 } from "../components/document/types";
 import DocumentToolbar from "../components/document/DocumentToolbar";
 import ToolPalette from "../components/document/ToolPalette";
@@ -29,7 +29,7 @@ type DocAction =
   | { type: "ADD_LAYER";      layer: Layer }
   | { type: "DELETE_LAYER";   layerId: string }
   | { type: "MOVE_LAYER";     layerId: string; direction: -1 | 1 }
-  | { type: "SET_LAYER_PEN";  layerId: string; penIndex: number }
+  | { type: "SET_LAYER_PEN";  layerId: string; pen: Pen }
   | { type: "RENAME_LAYER";   layerId: string; name: string }
   | { type: "SET_LAYERS";     layers: Layer[] }
   | { type: "UPDATE_PAGE";    page: PageSettings };
@@ -74,7 +74,7 @@ function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
       ) };
     case "SET_LAYER_PEN":
       return { ...doc, layers: doc.layers.map((l) =>
-        l.id === action.layerId ? { ...l, pen: PRESET_PENS[action.penIndex] ?? l.pen } : l
+        l.id === action.layerId ? { ...l, pen: action.pen } : l
       ) };
     case "SET_LAYERS":
       return { ...doc, layers: action.layers };
@@ -195,9 +195,9 @@ export default function DocumentScreen() {
     act({ type: "MOVE_LAYER", layerId: id, direction });
   }
 
-  function setLayerPen(id: string, penIndex: number) {
+  function setLayerPen(id: string, pen: Pen) {
     recordHistory();
-    act({ type: "SET_LAYER_PEN", layerId: id, penIndex });
+    act({ type: "SET_LAYER_PEN", layerId: id, pen });
   }
 
   function renameLayer(id: string, name: string) {

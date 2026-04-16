@@ -17,7 +17,6 @@ pub struct MetaSettings {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Pen {
-    pub name: String,
     pub color: String,
     pub width: f64,
 }
