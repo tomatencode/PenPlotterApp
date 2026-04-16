@@ -35,7 +35,7 @@ export default function TitleBar() {
         data-tauri-drag-region
         className="flex-1 h-full flex items-center px-4"
       >
-        <span className="text-xs font-semibold tracking-widest text-slate-600 uppercase pointer-events-none">
+        <span className="text-xs shrink-0 font-semibold tracking-widest text-slate-600 uppercase pointer-events-none">
           Pen Plotter Interfacer
         </span>
       </div>

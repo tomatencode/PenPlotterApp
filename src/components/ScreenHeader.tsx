@@ -20,9 +20,9 @@ export default function ScreenHeader({ onBack, title, subtitle, children }: Prop
         Home
       </button>
 
-      <div className="w-px h-5 bg-slate-700/80 mx-1" />
+      <div className="w-px h-5 shrink-0 bg-slate-700/80 mx-1" />
 
-      <span className="text-sm font-semibold text-gray-200 mr-1">{title}</span>
+      <span className="text-sm font-semibold text-gray-200 shrink-0 mr-1 truncate max-w-xs">{title}</span>
       {subtitle && <span className="text-xs text-slate-600 truncate max-w-xs hidden md:block">{subtitle}</span>}
 
       <div className="flex-1" />
