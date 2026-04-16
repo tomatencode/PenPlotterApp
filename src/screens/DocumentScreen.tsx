@@ -113,7 +113,8 @@ export default function DocumentScreen() {
   const [doc, dispatch] = useReducer(docReducer, json, initialDoc);
   const docRef = useRef(doc);
   useEffect(() => { docRef.current = doc; });
-  const [docHistory, setDocHistory] = useState<PnplttrDocument[]>([doc]);
+  const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
+  const [redoStack, setRedoStack] = useState<PnplttrDocument[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
@@ -150,19 +151,30 @@ export default function DocumentScreen() {
   }, [doc, path, handleSave]);
 
   const recordHistory = useCallback(() => {
-    setDocHistory((h) => [...h, docRef.current]);
+    setUndoStack((h) => [...h, docRef.current]);
+    setRedoStack([]);
+  }, []);
+
+  const applyDoc = useCallback((snapshot: PnplttrDocument) => {
+    dispatch({ type: "SET_LAYERS", layers: snapshot.layers });
+    dispatch({ type: "UPDATE_PAGE", page: snapshot.page });
   }, []);
 
   const handleUndo = useCallback(() => {
-    if (docHistory.length <= 1) return;
-    const prev = (docHistory[docHistory.length - 1] !== docRef.current) ?
-      docHistory[docHistory.length - 1] : docHistory[docHistory.length - 2];
+    if (undoStack.length === 0) return;
+    const prev = undoStack[undoStack.length - 1];
+    setRedoStack((r) => [...r, docRef.current]);
+    setUndoStack((h) => h.slice(0, -1));
+    applyDoc(prev);
+  }, [undoStack, docRef, applyDoc]);
 
-    dispatch({ type: "SET_LAYERS", layers: prev.layers });
-    dispatch({ type: "UPDATE_PAGE", page: prev.page });
-    handleSave();
-    setDocHistory(docHistory.slice(0, -1));
-  }, [docHistory, dispatch, docRef, handleSave]);
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack((h) => [...h, docRef.current]);
+    setRedoStack((r) => r.slice(0, -1));
+    applyDoc(next);
+  }, [redoStack, docRef, applyDoc]);
 
   const handleAddElement = useCallback((layerId: string, el: Element) => {
     recordHistory();
@@ -227,9 +239,16 @@ export default function DocumentScreen() {
       }
 
       // Ctrl+Z / Cmd+Z to undo
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
+      }
+
+      // Ctrl+Shift+Z / Ctrl+Y to redo
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "z") ||
+          ((e.ctrlKey || e.metaKey) && e.key === "y")) {
+        e.preventDefault();
+        handleRedo();
       }
 
       // Backspace to delete selected element
@@ -251,7 +270,7 @@ export default function DocumentScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, handleUndo, selectedId, docRef, docHistory]);
+  }, [handleSave, handleUndo, handleRedo, selectedId, docRef]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
   const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
@@ -261,8 +280,10 @@ export default function DocumentScreen() {
       <DocumentToolbar
         fileName={fileName}
         path={path}
-        canUndo={docHistory.length > 1}
+        canUndo={undoStack.length > 0}
         onUndo={handleUndo}
+        canRedo={redoStack.length > 0}
+        onRedo={handleRedo}
         onBack={() => {
           handleSave();
           navigate("/");
