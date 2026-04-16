@@ -49,7 +49,7 @@ interface Props {
   onAddElement: (layerId: string, el: Element) => void;
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
-  onRecordHistory: () => void;
+  onMoveStart: () => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -64,7 +64,7 @@ export default function CanvasArea({
   onAddElement,
   onSelectElement,
   onMoveElement,
-  onRecordHistory,
+  onMoveStart,
   onViewportChange,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -151,11 +151,13 @@ export default function CanvasArea({
         setGhost(null);
       }
     }
-  }, [activeTool, selectedId, viewport, onViewportChange, onMoveElement]);
+  }, [activeTool, selectedId, viewport, onMoveElement]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    
-    if (elementDragLast.current) elementDragLast.current = null;
+    if (elementDragLast.current) {
+      elementDragLast.current = null;
+      return;
+    }
 
     if (panStart.current) { panStart.current = null; return; }
     if (!elementCreateDragStart.current || activeTool === "select") return;
@@ -186,8 +188,7 @@ export default function CanvasArea({
         return;
     }
     onAddElement(activeLayerId, el);
-    onRecordHistory();
-  }, [activeTool, activeLayerId, viewport, onAddElement, onRecordHistory]);
+  }, [activeTool, activeLayerId, viewport, onAddElement]);
 
   const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -290,7 +291,7 @@ export default function CanvasArea({
                         if (activeTool === "select") {
                           e.stopPropagation();
                           onSelectElement(elementId);
-                          onRecordHistory();
+                          onMoveStart();
                           const rect = svgRef.current!.getBoundingClientRect();
                           const [docX, docY] = viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
                           elementDragLast.current = { docX, docY };

@@ -1,4 +1,4 @@
-import { useReducer, useState, useCallback, useEffect } from "react";
+import { useReducer, useState, useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -116,6 +116,8 @@ export default function DocumentScreen() {
   const { json, path } = (location.state as LocationState) ?? { json: "{}", path: null };
 
   const [doc, dispatch] = useReducer(docReducer, json, initialDoc);
+  const docRef = useRef(doc);
+  useEffect(() => { docRef.current = doc; });
   const [docHistory, setDocHistory] = useState<PnplttrDocument[]>([doc]);
   const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -146,22 +148,23 @@ export default function DocumentScreen() {
   }, [dispatch]);
 
   const recordHistory = useCallback(() => {
-    setDocHistory((h) => [...h, doc]);
-  }, [doc, setDocHistory]);
+    setDocHistory((h) => [...h, docRef.current]);
+  }, []);
 
   const handleAddElement = useCallback((layerId: string, el: Element) => {
+    recordHistory();
     act({ type: "ADD_ELEMENT", layerId, element: el });
-  }, [act]);
+  }, [act, recordHistory]);
 
   const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
-    const layer = doc.layers.find(l => l.elements.some(el => el.id === id));
+    const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === id));
     if (!layer) { console.log("element to move not found:", id); return; }
     const el = layer.elements.find(e => e.id === id)!;
     act({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
-    console.log("Move element", id, "by", dx, dy);
-  }, [doc.layers, act]);
+  }, [act]);
 
   function addLayer() {
+    recordHistory();
     const layer: Layer = { id: newId(), name: `Layer ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
     act({ type: "ADD_LAYER", layer });
     setActiveLayerId(layer.id);
@@ -177,15 +180,23 @@ export default function DocumentScreen() {
   }
 
   function moveLayer(id: string, direction: -1 | 1) {
+    recordHistory();
     act({ type: "MOVE_LAYER", layerId: id, direction });
   }
 
   function setLayerPen(id: string, penIndex: number) {
+    recordHistory();
     act({ type: "SET_LAYER_PEN", layerId: id, penIndex });
   }
 
   function renameLayer(id: string, name: string) {
+    recordHistory();
     act({ type: "RENAME_LAYER", layerId: id, name });
+  }
+
+  function updatePage(page: PageSettings) {
+    recordHistory();
+    act({ type: "UPDATE_PAGE", page });
   }
 
   const handleSave = useCallback(async () => {
@@ -274,14 +285,14 @@ export default function DocumentScreen() {
           onAddElement={handleAddElement}
           onSelectElement={setSelectedId}
           onMoveElement={handleMoveElement}
-          onRecordHistory={recordHistory}
+          onMoveStart={recordHistory}
           onViewportChange={setViewport}
         />
 
         <aside className="w-60 shrink-0 flex-col bg-[#0d1017] border-l border-slate-700/60 overflow-hidden">
           <PagePanel
             page={doc.page}
-            onUpdatePage={(page) => act({ type: "UPDATE_PAGE", page })}
+            onUpdatePage={updatePage}
           />
 
           <div className="h-px bg-slate-800 mx-3 shrink-0" />
