@@ -44,7 +44,7 @@ export default function LayersPanel({
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Layers</p>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Pen Layers</p>
         <button
           onClick={onAddLayer}
           title="Add layer"
@@ -183,7 +183,10 @@ export default function LayersPanel({
                           className="w-10 py-0.5 bg-transparent text-xs text-slate-300 outline-none text-center"
                         />
                         <button
-                          onClick={() => { const v = Math.min(10, parseFloat((pen.width + 0.1).toFixed(1))); onSetLayerPen(layer.id, { ...pen, width: v }); }}
+                          onClick={() => {
+                            const v = Math.min(10, parseFloat((pen.width + 0.1).toFixed(1)));
+                            onSetLayerPen(layer.id, { ...pen, width: v });
+                          }}
                           className="px-1.5 py-0.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/40 transition-colors text-xs leading-none"
                         >+</button>
                       </div>

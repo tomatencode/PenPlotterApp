@@ -174,7 +174,7 @@ export default function DocumentScreen() {
 
   function addLayer() {
     recordHistory();
-    const layer: Layer = { id: newId(), name: `Layer ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
+    const layer: Layer = { id: newId(), name: `Pen ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
     act({ type: "ADD_LAYER", layer });
     setActiveLayerId(layer.id);
   }
