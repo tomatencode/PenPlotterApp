@@ -68,23 +68,6 @@ export default function ToolPalette({ activeTool, onToolChange }: Props) {
           {tool.icon}
         </button>
       ))}
-
-      <div className="flex-1" />
-
-      <div className="flex flex-col items-center gap-1">
-        <button
-          title="Zoom in"
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition-colors text-lg leading-none"
-        >
-          +
-        </button>
-        <button
-          title="Zoom out"
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent transition-colors text-lg leading-none"
-        >
-          −
-        </button>
-      </div>
     </aside>
   );
 }
