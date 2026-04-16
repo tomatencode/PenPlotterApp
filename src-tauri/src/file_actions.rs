@@ -111,7 +111,7 @@ pub fn create_document(app: AppHandle, name: String) -> Result<OpenedDocument, S
         counter += 1;
     }
 
-    let doc = PnplttrDocument::new_default(185.0, 265.0); // workspace size in mm of my current plotter
+    let doc = PnplttrDocument::new_default();
     let json = serde_json::to_string_pretty(&doc).map_err(|e| e.to_string())?;
     fs::write(&file_path, &json).map_err(|e| e.to_string())?;
 

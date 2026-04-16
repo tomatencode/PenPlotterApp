@@ -111,7 +111,7 @@ pub struct PnplttrDocument {
 }
 
 impl PnplttrDocument {
-    pub fn new_default(workspace_width: f64, workspace_height: f64) -> Self {
+    pub fn new_default() -> Self {
         PnplttrDocument {
             meta: MetaSettings {
                 created: chrono::Utc::now().to_rfc3339(),
@@ -120,8 +120,8 @@ impl PnplttrDocument {
             page: PageSettings {
                 page_width: 210.0, // A4 default
                 page_height: 297.0, // A4 default
-                workspace_width,
-                workspace_height,
+                workspace_width: 210.0, // A4 default
+                workspace_height: 297.0, // A4 default
             },
             layers: vec![],
         }
