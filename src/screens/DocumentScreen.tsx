@@ -117,8 +117,6 @@ export default function DocumentScreen() {
   const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Initial viewport: centre the A4 page with a reasonable zoom
   const [viewport, setViewport] = useState<Viewport>(() => {
@@ -134,10 +132,22 @@ export default function DocumentScreen() {
     }
   });
 
-  const actOnDocument = useCallback((action: DocAction) => {
-    dispatch(action);
-    setIsDirty(true);
-  }, [dispatch]);
+  const handleSave = useCallback(async () => {
+    if (!path) return;
+    try {
+      const content = docToJson(docRef.current);
+      await invoke("save_document", { path, content });
+    } catch (e) {
+      console.error("Save failed:", e);
+    }
+  }, [path, docRef]);
+
+  // Auto-save 800ms after any doc change
+  useEffect(() => {
+    if (!path) return;
+    const timer = setTimeout(() => { handleSave(); }, 800);
+    return () => clearTimeout(timer);
+  }, [doc, path, handleSave]);
 
   const recordHistory = useCallback(() => {
     setDocHistory((h) => [...h, docRef.current]);
@@ -150,14 +160,14 @@ export default function DocumentScreen() {
 
     dispatch({ type: "SET_LAYERS", layers: prev.layers });
     dispatch({ type: "UPDATE_PAGE", page: prev.page });
+    handleSave();
     setDocHistory(docHistory.slice(0, -1));
-    setIsDirty(true);
-  }, [docHistory, dispatch, docRef]);
+  }, [docHistory, dispatch, docRef, handleSave]);
 
   const handleAddElement = useCallback((layerId: string, el: Element) => {
     recordHistory();
-    actOnDocument({ type: "ADD_ELEMENT", layerId, element: el });
-  }, [actOnDocument, recordHistory]);
+    dispatch({ type: "ADD_ELEMENT", layerId, element: el });
+  }, [dispatch, recordHistory]);
 
   const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
     const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === id));
@@ -167,13 +177,14 @@ export default function DocumentScreen() {
     const ws = workspaceBounds(docRef.current.page);
     const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, dx));
     const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, dy));
-    actOnDocument({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, clampedDx, clampedDy) });
-  }, [actOnDocument]);
+    dispatch({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, clampedDx, clampedDy) });
+    // Don't save on every move for performance, only at the end of the drag
+  }, [dispatch]);
 
   function addLayer() {
     recordHistory();
     const layer: Layer = { id: newId(), name: `Pen ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
-    actOnDocument({ type: "ADD_LAYER", layer });
+    dispatch({ type: "ADD_LAYER", layer });
     setActiveLayerId(layer.id);
   }
 
@@ -183,42 +194,28 @@ export default function DocumentScreen() {
       const next = doc.layers.filter((l) => l.id !== id);
       setActiveLayerId(next[Math.max(0, idx - 1)].id);
     }
-    actOnDocument({ type: "DELETE_LAYER", layerId: id });
+    dispatch({ type: "DELETE_LAYER", layerId: id });
   }
 
   function moveLayer(id: string, direction: -1 | 1) {
     recordHistory();
-    actOnDocument({ type: "MOVE_LAYER", layerId: id, direction });
+    dispatch({ type: "MOVE_LAYER", layerId: id, direction });
   }
 
   function setLayerPen(id: string, pen: Pen) {
     recordHistory();
-    actOnDocument({ type: "SET_LAYER_PEN", layerId: id, pen });
+    dispatch({ type: "SET_LAYER_PEN", layerId: id, pen });
   }
 
   function renameLayer(id: string, name: string) {
     recordHistory();
-    actOnDocument({ type: "RENAME_LAYER", layerId: id, name });
+    dispatch({ type: "RENAME_LAYER", layerId: id, name });
   }
 
   function updatePage(page: PageSettings) {
     recordHistory();
-    actOnDocument({ type: "UPDATE_PAGE", page });
+    dispatch({ type: "UPDATE_PAGE", page });
   }
-
-  const handleSave = useCallback(async () => {
-    if (!path || isSaving) return;
-      setIsSaving(true);
-      try {
-        const content = docToJson(docRef.current);
-        await invoke("save_document", { path, content });
-        setIsDirty(false);
-      } catch (e) {
-        console.error("Save failed:", e);
-      } finally {
-        setIsSaving(false);
-      }
-  }, [path, isSaving, docRef]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -226,7 +223,6 @@ export default function DocumentScreen() {
       // Ctrl+S / Cmd+S to save
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
-        if (!isDirty) return;
         handleSave();
       }
 
@@ -242,7 +238,7 @@ export default function DocumentScreen() {
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         for (const layer of docRef.current.layers) {
           if (layer.elements.some((el) => el.id === selectedId)) {
-            actOnDocument({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
+            dispatch({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
             setSelectedId(null);
             break;
           }
@@ -255,7 +251,7 @@ export default function DocumentScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, handleUndo, isDirty, selectedId, docRef, docHistory]);
+  }, [handleSave, handleUndo, selectedId, docRef, docHistory]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
   const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
@@ -265,12 +261,12 @@ export default function DocumentScreen() {
       <DocumentToolbar
         fileName={fileName}
         path={path}
-        isDirty={isDirty}
         canUndo={docHistory.length > 1}
         onUndo={handleUndo}
-        isSaving={isSaving}
-        onBack={() => navigate("/")}
-        onSave={handleSave}
+        onBack={() => {
+          handleSave();
+          navigate("/");
+        }}
         onExport={() => { /* TODO */ }}
       />
 
@@ -314,9 +310,9 @@ export default function DocumentScreen() {
           <PropertiesPanel
             layers={doc.layers}
             selectedId={selectedId}
-            onUpdateElement={(layerId, el) => actOnDocument({ type: "UPDATE_ELEMENT", layerId, element: el })}
+            onUpdateElement={(layerId, el) => dispatch({ type: "UPDATE_ELEMENT", layerId, element: el })}
             onDeleteElement={(layerId, elementId) => {
-              actOnDocument({ type: "DELETE_ELEMENT", layerId, elementId });
+              dispatch({ type: "DELETE_ELEMENT", layerId, elementId });
               setSelectedId(null);
             }}
           />

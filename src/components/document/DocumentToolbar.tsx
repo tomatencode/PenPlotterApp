@@ -3,18 +3,15 @@ import ScreenHeader from "../ScreenHeader";
 interface Props {
   fileName: string;
   path: string | null;
-  isDirty: boolean;
-  isSaving: boolean;
   canUndo: boolean;
   onUndo: () => void;
   onBack: () => void;
-  onSave: () => void;
   onExport: () => void;
 }
 
-export default function DocumentToolbar({ fileName, path, isDirty, isSaving, canUndo, onUndo, onBack, onSave, onExport }: Props) {
+export default function DocumentToolbar({ fileName, path, canUndo, onUndo, onBack, onExport }: Props) {
   return (
-    <ScreenHeader onBack={onBack} title={`${fileName}${isDirty ? " ●" : ""}`} subtitle={path ?? undefined}>
+    <ScreenHeader onBack={onBack} title={fileName} subtitle={path ?? undefined}>
       <button
         onClick={onUndo}
         disabled={!canUndo}
@@ -26,19 +23,7 @@ export default function DocumentToolbar({ fileName, path, isDirty, isSaving, can
         </svg>
         Undo
       </button>
-      <button
-        onClick={onSave}
-        disabled={!isDirty || isSaving || !path}
-        title={!path ? "No file path — open a saved file first" : undefined}
-        className="flex shrink-0 items-center gap-2 px-4 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-sm font-semibold text-slate-200 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-      >
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-          <path d="M3 3h8l2 2v8H3V3z" />
-          <rect x="5" y="9" width="6" height="4" />
-          <rect x="5" y="3" width="4" height="3" />
-        </svg>
-        {isSaving ? "Saving" : "Save"}
-      </button>
+      
       <button
         onClick={onExport}
         className="flex shrink-0 items-center gap-2 px-4 py-1.5 bg-green-700/80 hover:bg-green-600/80 border border-green-600/60 hover:border-green-500 rounded-lg text-sm font-semibold text-green-100 transition-colors shadow-sm shadow-green-900/30"
