@@ -203,7 +203,7 @@ export default function DocumentScreen() {
     if (!path || isSaving) return;
       setIsSaving(true);
       try {
-        const content = docToJson(doc);
+        const content = docToJson(docRef.current);
         await invoke("save_document", { path, content });
         setIsDirty(false);
       } catch (e) {
@@ -211,7 +211,7 @@ export default function DocumentScreen() {
       } finally {
         setIsSaving(false);
       }
-  }, [path, isSaving, doc, doc.layers]);
+  }, [path, isSaving, docRef]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -228,7 +228,7 @@ export default function DocumentScreen() {
         e.preventDefault();
         if (docHistory.length <= 1) return;
 
-        const prev = (docHistory[docHistory.length - 1] !== doc) ?
+        const prev = (docHistory[docHistory.length - 1] !== docRef.current) ?
           docHistory[docHistory.length - 1] : docHistory[docHistory.length - 2];
 
         dispatch({ type: "SET_LAYERS", layers: prev.layers });
@@ -241,7 +241,7 @@ export default function DocumentScreen() {
       if ((e.key === "Backspace") && selectedId) {
         // Don't fire if the user is typing in an input/textarea
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-        for (const layer of doc.layers) {
+        for (const layer of docRef.current.layers) {
           if (layer.elements.some((el) => el.id === selectedId)) {
             act({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
             setSelectedId(null);
@@ -256,10 +256,10 @@ export default function DocumentScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, isDirty, selectedId, doc.layers, docHistory]);
+  }, [handleSave, isDirty, selectedId, docRef, docHistory]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
-  const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
+  const totalElements = docRef.current.layers.reduce((n, l) => n + l.elements.length, 0);
 
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
