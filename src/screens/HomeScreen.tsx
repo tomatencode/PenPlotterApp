@@ -104,26 +104,6 @@ export default function HomeScreen() {
 
         <div className="h-px bg-slate-800 mx-4" />
 
-        {/* ── Tools ── */}
-        <div className="px-4 py-4">
-          <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest px-2 mb-1.5">Tools</p>
-          <button
-            onClick={() => navigate("/pens")}
-            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-purple-300 hover:bg-slate-800/60 border border-transparent hover:border-purple-500/20 transition-colors text-left group"
-          >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0 group-hover:stroke-purple-400 transition-colors">
-              <path d="M11 2l3 3-8 8H3v-3L11 2z" />
-              <path d="M9 4l3 3" />
-            </svg>
-            Pen Presets
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 ml-auto text-slate-700 group-hover:text-slate-500 transition-colors shrink-0">
-              <path d="M4 2l4 4-4 4" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="h-px bg-slate-800 mx-4" />
-
         <PlotterList
           plotters={plotters}
           onPlotterClick={() => navigate("/plotter")}
