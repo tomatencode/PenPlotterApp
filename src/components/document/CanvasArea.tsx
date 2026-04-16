@@ -72,7 +72,9 @@ export default function CanvasArea({
   const elementCreateDragStart = useRef<{ docX: number; docY: number } | null>(null);
 
   useEffect(() => {
-    if (activeTool !== "select") {
+    if (activeTool === "select") {
+      setGhost(null);
+    } else {
       onSelectElement(null);
     }
   }, [activeTool, onSelectElement]);
@@ -265,24 +267,26 @@ export default function CanvasArea({
                     pointerEvents="none"
                   />
                   {/* Invisible hit target — always 8px wide in screen space */}
-                  <path
-                    d={d}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth={(layer.pen.width + 8) / viewport.zoom}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ cursor: activeTool === "select" ? "pointer" : undefined }}
-                    onPointerDown={(e) => {
-                      if (activeTool === "select") {
-                        e.stopPropagation();
-                        onSelectElement(elementId);
-                        const rect = svgRef.current!.getBoundingClientRect();
-                        const [docX, docY] = viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
-                        elementDragStart.current = { docX, docY };
-                      }
-                    }}
-                  />
+                  {activeTool === "select" && (
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={(layer.pen.width + 8) / viewport.zoom}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ cursor: activeTool === "select" ? "pointer" : undefined }}
+                      onPointerDown={(e) => {
+                        if (activeTool === "select") {
+                          e.stopPropagation();
+                          onSelectElement(elementId);
+                          const rect = svgRef.current!.getBoundingClientRect();
+                          const [docX, docY] = viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
+                          elementDragStart.current = { docX, docY };
+                        }
+                      }}
+                    />
+                  )}
                 </g>
               );
             })
@@ -294,7 +298,7 @@ export default function CanvasArea({
               key={i}
               d={d}
               fill="none"
-              stroke="#ffffff"
+              stroke="#60a5fa"
               strokeWidth={1 / viewport.zoom}
               strokeLinecap="round"
               strokeLinejoin="round"
