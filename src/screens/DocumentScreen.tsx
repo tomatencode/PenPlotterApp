@@ -139,8 +139,6 @@ export default function DocumentScreen() {
     }
   });
 
-  const activeLayer = doc.layers.find((l) => l.id === activeLayerId) ?? doc.layers[0];
-
   // Wrap dispatch to also mark dirty
   const act = useCallback((action: DocAction) => {
     dispatch(action);
