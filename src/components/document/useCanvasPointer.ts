@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { Element, Tool } from "./types";
-import { newId } from "./types";
+import type { Element, Tool, PageSettings } from "./types";
+import { newId, workspaceBounds } from "./types";
 import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
 import type { Viewport } from "./CanvasArea";
 import { viewportToDoc } from "./CanvasArea";
@@ -34,6 +34,7 @@ interface Options {
   activeTool: Tool;
   selectedId: string | null;
   activeLayerId: string;
+  page: PageSettings;
   onAddElement: (layerId: string, el: Element) => void;
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
@@ -47,12 +48,20 @@ export function useCanvasPointer({
   activeTool,
   selectedId,
   activeLayerId,
+  page,
   onAddElement,
   onSelectElement,
   onMoveElement,
   onMoveStart,
   onViewportChange,
 }: Options) {
+  function clampToWorkspace(x: number, y: number): [number, number] {
+    const ws = workspaceBounds(page);
+    return [
+      Math.max(ws.x, Math.min(ws.x + ws.w, x)),
+      Math.max(ws.y, Math.min(ws.y + ws.h, y)),
+    ];
+  }
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const panStart          = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
   const elementDragLast   = useRef<{ docX: number; docY: number } | null>(null);
@@ -86,7 +95,7 @@ export function useCanvasPointer({
       return;
     }
 
-    const [mx, my] = getSvgPoint(e);
+    const [mx, my] = clampToWorkspace(...getSvgPoint(e));
     createDragStart.current = { docX: mx, docY: my };
     (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
   }, [activeTool, viewport, onSelectElement]);
@@ -117,12 +126,24 @@ export function useCanvasPointer({
       return;
     }
     const { docX: sx, docY: sy } = createDragStart.current;
-    const [mx, my] = getSvgPoint(e);
+    const [mx, my] = clampToWorkspace(...getSvgPoint(e));
     switch (activeTool) {
-      case "line":   setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my }); break;
-      case "rect": { const x = Math.min(sx, mx), y = Math.min(sy, my);
-                     setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) }); break; }
-      case "circle": setGhost({ tool: "circle", cx: sx, cy: sy, r: Math.hypot(mx - sx, my - sy) }); break;
+      case "line": {
+        setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my }); break;
+      }
+      case "rect": {
+        const x = Math.min(sx, mx), y = Math.min(sy, my);
+        setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) }); break;
+      }
+      case "circle": {
+        const ws = workspaceBounds(page);
+        const max_r_x_right = sx - ws.x;
+        const max_r_x_left  = ws.x + ws.w - sx;
+        const max_r_y_up    = sy - ws.y;
+        const max_r_y_down = ws.y + ws.h - sy;
+        const r = Math.min(Math.hypot(mx - sx, my - sy), max_r_x_right, max_r_x_left, max_r_y_up, max_r_y_down  );
+        setGhost({ tool: "circle", cx: sx, cy: sy, r: r }); break;
+      }
     }
   }, [activeTool, selectedId, viewport, onViewportChange, onMoveElement]);
 
@@ -132,7 +153,7 @@ export function useCanvasPointer({
     if (!createDragStart.current || activeTool === "select") return;
 
     const { docX: sx, docY: sy } = createDragStart.current;
-    const [mx, my] = getSvgPoint(e);
+    const [mx, my] = clampToWorkspace(...getSvgPoint(e));
     createDragStart.current = null;
     setGhost(null);
 
@@ -141,10 +162,25 @@ export function useCanvasPointer({
     const id = newId();
     let el: Element;
     switch (activeTool) {
-      case "line":   el = { id, type: "Line", x1: sx, y1: sy, x2: mx, y2: my }; break;
-      case "rect": { const x = Math.min(sx, mx), y = Math.min(sy, my);
-                     el = { id, type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) }; break; }
-      case "circle": el = { id, type: "Circle", cx: sx, cy: sy, r: Math.hypot(mx - sx, my - sy) }; break;
+      case "line": {
+        el = { id, type: "Line", x1: sx, y1: sy, x2: mx, y2: my };
+        break;
+      }
+      case "rect": {
+        const x = Math.min(sx, mx), y = Math.min(sy, my);
+        el = { id, type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) };
+        break;
+      }
+      case "circle": {
+        const ws = workspaceBounds(page);
+        const max_r_x_right = sx - ws.x;
+        const max_r_x_left  = ws.x + ws.w - sx;
+        const max_r_y_up    = sy - ws.y;
+        const max_r_y_down = ws.y + ws.h - sy;
+        const r = Math.min(Math.hypot(mx - sx, my - sy), max_r_x_right, max_r_x_left, max_r_y_up, max_r_y_down  );
+        el = { id, type: "Circle", cx: sx, cy: sy, r: r };
+        break;
+      }
       default: return;
     }
     onAddElement(activeLayerId, el);

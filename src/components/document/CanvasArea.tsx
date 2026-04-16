@@ -52,7 +52,7 @@ export default function CanvasArea({
 
   const { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag } =
     useCanvasPointer({
-      svgRef, viewport, activeTool, selectedId, activeLayerId,
+      svgRef, viewport, activeTool, selectedId, activeLayerId, page: doc.page,
       onAddElement, onSelectElement, onMoveElement, onMoveStart, onViewportChange,
     });
 

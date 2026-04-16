@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
   type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings, type Pen,
-  newId, DEFAULT_PEN, translateElement,
+  newId, DEFAULT_PEN, translateElement, elementBounds, workspaceBounds,
 } from "../components/document/types";
 import DocumentToolbar from "../components/document/DocumentToolbar";
 import ToolPalette from "../components/document/ToolPalette";
@@ -163,7 +163,11 @@ export default function DocumentScreen() {
     const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === id));
     if (!layer) { console.log("element to move not found:", id); return; }
     const el = layer.elements.find(e => e.id === id)!;
-    actOnDocument({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
+    const b  = elementBounds(el);
+    const ws = workspaceBounds(docRef.current.page);
+    const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, dx));
+    const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, dy));
+    actOnDocument({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, clampedDx, clampedDy) });
   }, [actOnDocument]);
 
   function addLayer() {

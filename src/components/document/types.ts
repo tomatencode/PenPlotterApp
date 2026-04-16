@@ -54,6 +54,23 @@ export function translateElement(el: Element, dx: number, dy: number): Element {
   }
 }
 
+export function elementBounds(el: Element): { minX: number; minY: number; maxX: number; maxY: number } {
+  switch (el.type) {
+    case "Line":   return { minX: Math.min(el.x1, el.x2), minY: Math.min(el.y1, el.y2), maxX: Math.max(el.x1, el.x2), maxY: Math.max(el.y1, el.y2) };
+    case "Rect":   return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
+    case "Circle": return { minX: el.cx - el.r, minY: el.cy - el.r, maxX: el.cx + el.r, maxY: el.cy + el.r };
+  }
+}
+
+export function workspaceBounds(page: PageSettings): { x: number; y: number; w: number; h: number } {
+  return {
+    x: Math.max(page.page_width  / 2 - page.workspace_width  / 2, 0),
+    y: Math.max(page.page_height / 2 - page.workspace_height / 2, 0),
+    w: Math.min(page.workspace_width,  page.page_width),
+    h: Math.min(page.workspace_height, page.page_height),
+  };
+}
+
 // ── Tool ──────────────────────────────────────────────────────────────────────
 export type Tool = "select" | "line" | "rect" | "circle";
 
