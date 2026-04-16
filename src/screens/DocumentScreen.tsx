@@ -259,7 +259,7 @@ export default function DocumentScreen() {
   }, [handleSave, isDirty, selectedId, docRef, docHistory]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
-  const totalElements = docRef.current.layers.reduce((n, l) => n + l.elements.length, 0);
+  const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
 
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
