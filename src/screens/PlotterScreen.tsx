@@ -47,7 +47,7 @@ const STUB_PLOTTER: PlotterDetails = {
 
 export default function PlotterScreen() {
   const navigate = useNavigate();
-  const [plotter, setPlotter] = useState<PlotterDetails>(STUB_PLOTTER);
+  const [plotter] = useState<PlotterDetails>(STUB_PLOTTER);
   const [headPosition, setHeadPosition] = useState<PlotterPosition>({ x: 0, y: 0 }); // wire _setHeadPosition to onPositionChange to enable drag control
 
   const style = STATE_STYLES[plotter.state];
