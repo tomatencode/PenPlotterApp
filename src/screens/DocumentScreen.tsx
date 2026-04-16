@@ -13,14 +13,10 @@ import PagePanel from "../components/document/PagePanel";
 import PropertiesPanel from "../components/document/PropertiesPanel";
 import DocumentStatusBar from "../components/document/DocumentStatusBar";
 
-// ── Location state ────────────────────────────────────────────────────────────
-
-interface LocationState {
+interface FileLocationState {
   json: string;
   path: string | null;
 }
-
-// ── Layer reducer ─────────────────────────────────────────────────────────────
 
 type DocAction =
   | { type: "ADD_ELEMENT";    layerId: string; element: Element }
@@ -85,7 +81,7 @@ function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 function initialDoc(json: string): PnplttrDocument {
   try {
@@ -99,21 +95,20 @@ function initialDoc(json: string): PnplttrDocument {
   return { 
     meta: { created: new Date().toISOString(), doctype_version: 1 },
     page: { page_width: 210, page_height: 297, workspace_width: 210, workspace_height: 297 },
-    layers: [{id: newId(), name: "Layer 1", pen: { ...DEFAULT_PEN }, elements: []}] 
+    layers: [{id: newId(), name: "Pen 1", pen: { ...DEFAULT_PEN }, elements: []}] 
   } as PnplttrDocument;
 }
 
 function docToJson(doc: PnplttrDocument): string {
-  // Strip the UI-only `id` from layers before saving
   return JSON.stringify(doc, null, 2);
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// Component
 
 export default function DocumentScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { json, path } = (location.state as LocationState) ?? { json: "{}", path: null };
+  const { json, path } = (location.state as FileLocationState) ?? { json: "{}", path: null };
 
   const [doc, dispatch] = useReducer(docReducer, json, initialDoc);
   const docRef = useRef(doc);
@@ -139,8 +134,7 @@ export default function DocumentScreen() {
     }
   });
 
-  // Wrap dispatch to also mark dirty
-  const act = useCallback((action: DocAction) => {
+  const actOnDocument = useCallback((action: DocAction) => {
     dispatch(action);
     setIsDirty(true);
   }, [dispatch]);
@@ -162,20 +156,20 @@ export default function DocumentScreen() {
 
   const handleAddElement = useCallback((layerId: string, el: Element) => {
     recordHistory();
-    act({ type: "ADD_ELEMENT", layerId, element: el });
-  }, [act, recordHistory]);
+    actOnDocument({ type: "ADD_ELEMENT", layerId, element: el });
+  }, [actOnDocument, recordHistory]);
 
   const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
     const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === id));
     if (!layer) { console.log("element to move not found:", id); return; }
     const el = layer.elements.find(e => e.id === id)!;
-    act({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
-  }, [act]);
+    actOnDocument({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
+  }, [actOnDocument]);
 
   function addLayer() {
     recordHistory();
     const layer: Layer = { id: newId(), name: `Pen ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
-    act({ type: "ADD_LAYER", layer });
+    actOnDocument({ type: "ADD_LAYER", layer });
     setActiveLayerId(layer.id);
   }
 
@@ -185,27 +179,27 @@ export default function DocumentScreen() {
       const next = doc.layers.filter((l) => l.id !== id);
       setActiveLayerId(next[Math.max(0, idx - 1)].id);
     }
-    act({ type: "DELETE_LAYER", layerId: id });
+    actOnDocument({ type: "DELETE_LAYER", layerId: id });
   }
 
   function moveLayer(id: string, direction: -1 | 1) {
     recordHistory();
-    act({ type: "MOVE_LAYER", layerId: id, direction });
+    actOnDocument({ type: "MOVE_LAYER", layerId: id, direction });
   }
 
   function setLayerPen(id: string, pen: Pen) {
     recordHistory();
-    act({ type: "SET_LAYER_PEN", layerId: id, pen });
+    actOnDocument({ type: "SET_LAYER_PEN", layerId: id, pen });
   }
 
   function renameLayer(id: string, name: string) {
     recordHistory();
-    act({ type: "RENAME_LAYER", layerId: id, name });
+    actOnDocument({ type: "RENAME_LAYER", layerId: id, name });
   }
 
   function updatePage(page: PageSettings) {
     recordHistory();
-    act({ type: "UPDATE_PAGE", page });
+    actOnDocument({ type: "UPDATE_PAGE", page });
   }
 
   const handleSave = useCallback(async () => {
@@ -244,7 +238,7 @@ export default function DocumentScreen() {
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         for (const layer of docRef.current.layers) {
           if (layer.elements.some((el) => el.id === selectedId)) {
-            act({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
+            actOnDocument({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
             setSelectedId(null);
             break;
           }
@@ -316,9 +310,9 @@ export default function DocumentScreen() {
           <PropertiesPanel
             layers={doc.layers}
             selectedId={selectedId}
-            onUpdateElement={(layerId, el) => act({ type: "UPDATE_ELEMENT", layerId, element: el })}
+            onUpdateElement={(layerId, el) => actOnDocument({ type: "UPDATE_ELEMENT", layerId, element: el })}
             onDeleteElement={(layerId, elementId) => {
-              act({ type: "DELETE_ELEMENT", layerId, elementId });
+              actOnDocument({ type: "DELETE_ELEMENT", layerId, elementId });
               setSelectedId(null);
             }}
           />
