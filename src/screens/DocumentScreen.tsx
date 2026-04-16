@@ -116,6 +116,7 @@ export default function DocumentScreen() {
   const { json, path } = (location.state as LocationState) ?? { json: "{}", path: null };
 
   const [doc, dispatch] = useReducer(docReducer, json, initialDoc);
+  const [docHistory, setDocHistory] = useState<PnplttrDocument[]>([doc]);
   const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
@@ -139,14 +140,26 @@ export default function DocumentScreen() {
   const activeLayer = doc.layers.find((l) => l.id === activeLayerId) ?? doc.layers[0];
 
   // Wrap dispatch to also mark dirty
-  function act(action: DocAction) {
+  const act = useCallback((action: DocAction) => {
     dispatch(action);
     setIsDirty(true);
-  }
+  }, [dispatch]);
+
+  const recordHistory = useCallback(() => {
+    setDocHistory((h) => [...h, doc]);
+  }, [doc, setDocHistory]);
 
   const handleAddElement = useCallback((layerId: string, el: Element) => {
     act({ type: "ADD_ELEMENT", layerId, element: el });
-  }, []);
+  }, [act]);
+
+  const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
+    const layer = doc.layers.find(l => l.elements.some(el => el.id === id));
+    if (!layer) { console.log("element to move not found:", id); return; }
+    const el = layer.elements.find(e => e.id === id)!;
+    act({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
+    console.log("Move element", id, "by", dx, dy);
+  }, [doc.layers, act]);
 
   function addLayer() {
     const layer: Layer = { id: newId(), name: `Layer ${doc.layers.length + 1}`, pen: { ...DEFAULT_PEN }, elements: [] };
@@ -198,6 +211,21 @@ export default function DocumentScreen() {
         if (!isDirty) return;
         handleSave();
       }
+
+      // Ctrl+Z / Cmd+Z to undo
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (docHistory.length <= 1) return;
+
+        const prev = (docHistory[docHistory.length - 1] !== doc) ?
+          docHistory[docHistory.length - 1] : docHistory[docHistory.length - 2];
+
+        dispatch({ type: "SET_LAYERS", layers: prev.layers });
+        dispatch({ type: "UPDATE_PAGE", page: prev.page });
+        setDocHistory(docHistory.slice(0, -1));
+        setIsDirty(true);
+      }
+
       // Backspace to delete selected element
       if ((e.key === "Backspace") && selectedId) {
         // Don't fire if the user is typing in an input/textarea
@@ -217,7 +245,7 @@ export default function DocumentScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, isDirty, selectedId, doc.layers]);
+  }, [handleSave, isDirty, selectedId, doc.layers, docHistory]);
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
   const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
@@ -245,13 +273,8 @@ export default function DocumentScreen() {
           viewport={viewport}
           onAddElement={handleAddElement}
           onSelectElement={setSelectedId}
-          onMoveElement={(id, dx, dy) => {
-            const layer = doc.layers.find(l => l.elements.some(el => el.id === id));
-            if (!layer) { console.log("element to move not found:", id); return; }
-            const el = layer.elements.find(e => e.id === id)!;
-            act({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, dx, dy) });
-            console.log("Move element", id, "by", dx, dy);
-          }}
+          onMoveElement={handleMoveElement}
+          onRecordHistory={recordHistory}
           onViewportChange={setViewport}
         />
 

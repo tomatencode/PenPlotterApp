@@ -49,6 +49,7 @@ interface Props {
   onAddElement: (layerId: string, el: Element) => void;
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
+  onRecordHistory: () => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -63,12 +64,13 @@ export default function CanvasArea({
   onAddElement,
   onSelectElement,
   onMoveElement,
+  onRecordHistory,
   onViewportChange,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const panStart = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
-  const elementDragStart = useRef<{ docX: number; docY: number } | null>(null);
+  const elementDragLast = useRef<{ docX: number; docY: number } | null>(null);
   const elementCreateDragStart = useRef<{ docX: number; docY: number } | null>(null);
 
   useEffect(() => {
@@ -117,11 +119,11 @@ export default function CanvasArea({
       });
     }
 
-    if (elementDragStart.current && selectedId && activeTool === "select") {
+    if (elementDragLast.current && selectedId && activeTool === "select") {
       const [curDocX, curDocY] = getSvgPoint(e);
-      const dx = curDocX - elementDragStart.current.docX;
-      const dy = curDocY - elementDragStart.current.docY;
-      elementDragStart.current = { docX: curDocX, docY: curDocY };
+      const dx = curDocX - elementDragLast.current.docX;
+      const dy = curDocY - elementDragLast.current.docY;
+      elementDragLast.current = { docX: curDocX, docY: curDocY };
       onMoveElement(selectedId, dx, dy);
     }
 
@@ -129,27 +131,33 @@ export default function CanvasArea({
       const { docX: sx, docY: sy } = elementCreateDragStart.current;
       const [mx, my] = getSvgPoint(e);
 
-      switch (activeTool) {
-        case "line":
-          setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my });
-          break;
-        case "rect": {
-          const x = Math.min(sx, mx), y = Math.min(sy, my);
-          setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
-          break;
+      if (e.buttons === 1) {
+        switch (activeTool) {
+          case "line":
+            setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my });
+            break;
+          case "rect": {
+            const x = Math.min(sx, mx), y = Math.min(sy, my);
+            setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
+            break;
+          }
+          case "circle": {
+            const r = Math.hypot(mx - sx, my - sy);
+            setGhost({ tool: "circle", cx: sx, cy: sy, r });
+            break;
+          }
         }
-        case "circle": {
-          const r = Math.hypot(mx - sx, my - sy);
-          setGhost({ tool: "circle", cx: sx, cy: sy, r });
-          break;
-        }
+      } else {
+        setGhost(null);
       }
     }
   }, [activeTool, selectedId, viewport, onViewportChange, onMoveElement]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    
+    if (elementDragLast.current) elementDragLast.current = null;
+
     if (panStart.current) { panStart.current = null; return; }
-    elementDragStart.current = null;
     if (!elementCreateDragStart.current || activeTool === "select") return;
 
     const { docX: sx, docY: sy } = elementCreateDragStart.current;
@@ -178,7 +186,8 @@ export default function CanvasArea({
         return;
     }
     onAddElement(activeLayerId, el);
-  }, [activeTool, activeLayerId, viewport, onAddElement]);
+    onRecordHistory();
+  }, [activeTool, activeLayerId, viewport, onAddElement, onRecordHistory]);
 
   const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -226,7 +235,7 @@ export default function CanvasArea({
   const transform = `translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`;
 
   return (
-    <main className={`flex-1 overflow-hidden bg-[#0a0c10] relative ${cursorClass}`}>
+    <main className={`flex-1 overflow-hidden bg-[#0a0c10] relative ${cursorClass} select-none`}>
       {/* Grid backdrop */}
       <div
         className="absolute inset-0 opacity-[0.06] pointer-events-none"
@@ -235,6 +244,7 @@ export default function CanvasArea({
           backgroundSize: "24px 24px",
         }}
       />
+
       <svg
         ref={svgRef}
         className="relative z-[1] w-full h-full"
@@ -280,9 +290,10 @@ export default function CanvasArea({
                         if (activeTool === "select") {
                           e.stopPropagation();
                           onSelectElement(elementId);
+                          onRecordHistory();
                           const rect = svgRef.current!.getBoundingClientRect();
                           const [docX, docY] = viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
-                          elementDragStart.current = { docX, docY };
+                          elementDragLast.current = { docX, docY };
                         }
                       }}
                     />
