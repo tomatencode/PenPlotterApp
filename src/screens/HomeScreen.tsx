@@ -24,6 +24,8 @@ export default function HomeScreen() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [plotters, setPlotters] = useState<Plotter[]>([]);
   const [version, setVersion] = useState<string>("");
+  const plottersRef = useRef<Plotter[]>([]);
+  useEffect(() => { plottersRef.current = plotters; }, [plotters]);
 
   function refreshRecents() {
     invoke<string[]>("get_recent_files").then(setRecentFiles).catch(console.error);
@@ -53,6 +55,13 @@ export default function HomeScreen() {
 
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const online = plottersRef.current.filter((p) => p.state !== "offline");
+      await Promise.all(online.map((p) => resolveAndAddPlotter(p.url)));
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
   useEffect(() => {
     let stop: (() => void) | undefined;
     startPlotterDiscovery(
