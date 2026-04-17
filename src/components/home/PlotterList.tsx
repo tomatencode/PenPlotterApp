@@ -3,23 +3,13 @@ import { type Plotter, STATE_STYLES } from "./types";
 interface Props {
   plotters: Plotter[];
   onPlotterClick: (plotter: Plotter) => void;
-  onAddPlotter: () => void;
 }
 
-export default function PlotterList({ plotters, onPlotterClick, onAddPlotter }: Props) {
+export default function PlotterList({ plotters, onPlotterClick }: Props) {
   return (
     <div className="px-4 py-4 flex flex-col gap-2">
       <div className="flex items-center justify-between px-2 mb-0.5">
         <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest">Plotters</p>
-        <button
-          onClick={onAddPlotter}
-          title="Add plotter"
-          className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-blue-400 hover:bg-slate-800 transition-colors"
-        >
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-3 h-3">
-            <path d="M6 1v10M1 6h10" />
-          </svg>
-        </button>
       </div>
 
       {plotters.length === 0 ? (

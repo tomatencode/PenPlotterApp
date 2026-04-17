@@ -107,7 +107,6 @@ export default function HomeScreen() {
         <PlotterList
           plotters={plotters}
           onPlotterClick={() => navigate("/plotter")}
-          onAddPlotter={() => {}}
         />
 
         <div className="flex-1" />

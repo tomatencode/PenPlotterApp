@@ -1,4 +1,5 @@
 mod file_actions;
+mod discovery;
 pub mod pnplttr_file_structure;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -14,6 +15,7 @@ pub fn run() {
             file_actions::create_document,
             file_actions::open_document,
             file_actions::save_document,
+            discovery::discover_plotters,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
