@@ -59,7 +59,7 @@ export default function HomeScreen() {
     const id = setInterval(async () => {
       const online = plottersRef.current.filter((p) => p.state !== "offline");
       await Promise.all(online.map((p) => resolveAndAddPlotter(p.url)));
-    }, 2000);
+    }, 1000);
     return () => clearInterval(id);
   }, []);
   useEffect(() => {
