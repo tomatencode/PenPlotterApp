@@ -1,3 +1,4 @@
+import { fetch } from "@tauri-apps/plugin-http";
 import type {
   JobStatus,
   PenSlot,
@@ -182,6 +183,11 @@ export class PlotterClient {
         body: name,
       }),
     );
+  }
+
+  async getName(): Promise<string> {
+    const res = await checkResponse(await fetch(`${this.baseUrl}/name`));
+    return res.text();
   }
 
   /**

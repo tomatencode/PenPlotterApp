@@ -9,7 +9,7 @@ const DEVICE_KEY: &str = "device";
 const DEVICE_VALUE: &str = "pnplttr";
 
 /// Scan timeout – how long to listen for mDNS responses.
-const SCAN_TIMEOUT_MS: u64 = 3000;
+const SCAN_TIMEOUT_MS: u64 = 1000;
 
 /// Tauri command – scans the local network for pen plotters via mDNS.
 /// Returns a list of base URLs, e.g. `["http://192.168.1.42"]`.

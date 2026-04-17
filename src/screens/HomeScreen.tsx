@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
-import { type Plotter, STUB_PLOTTERS } from "../components/home/types";
+import { type Plotter, type PlotterState } from "../components/home/types";
 import DocumentActions from "../components/home/DocumentActions";
 import PlotterList from "../components/home/PlotterList";
 import RecentFilesList from "../components/home/RecentFilesList";
+import { discoverPlotters } from "../api/discovery";
+import { PlotterClient } from "../api/plotterClient";
 
 interface OpenedDocument {
   path: string;
@@ -20,7 +22,8 @@ export default function HomeScreen() {
   const [showNameInput, setShowNameInput] = useState(false);
   const [newName, setNewName] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const [plotters] = useState<Plotter[]>(STUB_PLOTTERS);
+  const [plotters, setPlotters] = useState<Plotter[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
   const [version, setVersion] = useState<string>("");
 
   function refreshRecents() {
@@ -34,8 +37,38 @@ export default function HomeScreen() {
     refreshRecents();
   }
 
+  async function refreshPlotters() {
+    setIsDiscovering(true);
+    try {
+      const urls = await discoverPlotters();
+      const results = await Promise.all(
+        urls.map(async (url): Promise<Plotter> => {
+          try {
+            const client = new PlotterClient(url);
+            const name = await client.getName();
+            const status = await client.getJobStatus();
+            const state: PlotterState =
+              status.active && !status.paused ? "running"
+              : status.active && status.paused ? "paused"
+              : "idle";
+            return { id: url, name, url, state };
+          } catch {
+            const name = new URL(url).hostname;
+            return { id: url, name, url, state: "offline" };
+          }
+        }),
+      );
+      setPlotters(results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsDiscovering(false);
+    }
+  }
+
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
+  useEffect(() => { refreshPlotters(); }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
 
   async function handleCreate() {
@@ -106,7 +139,9 @@ export default function HomeScreen() {
 
         <PlotterList
           plotters={plotters}
+          isRefreshing={isDiscovering}
           onPlotterClick={() => navigate("/plotter")}
+          onRefresh={refreshPlotters}
         />
 
         <div className="flex-1" />
