@@ -14,8 +14,3 @@ export const STATE_STYLES: Record<PlotterState, { dot: string; label: string; te
   error:   { dot: "bg-red-500",                label: "Error",   text: "text-red-400"   },
   offline: { dot: "bg-slate-600",              label: "Offline", text: "text-slate-500"  },
 };
-
-// Placeholder — replace with real fetch later
-export const STUB_PLOTTERS: Plotter[] = [
-  { id: "plotter-1", name: "Plotter 1", url: "http://plotter.local", state: "idle" },
-];

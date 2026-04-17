@@ -9,6 +9,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
+        .manage(discovery::DiscoveryState::new())
         .invoke_handler(tauri::generate_handler![
             file_actions::get_recent_files,
             file_actions::remove_recent_file,
@@ -16,7 +17,8 @@ pub fn run() {
             file_actions::create_document,
             file_actions::open_document,
             file_actions::save_document,
-            discovery::discover_plotters,
+            discovery::start_plotter_discovery,
+            discovery::stop_plotter_discovery,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

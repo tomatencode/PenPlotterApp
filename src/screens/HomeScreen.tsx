@@ -7,7 +7,7 @@ import { type Plotter, type PlotterState } from "../components/home/types";
 import DocumentActions from "../components/home/DocumentActions";
 import PlotterList from "../components/home/PlotterList";
 import RecentFilesList from "../components/home/RecentFilesList";
-import { discoverPlotters } from "../api/discovery";
+import { startPlotterDiscovery } from "../api/discovery";
 import { PlotterClient } from "../api/plotterClient";
 
 interface OpenedDocument {
@@ -23,7 +23,6 @@ export default function HomeScreen() {
   const [newName, setNewName] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [plotters, setPlotters] = useState<Plotter[]>([]);
-  const [isDiscovering, setIsDiscovering] = useState(false);
   const [version, setVersion] = useState<string>("");
 
   function refreshRecents() {
@@ -37,38 +36,31 @@ export default function HomeScreen() {
     refreshRecents();
   }
 
-  async function refreshPlotters() {
-    setIsDiscovering(true);
+  async function resolveAndAddPlotter(url: string) {
     try {
-      const urls = await discoverPlotters();
-      const results = await Promise.all(
-        urls.map(async (url): Promise<Plotter> => {
-          try {
-            const client = new PlotterClient(url);
-            const name = await client.getName();
-            const status = await client.getJobStatus();
-            const state: PlotterState =
-              status.active && !status.paused ? "running"
-              : status.active && status.paused ? "paused"
-              : "idle";
-            return { id: url, name, url, state };
-          } catch {
-            const name = new URL(url).hostname;
-            return { id: url, name, url, state: "offline" };
-          }
-        }),
-      );
-      setPlotters(results);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsDiscovering(false);
+      const client = new PlotterClient(url);
+      const [name, status] = await Promise.all([client.getName(), client.getJobStatus()]);
+      const state: PlotterState =
+        status.active && !status.paused ? "running"
+        : status.active && status.paused ? "paused"
+        : "idle";
+      setPlotters((prev) => [...prev.filter((p) => p.id !== url), { id: url, name, url, state }]);
+    } catch {
+      const name = new URL(url).hostname;
+      setPlotters((prev) => [...prev.filter((p) => p.id !== url), { id: url, name, url, state: "offline" }]);
     }
   }
 
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
-  useEffect(() => { refreshPlotters(); }, []);
+  useEffect(() => {
+    let stop: (() => void) | undefined;
+    startPlotterDiscovery(
+      (url) => resolveAndAddPlotter(url),
+      (url) => setPlotters((prev) => prev.filter((p) => p.id !== url)),
+    ).then((fn) => { stop = fn; }).catch(console.error);
+    return () => { stop?.(); setPlotters([]); };
+  }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
 
   async function handleCreate() {
@@ -139,9 +131,7 @@ export default function HomeScreen() {
 
         <PlotterList
           plotters={plotters}
-          isRefreshing={isDiscovering}
-          onPlotterClick={() => navigate("/plotter")}
-          onRefresh={refreshPlotters}
+          onPlotterClick={(p) => navigate("/plotter", { state: { url: p.url } })}
         />
 
         <div className="flex-1" />

@@ -2,34 +2,18 @@ import { type Plotter, STATE_STYLES } from "./types";
 
 interface Props {
   plotters: Plotter[];
-  isRefreshing: boolean;
   onPlotterClick: (plotter: Plotter) => void;
-  onRefresh: () => void;
 }
 
-export default function PlotterList({ plotters, isRefreshing, onPlotterClick, onRefresh }: Props) {
+export default function PlotterList({ plotters, onPlotterClick }: Props) {
   return (
     <div className="px-4 py-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between px-2 mb-0.5">
+      <div className="flex items-center gap-2 px-2 mb-0.5">
         <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest">Plotters</p>
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          title="Scan for plotters"
-          className="text-slate-600 hover:text-slate-400 disabled:opacity-40 transition-colors"
-        >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-            className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}>
-            <path d="M13.5 8a5.5 5.5 0 1 1-1.1-3.3" />
-            <path d="M13.5 2.5V5.5H10.5" />
-          </svg>
-        </button>
       </div>
 
       {plotters.length === 0 ? (
-        <p className="text-xs text-slate-700 px-2 italic">
-          {isRefreshing ? "Scanning…" : "No plotters found"}
-        </p>
+        <p className="text-xs text-slate-700 px-2 italic">No plotters found</p>
       ) : (
         plotters.map((plotter) => {
           const style = STATE_STYLES[plotter.state];

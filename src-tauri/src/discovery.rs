@@ -1,69 +1,118 @@
 use mdns_sd::{ServiceDaemon, ServiceEvent};
-use std::time::Duration;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Emitter};
 
-/// The mDNS service type the pen plotter firmware advertises.
 const SERVICE_TYPE: &str = "_http._tcp.local.";
-
-/// The TXT record key/value used to identify pen plotter devices.
 const DEVICE_KEY: &str = "device";
 const DEVICE_VALUE: &str = "pnplttr";
 
-/// Scan timeout – how long to listen for mDNS responses.
-const SCAN_TIMEOUT_MS: u64 = 1000;
+// ─── Managed state ────────────────────────────────────────────────────────────
 
-/// Tauri command – scans the local network for pen plotters via mDNS.
-/// Returns a list of base URLs, e.g. `["http://192.168.1.42"]`.
+type UrlMap = Arc<Mutex<HashMap<String, String>>>;
+
+pub struct DiscoveryInner {
+    daemon: Option<ServiceDaemon>,
+    /// Shared with the background thread: fullname → URL.
+    url_map: UrlMap,
+}
+
+pub struct DiscoveryState(pub Mutex<DiscoveryInner>);
+
+impl DiscoveryState {
+    pub fn new() -> Self {
+        Self(Mutex::new(DiscoveryInner {
+            daemon: None,
+            url_map: Arc::new(Mutex::new(HashMap::new())),
+        }))
+    }
+}
+
+// ─── Commands ─────────────────────────────────────────────────────────────────
+
+/// Start continuous mDNS discovery. Safe to call repeatedly — a running daemon
+/// is left untouched. Emits:
+/// - `plotter-found` (payload: URL string) when a plotter joins the network
+/// - `plotter-lost`  (payload: URL string) when a plotter leaves the network
 #[tauri::command]
-pub fn discover_plotters() -> Result<Vec<String>, String> {
+pub fn start_plotter_discovery(
+    app: AppHandle,
+    state: tauri::State<DiscoveryState>,
+) -> Result<(), String> {
+    let mut inner = state.0.lock().unwrap();
+    if inner.daemon.is_some() {
+        return Ok(()); // already running
+    }
+
     let daemon = ServiceDaemon::new().map_err(|e| e.to_string())?;
     let receiver = daemon.browse(SERVICE_TYPE).map_err(|e| e.to_string())?;
 
-    let deadline = std::time::Instant::now() + Duration::from_millis(SCAN_TIMEOUT_MS);
-    let mut urls: Vec<String> = Vec::new();
+    // Give the thread its own Arc clone; the state keeps the other reference.
+    let url_map: UrlMap = Arc::clone(&inner.url_map);
+    inner.daemon = Some(daemon);
+    drop(inner);
 
-    loop {
-        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-        if remaining.is_zero() {
-            break;
-        }
+    std::thread::spawn(move || {
+        loop {
+            match receiver.recv() {
+                Ok(ServiceEvent::ServiceResolved(info)) => {
+                    let is_plotter = info
+                        .get_properties()
+                        .get(DEVICE_KEY)
+                        .map(|v| v.val_str() == DEVICE_VALUE)
+                        .unwrap_or(false);
 
-        match receiver.recv_timeout(remaining) {
-            Ok(ServiceEvent::ServiceResolved(info)) => {
-                // Filter: only accept services that carry our device marker.
-                let is_plotter = info
-                    .get_properties()
-                    .get(DEVICE_KEY)
-                    .map(|v| v.val_str() == DEVICE_VALUE)
-                    .unwrap_or(false);
+                    if !is_plotter {
+                        continue;
+                    }
 
-                if !is_plotter {
-                    continue;
+                    let host = info
+                        .get_addresses_v4()
+                        .into_iter()
+                        .next()
+                        .map(|a| a.to_string())
+                        .unwrap_or_else(|| {
+                            info.get_hostname().trim_end_matches('.').to_string()
+                        });
+
+                    let port = info.get_port();
+                    let url = if port == 80 {
+                        format!("http://{host}")
+                    } else {
+                        format!("http://{host}:{port}")
+                    };
+
+                    url_map
+                        .lock()
+                        .unwrap()
+                        .insert(info.get_fullname().to_string(), url.clone());
+
+                    let _ = app.emit("plotter-found", url);
                 }
 
-                // Prefer first IPv4 address; fall back to hostname.
-                let host = info
-                    .get_addresses_v4()
-                    .into_iter()
-                    .next()
-                    .map(|a| a.to_string())
-                    .unwrap_or_else(|| info.get_hostname().trim_end_matches('.').to_string());
-
-                let port = info.get_port();
-                let url = if port == 80 {
-                    format!("http://{host}")
-                } else {
-                    format!("http://{host}:{port}")
-                };
-
-                if !urls.contains(&url) {
-                    urls.push(url);
+                Ok(ServiceEvent::ServiceRemoved(_, fullname)) => {
+                    if let Some(url) = url_map.lock().unwrap().remove(&fullname) {
+                        let _ = app.emit("plotter-lost", url);
+                    }
                 }
+
+                Ok(_) => {}
+                Err(_) => break, // daemon was shut down
             }
-            Ok(_) => {}
-            Err(_) => break,
         }
-    }
+    });
 
-    let _ = daemon.shutdown();
-    Ok(urls)
+    Ok(())
 }
+
+/// Stop the running discovery daemon and clear all tracked state.
+#[tauri::command]
+pub fn stop_plotter_discovery(state: tauri::State<DiscoveryState>) -> Result<(), String> {
+    let mut inner = state.0.lock().unwrap();
+    inner.url_map.lock().unwrap().clear();
+    if let Some(daemon) = inner.daemon.take() {
+        let _ = daemon.shutdown();
+    }
+    Ok(())
+}
+
