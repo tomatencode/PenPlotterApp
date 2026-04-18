@@ -1,5 +1,4 @@
 import {
-  WORKSPACE_WIDTH_MM,
   BODY_BEAM_MARGIN_MM,
   BODY_BEAM_WIDTH_MM,
   X_AXIS_BEAM_HEIGHT_MM,
@@ -10,9 +9,10 @@ import {
 
 interface Props {
   yMm: number; // current Y position in workspace coordinates (mm)
+  workspaceWidthMm: number;
 }
 
-export default function XAxisBeam({ yMm }: Props) {
+export default function XAxisBeam({ yMm, workspaceWidthMm }: Props) {
   const m = BODY_BEAM_MARGIN_MM;
 
   return (
@@ -20,7 +20,7 @@ export default function XAxisBeam({ yMm }: Props) {
       {/* Beam spanning rail to rail */}
       <rect
         x={-m} y={-X_AXIS_BEAM_HEIGHT_MM / 2 + X_AXIS_TO_PEN_MM}
-        width={WORKSPACE_WIDTH_MM + m * 2} height={X_AXIS_BEAM_HEIGHT_MM}
+        width={workspaceWidthMm + m * 2} height={X_AXIS_BEAM_HEIGHT_MM}
         fill="#1e293b" rx={2}
       />
 
@@ -33,7 +33,7 @@ export default function XAxisBeam({ yMm }: Props) {
 
       {/* Beam connector right */}
       <rect
-        x={WORKSPACE_WIDTH_MM + m - (BODY_BEAM_WIDTH_MM + X_AXIS_CONNECTOR_EXTRA_WIDTH_MM)} y={-(X_AXIS_BEAM_HEIGHT_MM + X_AXIS_CONNECTOR_EXTRA_HEIGHT_MM) / 2 + X_AXIS_TO_PEN_MM}
+        x={workspaceWidthMm + m - (BODY_BEAM_WIDTH_MM + X_AXIS_CONNECTOR_EXTRA_WIDTH_MM)} y={-(X_AXIS_BEAM_HEIGHT_MM + X_AXIS_CONNECTOR_EXTRA_HEIGHT_MM) / 2 + X_AXIS_TO_PEN_MM}
         width={BODY_BEAM_WIDTH_MM + X_AXIS_CONNECTOR_EXTRA_WIDTH_MM} height={X_AXIS_BEAM_HEIGHT_MM + X_AXIS_CONNECTOR_EXTRA_HEIGHT_MM}
         fill="#0d1017" stroke="#334155" strokeWidth={2} rx={2}
       />

@@ -27,7 +27,11 @@ export default function PlotterScreen() {
   const [startingFile, setStartingFile] = useState<string | null>(null);
 
   const uiState: UiState = wsState ? wsState.motionState : "connecting";
-  const headPosition = wsState ? { x: wsState.x, y: (info?.workspaceY ?? 0) - wsState.y } : { x: 0, y: 0 };
+  const headPosition = wsState ? { x: wsState.x, y: wsState.y } : { x: 0, y: 0 };
+
+  useEffect(() => {
+    return client.subscribe(setWsState);
+  }, [client]);
 
   useEffect(() => {
     Promise.all([
@@ -42,10 +46,6 @@ export default function PlotterScreen() {
 
     client.getAllSettings().then(setSettings).catch(console.error);
     client.listFiles().then(setFiles).catch(console.error);
-  }, [client]);
-
-  useEffect(() => {
-    return client.subscribe(setWsState);
   }, [client]);
 
   async function handleStartFile(filename: string) {
@@ -94,7 +94,16 @@ export default function PlotterScreen() {
         <main className="flex-1 flex flex-col overflow-hidden bg-[#0a0c10]">
           {/* TODO: controls toolbar (home, Pen Up/Down) */}
           <div className="flex-1 flex items-center justify-center p-8 overflow-hidden">
-            <PlotterView position={headPosition} />
+            {info ? (
+              <PlotterView
+                position={headPosition}
+                workspaceWidthMm={info.workspaceX}
+                workspaceHeightMm={info.workspaceY}
+                activePenColor="#383737"
+              />
+            ) : 
+              <p className="text-sm text-slate-600 italic">Loading plotter info…</p>
+            }
           </div>
         </main>
 
