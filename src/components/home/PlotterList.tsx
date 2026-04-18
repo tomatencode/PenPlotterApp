@@ -17,7 +17,7 @@ export default function PlotterList({ plotters, onPlotterClick }: Props) {
         <p className="text-xs text-slate-700 px-2 italic">No plotters found</p>
       ) : (
         plotters.map((plotter) => {
-          const style = STATE_STYLES[plotter.state];
+          const style = STATE_STYLES[plotter.displayInfo.state];
           return (
             <button
               key={plotter.url}
@@ -26,8 +26,8 @@ export default function PlotterList({ plotters, onPlotterClick }: Props) {
             >
               <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-200 group-hover:text-blue-300 transition-colors leading-tight">{plotter.name}</p>
-                <p className="text-xs text-slate-600 truncate">{plotter.url}</p>
+                <p className="text-sm font-medium text-gray-200 group-hover:text-blue-300 transition-colors leading-tight">{plotter.displayInfo.name}</p>
+                <p className="text-xs text-slate-600 truncate">{"http://" + plotter.displayInfo.mdnsName + ".local"}</p>
               </div>
               <span className={`text-xs font-medium shrink-0 ${style.text}`}>{style.label}</span>
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"

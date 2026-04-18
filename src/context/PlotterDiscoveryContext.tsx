@@ -5,11 +5,18 @@ import { PlotterClient } from "../api/plotterClient";
 
 export type PlotterState = "idle" | "running" | "paused" | "connecting";
 
+export interface PlotterDisplayInfo {
+  name: string;
+  mdnsName: string;
+  iteration: number;
+  state: PlotterState;
+}
+
+
 export interface Plotter {
   url: string;
-  name: string;
-  state: PlotterState;
   client: PlotterClient;
+  displayInfo: PlotterDisplayInfo;
 }
 
 interface PlotterDiscoveryContextValue {
@@ -32,7 +39,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
     const client = new PlotterClient(url);
     setPlotters((prev) => {
       if (prev.some((p) => p.url === url)) return prev;
-      return [...prev, { url, name: url, state: "connecting", client }];
+      return [...prev, { url, displayInfo: { name: url, mdnsName: "", iteration: 0, state: "connecting" }, client }];
     });
     console.log(`Plotter found: ${url}`);
   }
@@ -46,20 +53,69 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   useEffect(() => {
     const id = setInterval(() => {
       for (const plotter of plottersRef.current) {
-        plotter.client.getMotionState()
-          .then((state) => {
-            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, state } : p));
-          })
-          .catch(() => {
-            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, state: "connecting" } : p));
-          });
-        
+        let allInfoFetched = true;
+
         plotter.client.getName()
           .then((name) => {
-            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, name } : p));
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, name } } : p)
+            );
           })
           .catch(() => {
-            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, name: plotter.url } : p));
+            allInfoFetched = false;
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, name: plotter.url } } : p)
+            );
+          });
+        
+        plotter.client.getMdnsName()
+          .then((mdnsName) => {
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, mdnsName } } : p)
+            );
+          })
+          .catch(() => {
+            allInfoFetched = false;
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, mdnsName: "" } } : p)
+            );
+          });
+        
+        // Only fetch iteration if we haven't successfully fetched it before - the hardware doesn't change
+        if (plotter.displayInfo.iteration === 0) {
+          plotter.client.getIteration()
+            .then((iteration) => {
+              setPlotters((prev) => prev.map(
+                (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, iteration } } : p)
+              );
+            })
+            .catch(() => {
+              allInfoFetched = false;
+              setPlotters((prev) => prev.map(
+                (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, iteration: 0 } } : p)
+              );
+            });
+        }
+
+        if (!allInfoFetched) {
+          // If we failed to fetch some info, mark the plotter as "connecting" to indicate an issue.
+          setPlotters((prev) => prev.map(
+            (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
+          );
+          continue;
+        }
+
+        plotter.client.getMotionState()
+          .then((state) => {
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state } } : p)
+            );
+          })
+          .catch(() => {
+            allInfoFetched = false;
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
+            );
           });
       }
     }, 2000);

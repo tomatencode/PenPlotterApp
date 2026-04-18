@@ -1,4 +1,5 @@
 interface PlotterInfo {
+  url: string;
   name: string;
   mdnsName: string;
   iteration: number;
@@ -9,15 +10,14 @@ interface PlotterInfo {
 
 interface Props {
   info: PlotterInfo | null;
-  url: string;
 }
 
-export default function PlotterDetailsPanel({ info, url }: Props) {
+export default function PlotterDetailsPanel({ info }: Props) {
   const rows = [
-    { label: "Iteration", value: info ? `V${info.iteration}` : "—"                          },
-    { label: "Firmware",  value: info?.firmwareVersion ?? "—"                                },
-    { label: "mDNS Name", value: info ? `${info.mdnsName}.local` : "—"                      },
-    { label: "URL",       value: url                                                          },
+    { label: "Iteration", value: info ? `V${info.iteration}` : "—"},
+    { label: "Firmware",  value: info?.firmwareVersion ?? "—"},
+    { label: "mDNS Name", value: info ? `${info.mdnsName}.local` : "—"},
+    { label: "URL",       value: info ? `http://${info.mdnsName}.local` : "—"},
     { label: "Workspace", value: info ? `${info.workspaceX} × ${info.workspaceY} mm` : "—"  },
   ];
 

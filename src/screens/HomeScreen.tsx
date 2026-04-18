@@ -105,7 +105,7 @@ export default function HomeScreen() {
 
         <PlotterList
           plotters={plotters}
-          onPlotterClick={(p) => navigate("/plotter", { state: { url: p.url } })}
+          onPlotterClick={(p) => navigate("/plotter", { state: { plotter: p } })}
         />
 
         <div className="flex-1" />

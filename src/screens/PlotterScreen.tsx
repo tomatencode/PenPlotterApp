@@ -7,7 +7,6 @@ import PlotterDetailsPanel from "../components/plotter/PlotterDetailsPanel";
 import PlotterSettingsPanel from "../components/plotter/PlotterSettingsPanel";
 import PlotterFileList from "../components/plotter/PlotterFileList";
 import JobControlBar from "../components/plotter/JobControllBar";
-import { PlotterClient } from "../api/plotterClient";
 import type { SettingKey, PlotterSettings, WsStateMessage } from "../api/plotterClient";
 import type { UiState } from "../components/plotter/PlotterStatusCard";
 import type { PlotterInfo } from "../components/plotter/PlotterDetailsPanel";
@@ -15,9 +14,17 @@ import type { PlotterInfo } from "../components/plotter/PlotterDetailsPanel";
 export default function PlotterScreen() {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const url: string = state?.url ?? "";
+  const plotter = state?.plotter ?? null;
 
-  const client = useMemo(() => new PlotterClient(url), [url]);
+  if (!plotter) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-sm text-slate-600 italic">No plotter data provided.</p>
+      </div>
+    );
+  }
+
+  const client = useMemo(() => plotter.client, [plotter]);
 
   const [openedSideTab, setOpenedSideTab] = useState<"files" | "settings">("files");
 
@@ -36,13 +43,18 @@ export default function PlotterScreen() {
 
   useEffect(() => {
     Promise.all([
-      client.getName(),
-      client.getMdnsName(),
-      client.getIteration(),
+
       client.getFirmwareVersion(),
       client.getWorkspace(),
-    ]).then(([name, mdnsName, iteration, firmwareVersion, workspace]) => {
-      setInfo({ name, mdnsName, iteration, firmwareVersion, workspaceX: workspace.x, workspaceY: workspace.y });
+    ]).then(([firmwareVersion, workspace]) => {
+      setInfo({
+        url: plotter.url,
+        name: plotter.displayInfo.name,
+        mdnsName: plotter.displayInfo.mdnsName,
+        iteration: plotter.displayInfo.iteration,
+        firmwareVersion, workspaceX: workspace.x,
+        workspaceY: workspace.y
+      });
     }).catch(console.error);
 
     client.getAllSettings().then(setSettings).catch(console.error);
@@ -86,8 +98,8 @@ export default function PlotterScreen() {
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
       <ScreenHeader
         onBack={() => navigate("/")}
-        title={info?.name ?? url}
-        subtitle={info ? `${info.mdnsName}.local` : ""}
+        title={plotter.displayInfo.name}
+        subtitle={ `http://${plotter.displayInfo.mdnsName}.local`}
       >
         <PlotterStatusCard state={uiState} />
       </ScreenHeader>
@@ -96,7 +108,7 @@ export default function PlotterScreen() {
 
         {/* ── Left info panel ── */}
         <aside className="w-56 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto">
-          <PlotterDetailsPanel info={info} url={url} />
+          <PlotterDetailsPanel info={info} />
         </aside>
 
         {/* ── Center: plotter graphic ── */}
