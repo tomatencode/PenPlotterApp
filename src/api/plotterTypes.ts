@@ -1,3 +1,18 @@
+// ─── Device Info ─────────────────────────────────────────────────────────────
+
+export interface PlotterIteration {
+  iteration: number;
+}
+
+export interface FirmwareVersion {
+  firmwareVersion: string;
+}
+
+export interface WorkspaceSize {
+  x: number;
+  y: number;
+}
+
 // ─── Job Files ───────────────────────────────────────────────────────────────
 
 export interface UploadResult {
@@ -8,13 +23,15 @@ export interface UploadResult {
 
 // ─── Job Control ─────────────────────────────────────────────────────────────
 
+export type MotionState = "idle" | "running" | "paused";
+
 export interface JobStatus {
   active: boolean;
   paused: boolean;
   file: string | null;
   currentLine: number;
   totalLines: number;
-  /** 0–100 */
+  /** 0.0–1.0 */
   progress: number;
 }
 
@@ -45,9 +62,26 @@ export type SettingKey =
   | "sgStartTimeout"
   | "sgHistorySize"
   | "penUpAngle"
-  | "penDownAngle";
+  | "penDownAngle"
+  | "penSlots";
 
 export type PlotterSettings = Partial<Record<SettingKey, string>>;
+
+// ─── WebSocket ────────────────────────────────────────────────────────────────
+
+export interface WsStateMessage {
+  type: "state";
+  x: number;
+  y: number;
+  penDown: boolean;
+  activePenSlot: number | null;
+  motionState: MotionState;
+  jobActive: boolean;
+  jobFile: string;
+  jobProgress: number;
+  jobLine: number;
+  jobTotalLines: number;
+}
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
 

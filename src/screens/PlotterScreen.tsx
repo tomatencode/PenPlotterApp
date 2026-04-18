@@ -25,11 +25,11 @@ interface PlotterDetails {
 }
 
 const STATE_STYLES: Record<PlotterState, { dot: string; label: string; text: string; bg: string }> = {
-  idle:    { dot: "bg-green-400",              label: "Idle",    text: "text-green-400",  bg: "bg-green-400/10 border-green-500/20"   },
-  running: { dot: "bg-blue-400 animate-pulse", label: "Running", text: "text-blue-400",   bg: "bg-blue-400/10 border-blue-500/20"     },
-  paused:  { dot: "bg-yellow-400",             label: "Paused",  text: "text-yellow-400", bg: "bg-yellow-400/10 border-yellow-500/20" },
-  error:   { dot: "bg-red-500",                label: "Error",   text: "text-red-400",    bg: "bg-red-500/10 border-red-600/20"       },
-  offline: { dot: "bg-slate-600",              label: "Offline", text: "text-slate-500",  bg: "bg-slate-700/20 border-slate-700/40"   },
+  idle:    { dot: "bg-green-400",              label: "Idle",        text: "text-green-400",  bg: "bg-green-400/10 border-green-500/20"   },
+  running: { dot: "bg-blue-400 animate-pulse", label: "Running",     text: "text-blue-400",   bg: "bg-blue-400/10 border-blue-500/20"     },
+  paused:  { dot: "bg-yellow-400",             label: "Paused",      text: "text-yellow-400", bg: "bg-yellow-400/10 border-yellow-500/20" },
+  error:   { dot: "bg-red-500",                label: "Error",       text: "text-red-400",    bg: "bg-red-500/10 border-red-600/20"       },
+  offline: { dot: "bg-slate-600",              label: "HTTP Offline",text: "text-slate-500",  bg: "bg-slate-700/20 border-slate-700/40"   },
 };
 
 // Stub — will be fetched from backend via plotter id from location state
