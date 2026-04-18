@@ -85,6 +85,12 @@ export class PlotterClient {
     return res.json() as Promise<WorkspaceSize>;
   }
 
+  // State
+  async getMotionState(): Promise<MotionState> {
+    const res = await checkResponse(await fetch(`${this.baseUrl}/motionState`));
+    return (await res.text()) as MotionState;
+  }
+
   // Device Name
 
   // Get the human-readable display name.

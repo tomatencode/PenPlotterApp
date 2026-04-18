@@ -33,7 +33,8 @@ class PlotterSocketManager {
 
   subscribe(listener: StateListener): () => void {
     this.listeners.add(listener);
-    if (this.ws === null && !this.stopped) {
+    this.stopped = false;
+    if (this.ws === null && this.reconnectTimer === null) {
       this.connect();
     }
     return () => {
