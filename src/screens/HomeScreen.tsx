@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
-import { type Plotter, type PlotterState } from "../components/home/types";
 import DocumentActions from "../components/home/DocumentActions";
 import PlotterList from "../components/home/PlotterList";
 import RecentFilesList from "../components/home/RecentFilesList";
-import { startPlotterDiscovery } from "../api/discovery";
-import { PlotterClient } from "../api/plotterClient";
+import { usePlotterDiscovery } from "../context/PlotterDiscoveryContext";
 
 interface OpenedDocument {
   path: string;
@@ -17,15 +15,13 @@ interface OpenedDocument {
 
 export default function HomeScreen() {
   const navigate = useNavigate();
+  const { plotters } = usePlotterDiscovery();
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showNameInput, setShowNameInput] = useState(false);
   const [newName, setNewName] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const [plotters, setPlotters] = useState<Plotter[]>([]);
   const [version, setVersion] = useState<string>("");
-  const plottersRef = useRef<Plotter[]>([]);
-  useEffect(() => { plottersRef.current = plotters; }, [plotters]);
 
   function refreshRecents() {
     invoke<string[]>("get_recent_files").then(setRecentFiles).catch(console.error);
@@ -38,38 +34,8 @@ export default function HomeScreen() {
     refreshRecents();
   }
 
-  async function resolveAndAddPlotter(url: string) {
-    try {
-      const client = new PlotterClient(url);
-      const [name, status] = await Promise.all([client.getName(), client.getJobStatus()]);
-      const state: PlotterState =
-        status.active && !status.paused ? "running"
-        : status.active && status.paused ? "paused"
-        : "idle";
-      setPlotters((prev) => [...prev.filter((p) => p.id !== url), { id: url, name, url, state }]);
-    } catch {
-      const name = new URL(url).hostname;
-      setPlotters((prev) => [...prev.filter((p) => p.id !== url), { id: url, name, url, state: "offline" }]);
-    }
-  }
-
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
-  useEffect(() => {
-    const id = setInterval(async () => {
-      const online = plottersRef.current.filter((p) => p.state !== "offline");
-      await Promise.all(online.map((p) => resolveAndAddPlotter(p.url)));
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
-  useEffect(() => {
-    let stop: (() => void) | undefined;
-    startPlotterDiscovery(
-      (url) => resolveAndAddPlotter(url),
-      (url) => setPlotters((prev) => prev.filter((p) => p.id !== url)),
-    ).then((fn) => { stop = fn; }).catch(console.error);
-    return () => { stop?.(); setPlotters([]); };
-  }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
 
   async function handleCreate() {
