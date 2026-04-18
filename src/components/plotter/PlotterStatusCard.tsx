@@ -14,7 +14,7 @@ interface Props {
 export default function PlotterStatusCard({ state }: Props) {
   const s = STATE_STYLES[state];
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${s.bg}`}>
+    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border min-w-[120px] ${s.bg}`}>
       <div className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
       <div>
         <p className={`text-sm font-semibold leading-tight ${s.text}`}>{s.label}</p>

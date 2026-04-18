@@ -6,6 +6,7 @@ import PlotterStatusCard from "../components/plotter/PlotterStatusCard";
 import PlotterDetailsPanel from "../components/plotter/PlotterDetailsPanel";
 import PlotterSettingsPanel from "../components/plotter/PlotterSettingsPanel";
 import PlotterFileList from "../components/plotter/PlotterFileList";
+import JobControlBar from "../components/plotter/JobControllBar";
 import { PlotterClient } from "../api/plotterClient";
 import type { SettingKey, PlotterSettings, WsStateMessage } from "../api/plotterClient";
 import type { UiState } from "../components/plotter/PlotterStatusCard";
@@ -60,6 +61,18 @@ export default function PlotterScreen() {
     }
   }
 
+  async function handlePause() {
+    try { await client.pauseJob(); } catch (e) { console.error(e); }
+  }
+
+  async function handleResume() {
+    try { await client.resumeJob(); } catch (e) { console.error(e); }
+  }
+
+  async function handleAbort() {
+    try { await client.abortJob(); } catch (e) { console.error(e); }
+  }
+
   async function handleChangeSetting(key: SettingKey, rawValue: string) {
     try {
       await client.setSetting(key, rawValue);
@@ -75,18 +88,14 @@ export default function PlotterScreen() {
         onBack={() => navigate("/")}
         title={info?.name ?? url}
         subtitle={info ? `${info.mdnsName}.local` : ""}
-      />
+      >
+        <PlotterStatusCard state={uiState} />
+      </ScreenHeader>
 
       <div className="flex-1 flex overflow-hidden">
 
         {/* ── Left info panel ── */}
         <aside className="w-56 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto">
-          <div className="px-4 pt-4 pb-3">
-            <PlotterStatusCard state={uiState} />
-          </div>
-
-          <div className="h-px bg-slate-800 mx-4" />
-
           <PlotterDetailsPanel info={info} url={url} />
         </aside>
 
@@ -102,12 +111,13 @@ export default function PlotterScreen() {
                 activePenColor="#383737"
               />
             ) : 
-              <p className="text-sm text-slate-600 italic">Loading plotter info…</p>
+              <p className="text-sm text-slate-600 italic">Fetching Plotter Dimensions…</p>
             }
           </div>
         </main>
 
         {/* ── Right: file list / Settings ── */}
+
         <aside className="w-52 shrink-0 flex flex-col border-l border-slate-700/60 bg-[#0d1017] overflow-hidden">
           <div className="shrink-0 flex border-b border-slate-700/60">
             {(["files", "settings"] as const).map(tab => (
@@ -137,6 +147,13 @@ export default function PlotterScreen() {
           )}
         </aside>
       </div>
+
+      <JobControlBar
+        wsState={wsState}
+        onPause={handlePause}
+        onResume={handleResume}
+        onAbort={handleAbort}
+      />
     </div>
   );
 }
