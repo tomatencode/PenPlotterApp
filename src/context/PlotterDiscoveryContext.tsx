@@ -15,7 +15,6 @@ export interface PlotterDisplayInfo {
 
 export interface Plotter {
   url: string;
-  client: PlotterClient;
   displayInfo: PlotterDisplayInfo;
 }
 
@@ -34,17 +33,28 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   const plottersRef = useRef<Plotter[]>([]);
   useEffect(() => { plottersRef.current = plotters; }, [plotters]);
 
+  // Internal clients — not exposed, never put in React state
+  const clientsRef = useRef<Map<string, PlotterClient>>(new Map());
+
+  function getClient(url: string): PlotterClient {
+    if (!clientsRef.current.has(url)) {
+      clientsRef.current.set(url, new PlotterClient(url));
+    }
+    return clientsRef.current.get(url)!;
+  }
+
   function addPlotter(url: string) {
     if (plottersRef.current.some((p) => p.url === url)) return;
-    const client = new PlotterClient(url);
+    getClient(url); // ensure client exists
     setPlotters((prev) => {
       if (prev.some((p) => p.url === url)) return prev;
-      return [...prev, { url, displayInfo: { name: url, mdnsName: "", iteration: 0, state: "connecting" }, client }];
+      return [...prev, { url, displayInfo: { name: url, mdnsName: "", iteration: 0, state: "connecting" } }];
     });
     console.log(`Plotter found: ${url}`);
   }
 
   function removePlotter(url: string) {
+    clientsRef.current.delete(url);
     setPlotters((prev) => prev.filter((p) => p.url !== url));
   }
 
@@ -53,9 +63,10 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   useEffect(() => {
     const id = setInterval(() => {
       for (const plotter of plottersRef.current) {
+        const client = getClient(plotter.url);
         let allInfoFetched = true;
 
-        plotter.client.getName()
+        client.getName()
           .then((name) => {
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, name } } : p)
@@ -68,7 +79,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
             );
           });
         
-        plotter.client.getMdnsName()
+        client.getMdnsName()
           .then((mdnsName) => {
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, mdnsName } } : p)
@@ -83,7 +94,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
         
         // Only fetch iteration if we haven't successfully fetched it before - the hardware doesn't change
         if (plotter.displayInfo.iteration === 0) {
-          plotter.client.getIteration()
+          client.getIteration()
             .then((iteration) => {
               setPlotters((prev) => prev.map(
                 (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, iteration } } : p)
@@ -105,7 +116,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
           continue;
         }
 
-        plotter.client.getMotionState()
+        client.getMotionState()
           .then((state) => {
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state } } : p)

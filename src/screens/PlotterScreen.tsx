@@ -7,6 +7,7 @@ import PlotterDetailsPanel from "../components/plotter/PlotterDetailsPanel";
 import PlotterSettingsPanel from "../components/plotter/PlotterSettingsPanel";
 import PlotterFileList from "../components/plotter/PlotterFileList";
 import JobControlBar from "../components/plotter/JobControllBar";
+import { PlotterClient } from "../api/plotterClient";
 import type { SettingKey, PlotterSettings, WsStateMessage } from "../api/plotterClient";
 import type { UiState } from "../components/plotter/PlotterStatusCard";
 import type { PlotterInfo } from "../components/plotter/PlotterDetailsPanel";
@@ -24,7 +25,7 @@ export default function PlotterScreen() {
     );
   }
 
-  const client = useMemo(() => plotter.client, [plotter]);
+  const client = useMemo(() => new PlotterClient(plotter.url), [plotter.url]);
 
   const [openedSideTab, setOpenedSideTab] = useState<"files" | "settings">("files");
 
