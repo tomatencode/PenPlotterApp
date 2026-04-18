@@ -1,4 +1,5 @@
-import { type Plotter, STATE_STYLES } from "./types";
+import { STATE_STYLES } from "./types";
+import type { Plotter } from "../../context/PlotterDiscoveryContext";
 
 interface Props {
   plotters: Plotter[];
@@ -19,7 +20,7 @@ export default function PlotterList({ plotters, onPlotterClick }: Props) {
           const style = STATE_STYLES[plotter.state];
           return (
             <button
-              key={plotter.id}
+              key={plotter.url}
               onClick={() => onPlotterClick(plotter)}
               className="flex items-center gap-3 w-full px-3 py-3 rounded-lg bg-[#0a0c10] hover:bg-slate-800/60 border border-slate-700/50 hover:border-blue-500/30 transition-colors group text-left"
             >

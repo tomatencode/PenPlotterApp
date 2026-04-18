@@ -33,12 +33,11 @@ export default function HomeScreen() {
       .catch(console.error);
     refreshRecents();
   }
-
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
 
-  async function handleCreate() {
+  async function handleCreateFile() {
     const name = newName.trim() || "Untitled";
     setShowNameInput(false);
     setNewName("");
@@ -98,7 +97,7 @@ export default function HomeScreen() {
           nameInputRef={nameInputRef}
           onToggleNameInput={setShowNameInput}
           onNameChange={setNewName}
-          onCreate={handleCreate}
+          onCreate={handleCreateFile}
           onOpen={handleOpen}
         />
 

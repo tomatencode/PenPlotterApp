@@ -1,8 +1,16 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { type Plotter, type PlotterState } from "../components/home/types";
 import { PlotterClient } from "../api/plotterClient";
+
+export type PlotterState = "idle" | "running" | "paused" | "connecting";
+
+export interface Plotter {
+  url: string;
+  name: string;
+  state: PlotterState;
+  client: PlotterClient;
+}
 
 interface PlotterDiscoveryContextValue {
   plotters: Plotter[];
@@ -19,51 +27,55 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   const plottersRef = useRef<Plotter[]>([]);
   useEffect(() => { plottersRef.current = plotters; }, [plotters]);
 
-  async function resolveAndAddPlotter(url: string) {
-    try {
-      const client = new PlotterClient(url);
-      const [name, status] = await Promise.all([client.getName(), client.getJobStatus()]);
-      const state: PlotterState =
-        status.active && !status.paused ? "running"
-        : status.active && status.paused ? "paused"
-        : "idle";
-      setPlotters((prev) => [...prev.filter((p) => p.id !== url), { id: url, name, url, state }]);
-    } catch {
-      const name = new URL(url).hostname;
-      setPlotters((prev) => [...prev.filter((p) => p.id !== url), { id: url, name, url, state: "offline" }]);
-    }
+  function addPlotter(url: string) {
+    if (plottersRef.current.some((p) => p.url === url)) return;
+    const client = new PlotterClient(url);
+    setPlotters((prev) => {
+      if (prev.some((p) => p.url === url)) return prev;
+      return [...prev, { url, name: url, state: "connecting", client }];
+    });
+    console.log(`Plotter found: ${url}`);
   }
+
+  function removePlotter(url: string) {
+    setPlotters((prev) => prev.filter((p) => p.url !== url));
+  }
+
+
+  // Poll motion state for all known plotters every 2 seconds.
+  useEffect(() => {
+    const id = setInterval(() => {
+      for (const plotter of plottersRef.current) {
+        plotter.client.getMotionState()
+          .then((state) => {
+            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, state } : p));
+          })
+          .catch(() => {
+            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, state: "connecting" } : p));
+          });
+        
+        plotter.client.getName()
+          .then((name) => {
+            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, name } : p));
+          })
+          .catch(() => {
+            setPlotters((prev) => prev.map((p) => p.url === plotter.url ? { ...p, name: plotter.url } : p));
+          });
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
+
 
   // Start mDNS discovery once for the app's lifetime — never stop the daemon.
   // Only the event listeners are removed on unmount (which won't happen in practice
   // since this provider wraps the entire app).
   useEffect(() => {
-    let unlistenFound: (() => void) | undefined;
-    let unlistenLost: (() => void) | undefined;
-
     (async () => {
-      unlistenFound = await listen<string>("plotter-found", (e) => resolveAndAddPlotter(e.payload));
-      unlistenLost  = await listen<string>("plotter-lost",  (e) =>
-        setPlotters((prev) => prev.filter((p) => p.id !== e.payload))
-      );
+      await listen<string>("plotter-found", (e) => addPlotter(e.payload));
+      await listen<string>("plotter-lost",  (e) => removePlotter(e.payload));
       await invoke("start_plotter_discovery");
     })().catch(console.error);
-
-    return () => {
-      unlistenFound?.();
-      unlistenLost?.();
-      // Deliberately NOT calling stop_plotter_discovery — the daemon outlives
-      // any individual screen and we want instant re-discovery on navigation.
-    };
-  }, []);
-
-  // Poll known online plotters every second to keep status current.
-  useEffect(() => {
-    const id = setInterval(() => {
-      const online = plottersRef.current.filter((p) => p.state !== "offline");
-      online.forEach((p) => resolveAndAddPlotter(p.url));
-    }, 1000);
-    return () => clearInterval(id);
   }, []);
 
   return (

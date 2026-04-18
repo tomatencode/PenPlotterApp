@@ -88,7 +88,8 @@ export class PlotterClient {
   // State
   async getMotionState(): Promise<MotionState> {
     const res = await checkResponse(await fetch(`${this.baseUrl}/motionState`));
-    return (await res.text()) as MotionState;
+    const data = await res.json();
+    return (typeof data === "object" ? data.motionState : data) as MotionState;
   }
 
   // Device Name
