@@ -18,7 +18,7 @@ export default function PlotterFileList({ files, uiState, startingFile, onStartF
             <li key={filename}>
               <button
                 className="w-full text-left px-2.5 py-2 rounded-lg text-xs font-mono text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={startingFile !== null || uiState === "running"}
+                disabled={startingFile !== null || uiState !== "idle"}
                 onClick={() => onStartFile(filename)}
                 title={`Start ${filename}`}
               >
