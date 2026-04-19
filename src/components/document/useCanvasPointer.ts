@@ -187,7 +187,6 @@ export function useCanvasPointer({
   }, [activeTool, activeLayerId, viewport, onAddElement]);
 
   const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
     const rect = svgRef.current!.getBoundingClientRect();
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
