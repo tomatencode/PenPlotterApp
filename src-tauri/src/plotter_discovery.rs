@@ -7,6 +7,10 @@ const SERVICE_TYPE: &str = "_http._tcp.local.";
 const DEVICE_KEY: &str = "device";
 const DEVICE_VALUE: &str = "pnplttr";
 
+fn normalize_fullname(fullname: &str) -> String {
+    fullname.trim_end_matches('.').to_ascii_lowercase()
+}
+
 // ─── Managed state ────────────────────────────────────────────────────────────
 
 type UrlMap = Arc<Mutex<HashMap<String, String>>>;
@@ -82,15 +86,15 @@ pub fn start_plotter_discovery(
                         format!("http://{host}:{port}")
                     };
 
-                    url_map
-                        .lock()
-                        .unwrap()
-                        .insert(info.get_fullname().to_string(), url.clone());
+                    let fullname = normalize_fullname(info.get_fullname());
+
+                    url_map.lock().unwrap().insert(fullname, url.clone());
 
                     let _ = app.emit("plotter-found", url);
                 }
 
                 Ok(ServiceEvent::ServiceRemoved(_, fullname)) => {
+                    let fullname = normalize_fullname(&fullname);
                     if let Some(url) = url_map.lock().unwrap().remove(&fullname) {
                         let _ = app.emit("plotter-lost", url);
                     }
