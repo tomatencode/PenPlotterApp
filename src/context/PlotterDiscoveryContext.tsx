@@ -48,7 +48,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
     getClient(url); // ensure client exists
     setPlotters((prev) => {
       if (prev.some((p) => p.url === url)) return prev;
-      return [...prev, { url, displayInfo: { name: url, mdnsName: "", iteration: 0, state: "connecting" } }];
+      return [...prev, { url, displayInfo: { name: "", mdnsName: "", iteration: 0, state: "connecting" } }];
     });
     console.log(`Plotter found: ${url}`);
   }
@@ -56,6 +56,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   function removePlotter(url: string) {
     clientsRef.current.delete(url);
     setPlotters((prev) => prev.filter((p) => p.url !== url));
+    console.log(`Plotter lost: ${url}`);
   }
 
 
@@ -65,6 +66,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
       for (const plotter of plottersRef.current) {
         const client = getClient(plotter.url);
         let allInfoFetched = true;
+        console.log(`Polling plotter: ${plotter.url}`);
 
         client.getName()
           .then((name) => {
