@@ -17,7 +17,7 @@ function toGcodeName(fileName: string): string {
 	return `${base}.gcode`;
 }
 
-export default function GcodePupup({
+export default function GcodePopup({
 	isOpen,
 	onClose,
 	documentJson,

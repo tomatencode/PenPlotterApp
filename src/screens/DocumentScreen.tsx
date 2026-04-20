@@ -13,7 +13,7 @@ import LayersPanel from "../components/document/LayersPanel";
 import PagePanel from "../components/document/PagePanel";
 import PropertiesPanel from "../components/document/PropertiesPanel";
 import DocumentStatusBar from "../components/document/DocumentStatusBar";
-import GcodePupup from "../components/document/GcodePupup";
+import GcodePopup from "../components/document/GcodePopup";
 import { usePlotterDiscovery } from "../context/PlotterDiscoveryContext";
 
 interface FileLocationState {
@@ -264,7 +264,7 @@ export default function DocumentScreen() {
         totalElements={totalElements}
       />
 
-      <GcodePupup
+      <GcodePopup
         isOpen={isGcodePopupOpen}
         onClose={() => setIsGcodePopupOpen(false)}
         documentJson={docToJson(doc)}
