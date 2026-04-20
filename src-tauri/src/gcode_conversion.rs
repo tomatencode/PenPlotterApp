@@ -1,15 +1,3 @@
-use std::fs;
-use tauri::{AppHandle, Manager};
-
-/// Returns (and creates if needed) ~/Documents/PenPlotterGcode.
-#[tauri::command]
-pub fn get_gcode_dir(app: AppHandle) -> Result<String, String> {
-    let docs = app.path().document_dir().map_err(|e| e.to_string())?;
-    let dir = docs.join("PenPlotterGcode");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.to_string_lossy().to_string())
-}
-
 /// Placeholder GCode converter — returns a small example program for UI testing.
 /// Replace the body with real document-to-GCode logic when ready.
 #[tauri::command]
@@ -54,17 +42,4 @@ G0 X0 Y0      ; return home
 M5            ; spindle off
 ";
     Ok(example.to_string())
-}
-
-/// Write GCode content to an arbitrary path chosen by the user via the save dialog.
-#[tauri::command]
-pub fn save_gcode_file(path: String, content: String) -> Result<(), String> {
-    // Validate that the path has a .gcode extension to prevent writing arbitrary files.
-    let p = std::path::Path::new(&path);
-    match p.extension().and_then(|e| e.to_str()) {
-        Some(ext) if ext.eq_ignore_ascii_case("gcode") => {}
-        _ => return Err("Only .gcode files may be saved with this command.".to_string()),
-    }
-
-    fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())
 }

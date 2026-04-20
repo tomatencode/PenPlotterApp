@@ -1,5 +1,5 @@
 mod file_actions;
-mod gcode_actions;
+mod gcode_conversion;
 mod plotter_discovery;
 pub mod pnplttr_file_structure;
 
@@ -15,14 +15,14 @@ pub fn run() {
             file_actions::get_recent_files,
             file_actions::remove_recent_file,
             file_actions::get_documents_dir,
+            file_actions::get_gcode_dir,
+            file_actions::save_gcode_file,
             file_actions::create_document,
             file_actions::open_document,
             file_actions::save_document,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
-            gcode_actions::get_gcode_dir,
-            gcode_actions::convert_document_to_gcode,
-            gcode_actions::save_gcode_file,
+            gcode_conversion::convert_document_to_gcode,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
