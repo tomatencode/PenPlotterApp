@@ -164,7 +164,7 @@ export default function GcodePopup({
 	const progressPercent = gcode ? 100 : isBusy ? 45 : 0;
 
 	return (
-		<div className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 p-4">
+		<div className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 p-4" onClick={onClose}>
 			<section
 				className="w-full h-[90vh] max-w-5xl rounded-xl border border-slate-700/60 bg-[#0d1017] shadow-2xl overflow-hidden flex flex-col"
 				onClick={(e) => e.stopPropagation()}
