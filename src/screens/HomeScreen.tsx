@@ -51,8 +51,10 @@ export default function HomeScreen() {
   async function handleOpen() {
     setError(null);
     try {
+      const defaultPath = await invoke<string>("get_documents_dir").catch(() => undefined);
       const selected = await open({
         title: "Open .pnplttr file",
+        defaultPath,
         filters: [{ name: "Pen Plotter Document", extensions: ["pnplttr"] }],
         multiple: false,
       });

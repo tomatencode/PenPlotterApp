@@ -20,6 +20,7 @@ pub fn run() {
             file_actions::save_document,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
+            gcode_actions::get_gcode_dir,
             gcode_actions::convert_document_to_gcode,
             gcode_actions::save_gcode_file,
         ])

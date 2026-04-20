@@ -1,4 +1,14 @@
 use std::fs;
+use tauri::{AppHandle, Manager};
+
+/// Returns (and creates if needed) ~/Documents/PenPlotterGcode.
+#[tauri::command]
+pub fn get_gcode_dir(app: AppHandle) -> Result<String, String> {
+    let docs = app.path().document_dir().map_err(|e| e.to_string())?;
+    let dir = docs.join("PenPlotterGcode");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.to_string_lossy().to_string())
+}
 
 /// Placeholder GCode converter — returns a small example program for UI testing.
 /// Replace the body with real document-to-GCode logic when ready.

@@ -29,6 +29,7 @@ export default function GcodePopup({
 	const [gcode, setGcode] = useState<string>("");
 	const [selectedPlotterUrl, setSelectedPlotterUrl] = useState<string>("");
 	const [fileName, setFileName] = useState<string>(toGcodeName(defaultFileName));
+	const [gcodeDir, setGcodeDir] = useState<string | null>(null);
 	const [isBusy, setIsBusy] = useState(false);
 	const [status, setStatusText] = useState<string>("");
 	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
@@ -52,6 +53,10 @@ export default function GcodePopup({
 		void handleGenerateGcode();
 		// Regenerate on open or whenever the document changed.
 	}, [isOpen, documentJson]);
+
+	useEffect(() => {
+		invoke<string>("get_gcode_dir").then(setGcodeDir).catch(() => setGcodeDir(null));
+	}, []);
 
 	const selectedPlotter = useMemo(
 		() => plotters.find((p) => p.url === selectedPlotterUrl) ?? null,
@@ -88,9 +93,10 @@ export default function GcodePopup({
 				return;
 			}
 
+			const defaultPath = gcodeDir ? `${gcodeDir}/${fileName}` : fileName;
 			const selectedPath = await save({
 				title: "Save GCode as",
-				defaultPath: fileName,
+				defaultPath,
 				filters: [{ name: "GCode", extensions: ["gcode"] }],
 			});
 
