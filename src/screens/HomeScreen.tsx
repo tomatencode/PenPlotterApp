@@ -58,7 +58,7 @@ export default function HomeScreen() {
     try {
       const defaultPath = await invoke<string>("get_documents_dir").catch(() => undefined);
       const selected = await open({
-        title: "Open .pnplttr file",
+        title: "Open .pnplttr or .gcode file",
         defaultPath,
         filters: [{ name: "Pen Plotter File", extensions: ["pnplttr", "gcode"] }],
         multiple: false,
@@ -79,12 +79,22 @@ export default function HomeScreen() {
 
   async function handleOpenRecent(path: string) {
     setError(null);
-    try {
-      const doc = await invoke<OpenedDocument>("open_document", { path });
-      navigate("/document", { state: { json: doc.json, path: doc.path } });
-    } catch (e) {
-      setError(String(e));
-      refreshRecents();
+    if (path.endsWith(".pnplttr")) {
+      try {
+        const doc = await invoke<OpenedDocument>("open_document", { path });
+        navigate("/document", { state: { json: doc.json, path: doc.path } });
+      } catch (e) {
+        setError(String(e));
+        refreshRecents();
+      }
+    } else {
+      try {
+        const content = await invoke<OpendGcodeFile>("open_gcode_file", { path });
+        navigate("/gcode", { state: { gcodeContent: content.gcodeContent, path: content.path } });
+      } catch (e) {
+        setError(String(e));
+        refreshRecents();
+      }
     }
   }
 
