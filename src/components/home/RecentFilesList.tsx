@@ -46,7 +46,7 @@ const TYPE_STYLES = {
     name: "group-hover:text-green-300",
   },
   gcode: {
-    card: "hover:bg-[#111b25] hover:border-blue-500/40",
+    card: "hover:bg-[#101921] hover:border-blue-500/40",
     icon: "text-slate-600 group-hover:text-blue-400",
     name: "group-hover:text-blue-300",
   },
