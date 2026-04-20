@@ -34,7 +34,7 @@ export default function PlotterList({ plotters, onPlotterClick }: Props) {
               <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-200 group-hover:text-blue-300 transition-colors leading-tight">
-                  {plotter.displayInfo.name === "" ? "?" : plotter.displayInfo.name}
+                  {plotter.displayInfo.name === "" ? "—" : plotter.displayInfo.name}
                   </p>
                 <p className="text-xs text-slate-600 truncate">{
                 "http://" + (plotter.displayInfo.mdnsName === "" ? plotter.url : plotter.displayInfo.mdnsName) + ".local"}
