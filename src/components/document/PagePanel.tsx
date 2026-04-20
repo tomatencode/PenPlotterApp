@@ -47,7 +47,7 @@ export default function PagePanel({ page, onUpdatePage }: Props) {
       <div className="flex flex-col gap-1">
         <label className="text-[11px] text-slate-400">Paper size</label>
         <select
-          className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="bg-slate-800 appearance-none border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
           value={pagePresetIndex}
           onChange={(e) => applyPagePreset(Number(e.target.value))}
         >
@@ -63,7 +63,7 @@ export default function PagePanel({ page, onUpdatePage }: Props) {
       <div className="flex flex-col gap-1">
         <label className="text-[11px] text-slate-400">Plotter workspace</label>
         <select
-          className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="bg-slate-800 appearance-none border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
           value={wsPresetIndex}
           onChange={(e) => applyWorkspacePreset(Number(e.target.value))}
         >

@@ -25,6 +25,16 @@
   background-color: #475569;
 }
 
+select {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
+option {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
 /* Number input — hide the default spinner and replace with styled ones */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
