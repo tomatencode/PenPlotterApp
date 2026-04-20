@@ -19,8 +19,14 @@ export default function PlotterScreen() {
 
   if (!plotter) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-sm text-slate-600 italic">No plotter data provided.</p>
+      <div className="h-full flex items-center justify-center bg-[#0a0c10] ">
+        <p className="text-sm text-slate-600">No plotter data provided.</p>
+        <button
+          onClick={() => navigate("/")}
+          className="ml-4 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
