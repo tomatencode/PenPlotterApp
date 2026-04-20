@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import { PlotterClient } from "../../api/plotterClient";
+import { PlotterApiError, PlotterClient } from "../../api/plotterClient";
 import type { Plotter } from "../../context/PlotterDiscoveryContext";
 
 interface Props {
@@ -66,7 +66,6 @@ export default function GcodePupup({
 		await withBusy(async () => {
 			setStatus("Generating GCode...");
 			try {
-				// Placeholder rust command: wire this to your final converter command name.
 				const result = await invoke<string>("convert_document_to_gcode", { json: documentJson });
 				setGcode(result);
 				setStatus(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
@@ -96,7 +95,6 @@ export default function GcodePupup({
 			}
 
 			try {
-				// Placeholder rust command: write content to disk.
 				await invoke("save_gcode_file", { path: selectedPath, content: gcode });
 				setStatus(`Saved GCode to ${selectedPath}`);
 			} catch (e) {
@@ -153,7 +151,21 @@ export default function GcodePupup({
 			try {
 				const client = new PlotterClient(selectedPlotter.url);
 				for (let i = 0; i < lines.length; i += 1) {
+                    try {
 					await client.executeGCode(lines[i]);
+                    } catch (e) {
+                        if (e instanceof PlotterApiError) {
+                            if (e.status === 500) {
+                                // buffer full
+                                setStatus("Buffer full, waiting to send more...");
+                                await new Promise((res) => setTimeout(res, 500));
+                                i -= 1; // retry the same line
+                                continue;
+                            } else {
+                                throw e;
+                            }
+                        }
+                    }
 					setStatus(`Streaming ${i + 1}/${lines.length}...`);
 				}
 				setStatus(`Streaming complete (${lines.length} lines).`);
@@ -215,7 +227,7 @@ export default function GcodePupup({
 								<div className="p-3 font-mono text-xs text-slate-400 leading-relaxed">
 									{gcode.split(/\r?\n/).map((line, idx) => (
 										<div key={idx} className="hover:bg-slate-800/40 flex px-1 py-0.5 transition-colors">
-											<span className="text-slate-700 w-10 shrink-0 text-right tabular-nums select-none">{idx + 1}</span>
+											<span className="text-slate-700 w-8 shrink-0 text-right tabular-nums select-none">{idx + 1}</span>
 											<span className="ml-3 text-slate-300">{line}</span>
 										</div>
 									))}
