@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import { PlotterApiError, PlotterClient } from "../../api/plotterClient";
+import { PlotterClient } from "../../api/plotterClient";
 import type { Plotter } from "../../context/PlotterDiscoveryContext";
 
 interface Props {
