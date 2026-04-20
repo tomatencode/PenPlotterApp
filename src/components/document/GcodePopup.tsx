@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterClient } from "../../api/plotterClient";
-import { STATE_STYLES } from "../home/types";
+import PlotterDetailsRow from "../common/PlotterDetailsRow";
 import type { Plotter } from "../../context/PlotterDiscoveryContext";
 
 interface Props {
@@ -251,23 +251,7 @@ export default function GcodePopup({
 										disabled={isBusy || plotters.length === 0}
 										className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800/40 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
 									>
-										<div className={`w-2 h-2 rounded-full shrink-0 ${STATE_STYLES[selectedPlotter.displayInfo.state].dot}`} />
-										<div className="flex-1 min-w-0">
-											<div className="flex items-center gap-1.5">
-												<p className="text-xs font-medium text-gray-200 leading-tight truncate">
-													{selectedPlotter.displayInfo.name || "?"}
-												</p>
-												<p className="text-xs text-slate-600 shrink-0">
-													{`V${selectedPlotter.displayInfo.iteration === 0 ? "?" : selectedPlotter.displayInfo.iteration}`}
-												</p>
-											</div>
-											<p className="text-xs text-slate-600 truncate">
-												{"http://" + (selectedPlotter.displayInfo.mdnsName === "" ? selectedPlotter.url : selectedPlotter.displayInfo.mdnsName) + ".local"}
-											</p>
-										</div>
-										<span className={`text-xs font-medium shrink-0 ${STATE_STYLES[selectedPlotter.displayInfo.state].text}`}>
-											{STATE_STYLES[selectedPlotter.displayInfo.state].label}
-										</span>
+										<PlotterDetailsRow plotter={selectedPlotter} />
 										<svg
 											viewBox="0 0 12 12"
 											fill="none"
@@ -298,23 +282,7 @@ export default function GcodePopup({
 												}}
 												className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800/40 border-b border-slate-700/30 last:border-b-0 text-left transition-colors"
 											>
-												<div className={`w-2 h-2 rounded-full shrink-0 ${STATE_STYLES[plotter.displayInfo.state].dot}`} />
-												<div className="flex-1 min-w-0">
-													<div className="flex items-center gap-1.5">
-														<p className="text-xs font-medium text-gray-200 leading-tight truncate">
-															{plotter.displayInfo.name || "?"}
-														</p>
-														<p className="text-xs text-slate-600 shrink-0">
-															{`V${plotter.displayInfo.iteration === 0 ? "?" : plotter.displayInfo.iteration}`}
-														</p>
-													</div>
-													<p className="text-xs text-slate-600 truncate">
-														{"http://" + (plotter.displayInfo.mdnsName === "" ? plotter.url : plotter.displayInfo.mdnsName) + ".local"}
-													</p>
-												</div>
-												<span className={`text-xs font-medium shrink-0 ${STATE_STYLES[plotter.displayInfo.state].text}`}>
-													{STATE_STYLES[plotter.displayInfo.state].label}
-												</span>
+												<PlotterDetailsRow plotter={plotter} />
 											</button>
 										))}
 									</div>
