@@ -29,7 +29,7 @@ export default function GcodePopup({
 	const [selectedPlotterUrl, setSelectedPlotterUrl] = useState<string>("");
 	const [fileName, setFileName] = useState<string>(toGcodeName(defaultFileName));
 	const [isBusy, setIsBusy] = useState(false);
-	const [status, setStatus] = useState<string>("");
+	const [status, setStatusText] = useState<string>("");
 
 	const navigate = useNavigate();
 
@@ -67,14 +67,14 @@ export default function GcodePopup({
 
 	async function handleGenerateGcode() {
 		await withBusy(async () => {
-			setStatus("Generating GCode...");
+			setStatusText("Generating GCode...");
 			try {
 				const result = await invoke<string>("convert_document_to_gcode", { json: documentJson });
 				setGcode(result);
-				setStatus(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
+				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
 			} catch (e) {
 				console.error("GCode conversion failed:", e);
-				setStatus(`GCode conversion failed: ${String(e)}`);
+				setStatusText(`GCode conversion failed: ${String(e)}`);
 			}
 		});
 	}
@@ -82,7 +82,7 @@ export default function GcodePopup({
 	async function handleSaveAs() {
 		await withBusy(async () => {
 			if (!gcode.trim()) {
-				setStatus("No GCode to save yet.");
+				setStatusText("No GCode to save yet.");
 				return;
 			}
 
@@ -93,16 +93,16 @@ export default function GcodePopup({
 			});
 
 			if (!selectedPath) {
-				setStatus("Save canceled.");
+				setStatusText("Save canceled.");
 				return;
 			}
 
 			try {
 				await invoke("save_gcode_file", { path: selectedPath, content: gcode });
-				setStatus(`Saved GCode to ${selectedPath}`);
+				setStatusText(`Saved GCode to ${selectedPath}`);
 			} catch (e) {
 				console.error("Save GCode failed:", e);
-				setStatus(`Save failed: ${String(e)}`);
+				setStatusText(`Save failed: ${String(e)}`);
 			}
 		});
 	}
@@ -110,28 +110,28 @@ export default function GcodePopup({
 	async function handleUpload(startAfterUpload: boolean) {
 		await withBusy(async () => {
 			if (!selectedPlotter) {
-				setStatus("Select a plotter first.");
+				setStatusText("Select a plotter first.");
 				return;
 			}
 			if (!gcode.trim()) {
-				setStatus("No GCode to upload.");
+				setStatusText("No GCode to upload.");
 				return;
 			}
 
 			try {
-				setStatus(`Uploading to ${selectedPlotter.url}...`);
+				setStatusText(`Uploading to ${selectedPlotter.url}...`);
 				const client = new PlotterClient(selectedPlotter.url);
 				await client.uploadFile(fileName, gcode);
 				if (startAfterUpload) {
 					await client.startJob(fileName);
-					setStatus("Upload complete. Job started.");
+					setStatusText("Upload complete. Job started.");
 					navigate("/plotter", { state: { plotter: selectedPlotter } });
 				} else {
-					setStatus("Upload complete.");
+					setStatusText("Upload complete.");
 				}
 			} catch (e) {
 				console.error("Upload failed:", e);
-				setStatus(`Upload failed: ${String(e)}`);
+				setStatusText(`Upload failed: ${String(e)}`);
 			}
 		});
 	}
@@ -139,11 +139,11 @@ export default function GcodePopup({
 	async function handleStream() {
 		await withBusy(async () => {
 			if (!selectedPlotter) {
-				setStatus("Select a plotter first.");
+				setStatusText("Select a plotter first.");
 				return;
 			}
 			if (!gcode.trim()) {
-				setStatus("No GCode to stream.");
+				setStatusText("No GCode to stream.");
 				return;
 			}
 
