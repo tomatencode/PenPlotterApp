@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterClient } from "../../api/plotterClient";
+import { STATE_STYLES } from "../home/types";
 import type { Plotter } from "../../context/PlotterDiscoveryContext";
 
 interface Props {
@@ -30,6 +31,7 @@ export default function GcodePopup({
 	const [fileName, setFileName] = useState<string>(toGcodeName(defaultFileName));
 	const [isBusy, setIsBusy] = useState(false);
 	const [status, setStatusText] = useState<string>("");
+	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
 
 	const navigate = useNavigate();
 
@@ -235,31 +237,89 @@ export default function GcodePopup({
 								disabled={isBusy}
 							/>
 						</div>
+					
 
 						{/* Plotter */}
 						<div className="px-4 pt-3 pb-4 border-b border-slate-700/60">
 							<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Plotter</p>
-							<select
-								value={selectedPlotterUrl}
-								onChange={(e) => setSelectedPlotterUrl(e.target.value)}
-								className="w-full appearance-none px-2 py-1.5 rounded-md bg-[#0a0c10] border border-slate-700/60 text-xs text-slate-300 outline-none focus:border-blue-500/50 transition-colors disabled:opacity-50"
-								disabled={isBusy || plotters.length === 0}
-							>
-								{plotters.length === 0 ? (
-									<option>No plotters found</option>
+
+							<div className={`rounded-lg border bg-[#0a0c10] overflow-hidden transition-colors ${showPlotterDropdown ? "border-blue-500/40" : "border-slate-700/60"}`}>
+								{/* Trigger */}
+								{selectedPlotter ? (
+									<button
+										onClick={() => setShowPlotterDropdown(!showPlotterDropdown)}
+										disabled={isBusy || plotters.length === 0}
+										className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800/40 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<div className={`w-2 h-2 rounded-full shrink-0 ${STATE_STYLES[selectedPlotter.displayInfo.state].dot}`} />
+										<div className="flex-1 min-w-0">
+											<div className="flex items-center gap-1.5">
+												<p className="text-xs font-medium text-gray-200 leading-tight truncate">
+													{selectedPlotter.displayInfo.name || "?"}
+												</p>
+												<p className="text-xs text-slate-600 shrink-0">
+													{`V${selectedPlotter.displayInfo.iteration === 0 ? "?" : selectedPlotter.displayInfo.iteration}`}
+												</p>
+											</div>
+											<p className="text-xs text-slate-600 truncate">
+												{"http://" + (selectedPlotter.displayInfo.mdnsName === "" ? selectedPlotter.url : selectedPlotter.displayInfo.mdnsName) + ".local"}
+											</p>
+										</div>
+										<span className={`text-xs font-medium shrink-0 ${STATE_STYLES[selectedPlotter.displayInfo.state].text}`}>
+											{STATE_STYLES[selectedPlotter.displayInfo.state].label}
+										</span>
+										<svg
+											viewBox="0 0 12 12"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="1.5"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											className={`w-3 h-3 text-slate-600 shrink-0 transition-transform ${showPlotterDropdown ? "rotate-90" : ""}`}
+										>
+											<path d="M4 2l4 4-4 4" />
+										</svg>
+									</button>
 								) : (
-									plotters.map((p) => (
-										<option key={p.url} value={p.url}>
-											{p.displayInfo.name || p.url}
-										</option>
-									))
+									<div className="w-full px-3 py-2 text-xs text-slate-600 italic">
+										No plotter selected
+									</div>
 								)}
-							</select>
-							{selectedPlotter && (
-								<p className="text-xs text-slate-600 mt-1.5">
-									Status: <span className="text-green-500">Connected</span>
-								</p>
-							)}
+
+								{/* Dropdown items — inline, separated by a top border */}
+								{showPlotterDropdown && plotters.filter((p) => p.url !== selectedPlotter?.url).length > 0 && (
+									<div className="border-t border-slate-700/60">
+										{plotters.filter((p) => p.url !== selectedPlotter?.url).map((plotter) => (
+											<button
+												key={plotter.url}
+												onClick={() => {
+													setSelectedPlotterUrl(plotter.url);
+													setShowPlotterDropdown(false);
+												}}
+												className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800/40 border-b border-slate-700/30 last:border-b-0 text-left transition-colors"
+											>
+												<div className={`w-2 h-2 rounded-full shrink-0 ${STATE_STYLES[plotter.displayInfo.state].dot}`} />
+												<div className="flex-1 min-w-0">
+													<div className="flex items-center gap-1.5">
+														<p className="text-xs font-medium text-gray-200 leading-tight truncate">
+															{plotter.displayInfo.name || "?"}
+														</p>
+														<p className="text-xs text-slate-600 shrink-0">
+															{`V${plotter.displayInfo.iteration === 0 ? "?" : plotter.displayInfo.iteration}`}
+														</p>
+													</div>
+													<p className="text-xs text-slate-600 truncate">
+														{"http://" + (plotter.displayInfo.mdnsName === "" ? plotter.url : plotter.displayInfo.mdnsName) + ".local"}
+													</p>
+												</div>
+												<span className={`text-xs font-medium shrink-0 ${STATE_STYLES[plotter.displayInfo.state].text}`}>
+													{STATE_STYLES[plotter.displayInfo.state].label}
+												</span>
+											</button>
+										))}
+									</div>
+								)}
+							</div>
 						</div>
 
 						{/* Actions */}
