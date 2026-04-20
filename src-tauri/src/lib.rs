@@ -17,6 +17,7 @@ pub fn run() {
             file_actions::get_documents_dir,
             file_actions::get_gcode_dir,
             file_actions::save_gcode_file,
+            file_actions::open_gcode_file,
             file_actions::create_document,
             file_actions::open_document,
             file_actions::save_document,

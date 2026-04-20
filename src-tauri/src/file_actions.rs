@@ -56,12 +56,19 @@ pub fn remove_recent(app: &AppHandle, file_path: &str) {
     save_recent_files(app, &recents);
 }
 
-// Return type
+// Return types
 
 #[derive(Serialize)]
 pub struct OpenedDocument {
     pub path: String,
     pub json: String,
+}
+
+#[derive(Serialize)]
+pub struct OpenedGcodeFile {
+    pub path: String,
+    #[serde(rename = "gcodeContent")]
+    pub gcode_content: String,
 }
 
 // Tauri commands
@@ -81,7 +88,6 @@ pub fn get_documents_dir(app: AppHandle) -> Result<String, String> {
     plotters_dir(&app).map(|p| p.to_string_lossy().to_string())
 }
 
-/// Returns (and creates if needed) ~/Documents/PenPlotterGcode.
 #[tauri::command]
 pub fn get_gcode_dir(app: AppHandle) -> Result<String, String> {
     let docs = app.path().document_dir().map_err(|e| e.to_string())?;
@@ -90,7 +96,6 @@ pub fn get_gcode_dir(app: AppHandle) -> Result<String, String> {
     Ok(dir.to_string_lossy().to_string())
 }
 
-/// Write GCode content to an arbitrary path chosen by the user via the save dialog.
 #[tauri::command]
 pub fn save_gcode_file(path: String, content: String) -> Result<(), String> {
     // Validate that the path has a .gcode extension to prevent writing arbitrary files.
@@ -101,6 +106,18 @@ pub fn save_gcode_file(path: String, content: String) -> Result<(), String> {
     }
 
     fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn open_gcode_file(app: AppHandle, path: String) -> Result<OpenedGcodeFile, String> {
+    let p = std::path::Path::new(&path);
+    match p.extension().and_then(|e| e.to_str()) {
+        Some(ext) if ext.eq_ignore_ascii_case("gcode") => {}
+        _ => return Err("Only .gcode files may be opened with this command.".to_string()),
+    }
+    let gcode_content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    push_recent(&app, &path);
+    Ok(OpenedGcodeFile { path, gcode_content })
 }
 
 

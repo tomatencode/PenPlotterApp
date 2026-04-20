@@ -13,6 +13,11 @@ interface OpenedDocument {
   json: string;
 }
 
+interface OpendGcodeFile {
+  path: string;
+  gcodeContent: string;
+}
+
 export default function HomeScreen() {
   const navigate = useNavigate();
   const { plotters } = usePlotterDiscovery();
@@ -55,13 +60,20 @@ export default function HomeScreen() {
       const selected = await open({
         title: "Open .pnplttr file",
         defaultPath,
-        filters: [{ name: "Pen Plotter Document", extensions: ["pnplttr"] }],
+        filters: [{ name: "Pen Plotter File", extensions: ["pnplttr", "gcode"] }],
         multiple: false,
       });
+
       if (!selected) return;
       const path = typeof selected === "string" ? selected : (selected as string[])[0];
-      const doc = await invoke<OpenedDocument>("open_document", { path });
-      navigate("/document", { state: { json: doc.json, path: doc.path } });
+
+      if (path.endsWith(".pnplttr")) {
+        const doc = await invoke<OpenedDocument>("open_document", { path });
+        navigate("/document", { state: { json: doc.json, path: doc.path } });
+      } else {
+        const content = await invoke<OpendGcodeFile>("open_gcode_file", { path });
+        navigate("/gcode", { state: { gcodeContent: content.gcodeContent, path: content.path } });
+      }
     } catch (e) { setError(String(e)); }
   }
 
