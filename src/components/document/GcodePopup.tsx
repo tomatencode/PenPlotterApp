@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterApiError, PlotterClient } from "../../api/plotterClient";
@@ -29,6 +30,8 @@ export default function GcodePopup({
 	const [fileName, setFileName] = useState<string>(toGcodeName(defaultFileName));
 	const [isBusy, setIsBusy] = useState(false);
 	const [status, setStatus] = useState<string>("");
+
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -122,6 +125,7 @@ export default function GcodePopup({
 				if (startAfterUpload) {
 					await client.startJob(fileName);
 					setStatus("Upload complete. Job started.");
+					navigate("/plotter", { state: { plotter: selectedPlotter } });
 				} else {
 					setStatus("Upload complete.");
 				}
@@ -143,36 +147,7 @@ export default function GcodePopup({
 				return;
 			}
 
-			const lines = gcode
-				.split(/\r?\n/)
-				.map((l) => l.trim())
-				.filter((l) => l.length > 0 && !l.startsWith(";"));
-
-			try {
-				const client = new PlotterClient(selectedPlotter.url);
-				for (let i = 0; i < lines.length; i += 1) {
-                    try {
-					await client.executeGCode(lines[i]);
-                    } catch (e) {
-                        if (e instanceof PlotterApiError) {
-                            if (e.status === 500) {
-                                // buffer full
-                                setStatus("Buffer full, waiting to send more...");
-                                await new Promise((res) => setTimeout(res, 500));
-                                i -= 1; // retry the same line
-                                continue;
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-					setStatus(`Streaming ${i + 1}/${lines.length}...`);
-				}
-				setStatus(`Streaming complete (${lines.length} lines).`);
-			} catch (e) {
-				console.error("Stream failed:", e);
-				setStatus(`Stream failed: ${String(e)}`);
-			}
+			// not implemented yet
 		});
 	}
 
