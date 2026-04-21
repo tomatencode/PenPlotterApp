@@ -20,6 +20,7 @@ pub fn convert_document_to_gcode(_json: String) -> Result<String, String> {
     let converter = CoordinateConverter::from_document(&doc);
 
     let mut gcode = String::new();
+    gcode.push_str("G28 ; Home all axes\n\n");
 
     for layer in &doc.layers {
         gcode.push_str(&format!("; Layer: {}\n", layer.name));
