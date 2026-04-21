@@ -6,45 +6,45 @@ pub fn elements_to_strokes(elements: &[Element]) -> Vec<PlotterStroke> {
     for element in elements {
         match element {
             Element::Line { x1, y1, x2, y2, .. } => {
-                strokes.push(PlotterStroke {
+                strokes.push(PlotterStroke::Open {
                     start: (*x1, *y1),
-                    end: (*x2, *y2),
+                    end:   (*x2, *y2),
                     moves: vec![PlotterMove::Line { x1: *x1, y1: *y1, x2: *x2, y2: *y2 }],
                     reversed: false,
                 });
             }
             Element::Rect { x, y, w, h, .. } => {
-                let x1 = *x;
-                let y1 = *y;
-                let x2 = x + w;
-                let y2 = y + h;
-                strokes.push(PlotterStroke {
-                    start: (x1, y1),
-                    end: (x1, y1),
+                let (x1, y1) = (*x,       *y      );
+                let (x2, y2) = (*x + w,   *y + h  );
+                // Each corner is a valid start joint — store all 4.
+                strokes.push(PlotterStroke::Loop {
+                    joints: vec![
+                        (x1, y1),
+                        (x2, y1),
+                        (x2, y2),
+                        (x1, y2),
+                    ],
                     moves: vec![
                         PlotterMove::Line { x1,       y1,       x2,       y2: y1 },
                         PlotterMove::Line { x1: x2,   y1,       x2,       y2     },
                         PlotterMove::Line { x1: x2,   y1: y2,   x2: x1,   y2     },
                         PlotterMove::Line { x1,       y1: y2,   x2: x1,   y2: y1 },
                     ],
-                    reversed: false,
+                    start_index: 0,
                 });
             }
             Element::Circle { cx, cy, r, .. } => {
-                let start_x = cx + r;
-                let start_y = *cy;
-                strokes.push(PlotterStroke {
-                    start: (start_x, start_y),
-                    end: (start_x, start_y),
+                // Two semicircles: right → left → right.
+                // Split at rightmost and leftmost points to give the optimizer 2 joint choices.
+                let right = (*cx + r, *cy);
+                let left  = (*cx - r, *cy);
+                strokes.push(PlotterStroke::Loop {
+                    joints: vec![right, left],
                     moves: vec![
-                        PlotterMove::Arc {
-                            x1: start_x, y1: start_y,
-                            cx: *cx,     cy: *cy,
-                            x2: start_x, y2: start_y,
-                            clockwise: true,
-                        }
+                        PlotterMove::Arc { x1: right.0, y1: right.1, cx: *cx, cy: *cy, x2: left.0,  y2: left.1,  clockwise: true },
+                        PlotterMove::Arc { x1: left.0,  y1: left.1,  cx: *cx, cy: *cy, x2: right.0, y2: right.1, clockwise: true },
                     ],
-                    reversed: false,
+                    start_index: 0,
                 });
             }
         }
