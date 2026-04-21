@@ -1,3 +1,4 @@
+mod compress_gcode;
 mod coordinate_converter;
 mod elements_to_strokes;
 mod optimize_strokes;
@@ -9,6 +10,7 @@ use coordinate_converter::CoordinateConverter;
 use elements_to_strokes::elements_to_strokes;
 use optimize_strokes::optimize_strokes;
 use stroke_to_gcode::stroke_to_gcode;
+use compress_gcode::compress_gcode;
 
 #[tauri::command]
 pub fn convert_document_to_gcode(_json: String) -> Result<String, String> {
@@ -37,6 +39,8 @@ pub fn convert_document_to_gcode(_json: String) -> Result<String, String> {
     }
 
     gcode.push_str("G0 X0 Y0"); // return to origin at end
+
+    gcode = compress_gcode(&gcode);
 
     Ok(gcode)
 }
