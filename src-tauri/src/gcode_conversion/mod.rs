@@ -25,7 +25,8 @@ pub fn convert_document_to_gcode(_json: String) -> Result<String, String> {
         // TODO: add pen switching GCode commands here, using layer.pen.color and layer.pen.width
 
         let strokes = elements_to_strokes(&layer.elements);
-        let strokes = optimize_strokes(strokes);
+        let home = converter.gcode_xy_to_doc_xy(0.0, 0.0);
+        let strokes = optimize_strokes(strokes, home);
 
         gcode.push_str("M5\n"); // ensure pen up before moving to first stroke
         for stroke in strokes {
