@@ -13,14 +13,12 @@ pub fn run() {
         .manage(plotter_discovery::DiscoveryState::new())
         .invoke_handler(tauri::generate_handler![
             file_actions::get_recent_files,
+            file_actions::push_recent_file,
             file_actions::remove_recent_file,
             file_actions::get_documents_dir,
             file_actions::get_gcode_dir,
-            file_actions::save_gcode_file,
-            file_actions::open_gcode_file,
-            file_actions::create_document,
-            file_actions::open_document,
-            file_actions::save_document,
+            file_actions::save_file,
+            file_actions::open_file,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
             gcode_conversion::convert_document_to_gcode,

@@ -8,16 +8,6 @@ import PlotterList from "../components/home/PlotterList";
 import RecentFilesList from "../components/home/RecentFilesList";
 import { usePlotterDiscovery } from "../context/PlotterDiscoveryContext";
 
-interface OpenedDocument {
-  path: string;
-  json: string;
-}
-
-interface OpendGcodeFile {
-  path: string;
-  gcodeContent: string;
-}
-
 export default function HomeScreen() {
   const navigate = useNavigate();
   const { plotters } = usePlotterDiscovery();
@@ -38,18 +28,23 @@ export default function HomeScreen() {
       .catch(console.error);
     refreshRecents();
   }
+
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
 
-  async function handleCreateFile() {
+  async function handleCreateDocument() {
     const name = newName.trim() || "Untitled";
     setShowNameInput(false);
     setNewName("");
     setError(null);
     try {
-      const doc = await invoke<OpenedDocument>("create_document", { name });
-      navigate("/document", { state: { json: doc.json, path: doc.path } });
+      const document_dir = await invoke<string>("get_documents_dir");
+      const fullPath = `${document_dir}/${name}.pnplttr`;
+      await invoke("save_file", { path: fullPath });
+      await invoke("push_recent_file", { filePath: fullPath });
+
+      navigate("/document", { state: { path: fullPath } });
     } catch (e) { setError(String(e)); }
   }
 
@@ -68,11 +63,13 @@ export default function HomeScreen() {
       const path = typeof selected === "string" ? selected : (selected as string[])[0];
 
       if (path.endsWith(".pnplttr")) {
-        const doc = await invoke<OpenedDocument>("open_document", { path });
-        navigate("/document", { state: { json: doc.json, path: doc.path } });
+        await invoke("push_recent_file", { filePath: path });
+        navigate("/document", { state: { path } });
+      } else if (path.endsWith(".gcode")) {
+        await invoke("push_recent_file", { filePath: path });
+        navigate("/gcode", { state: { path } });
       } else {
-        const content = await invoke<OpendGcodeFile>("open_gcode_file", { path });
-        navigate("/gcode", { state: { gcodeContent: content.gcodeContent, path: content.path } });
+        setError("Unsupported file type");
       }
     } catch (e) { setError(String(e)); }
   }
@@ -81,16 +78,14 @@ export default function HomeScreen() {
     setError(null);
     if (path.endsWith(".pnplttr")) {
       try {
-        const doc = await invoke<OpenedDocument>("open_document", { path });
-        navigate("/document", { state: { json: doc.json, path: doc.path } });
+        navigate("/document", { state: { path } });
       } catch (e) {
         setError(String(e));
         refreshRecents();
       }
-    } else {
+    } else if (path.endsWith(".gcode")) {
       try {
-        const content = await invoke<OpendGcodeFile>("open_gcode_file", { path });
-        navigate("/gcode", { state: { gcodeContent: content.gcodeContent, path: content.path } });
+        navigate("/gcode", { state: { path } });
       } catch (e) {
         setError(String(e));
         refreshRecents();
@@ -121,7 +116,7 @@ export default function HomeScreen() {
           nameInputRef={nameInputRef}
           onToggleNameInput={setShowNameInput}
           onNameChange={setNewName}
-          onCreate={handleCreateFile}
+          onCreate={handleCreateDocument}
           onOpen={handleOpen}
         />
 

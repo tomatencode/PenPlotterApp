@@ -16,25 +16,35 @@ import DocumentStatusBar from "../components/document/DocumentStatusBar";
 import GcodePopup from "../components/document/GcodePopup";
 import { usePlotterDiscovery } from "../context/PlotterDiscoveryContext";
 
-interface FileLocationState {
-  json: string;
-  path: string | null;
-}
-
 export default function DocumentScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { plotters } = usePlotterDiscovery();
-  const { json, path } = (location.state as FileLocationState) ?? { json: "{}", path: null };
+  const { path } = (location.state as { path: string | null }) ?? { path: null };
 
-  const [doc, dispatch] = useReducer(docReducer, json, initialDoc);
+  const [doc, dispatch] = useReducer(docReducer, undefined, () => initialDoc("{}"));
   const docRef = useRef(doc);
   useEffect(() => { docRef.current = doc; });
-  const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
-  const [redoStack, setRedoStack] = useState<PnplttrDocument[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
+
+  // Load file content on mount
+  useEffect(() => {
+    if (!path) return;
+    invoke<string>("open_file", { path })
+      .then((json) => {
+        const loaded = initialDoc(json);
+        dispatch({ type: "LOAD", doc: loaded });
+        setActiveLayerId(loaded.layers[0].id);
+      })
+      .catch(console.error);
+  }, [path]);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
+
+  const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
+  const [redoStack, setRedoStack] = useState<PnplttrDocument[]>([]);
+  
   const [isGcodePopupOpen, setIsGcodePopupOpen] = useState(false);
 
   // Initial viewport: centre the A4 page with a reasonable zoom

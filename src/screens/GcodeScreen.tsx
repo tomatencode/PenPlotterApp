@@ -8,25 +8,29 @@ import GcodeToolbar from "../components/gcode/GcodeToolbar";
 import GcodeEditor from "../components/gcode/GcodeEditor";
 import GcodeControlsPanel from "../components/gcode/GcodeControlsPanel";
 
-interface LocationState {
-  gcodeContent: string;
-  path: string | null;
-}
 
 export default function GcodeScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { plotters } = usePlotterDiscovery();
-  const { gcodeContent: initialContent, path } = (location.state as LocationState) ?? {
-    gcodeContent: "",
-    path: null,
-  };
+  const { path } = (location.state as { path: string | null }) ?? { path: null };
 
-  const [gcode, setGcode] = useState(initialContent);
+  const [gcode, setGcode] = useState("");
   const [gcodeDir, setGcodeDir] = useState<string | null>(null);
   const [selectedPlotterUrl, setSelectedPlotterUrl] = useState<string>("");
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatusText] = useState<string>("");
+
+  useEffect(() => {
+    if (path) {
+      invoke<string>("open_file", { path })
+        .then(setGcode)
+        .catch((e) => {
+          setStatusText(`Failed to open file: ${String(e)}`);
+          setGcode("");
+        });
+    }
+  }, [path]);
 
   useEffect(() => {
     invoke<string>("get_gcode_dir").then(setGcodeDir).catch(() => setGcodeDir(null));
@@ -80,7 +84,7 @@ export default function GcodeScreen() {
         return;
       }
       try {
-        await invoke("save_gcode_file", { path: selectedPath, content: gcode });
+        await invoke("save_file", { path: selectedPath, content: gcode });
         setStatusText(`Saved to ${selectedPath}`);
       } catch (e) {
         setStatusText(`Save failed: ${String(e)}`);

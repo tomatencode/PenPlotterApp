@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use chrono;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PageSettings {
@@ -41,22 +40,4 @@ pub struct PnplttrDocument {
     pub meta: MetaSettings,
     pub page: PageSettings,
     pub layers: Vec<Layer>,
-}
-
-impl PnplttrDocument {
-    pub fn new_default() -> Self {
-        PnplttrDocument {
-            meta: MetaSettings {
-                created: chrono::Utc::now().to_rfc3339(),
-                doctype_version: 1,
-            },
-            page: PageSettings {
-                page_width: 210.0, // A4 default
-                page_height: 297.0, // A4 default
-                workspace_width: 210.0, // A4 default
-                workspace_height: 297.0, // A4 default
-            },
-            layers: vec![],
-        }
-    }
 }

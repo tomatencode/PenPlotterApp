@@ -106,8 +106,11 @@ export default function GcodePopup({
 			}
 
 			try {
-				await invoke("save_gcode_file", { path: selectedPath, content: gcode });
+				await invoke("save_file", { path: selectedPath, content: gcode });
+				await invoke("push_recent_file", { filePath: selectedPath });
 				setStatusText(`Saved GCode to ${selectedPath}`);
+
+				navigate("/gcode", { state: { path: selectedPath } });
 			} catch (e) {
 				console.error("Save GCode failed:", e);
 				setStatusText(`Save failed: ${String(e)}`);

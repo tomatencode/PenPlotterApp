@@ -9,6 +9,7 @@ import {
 } from "../../components/document/types";
 
 export type DocAction =
+  | { type: "LOAD"; doc: PnplttrDocument }
   | { type: "ADD_ELEMENT"; layerId: string; element: Element }
   | { type: "DELETE_ELEMENT"; layerId: string; elementId: string }
   | { type: "UPDATE_ELEMENT"; layerId: string; element: Element }
@@ -22,6 +23,8 @@ export type DocAction =
 
 export function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
   switch (action.type) {
+    case "LOAD":
+      return action.doc;
     case "ADD_ELEMENT":
       return {
         ...doc,

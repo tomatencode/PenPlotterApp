@@ -1,7 +1,5 @@
-use serde::Serialize;
 use std::fs;
 use tauri::{AppHandle, Manager};
-use crate::pnplttr_file_structure::PnplttrDocument;
 
 // Paths
 
@@ -56,26 +54,16 @@ pub fn remove_recent(app: &AppHandle, file_path: &str) {
     save_recent_files(app, &recents);
 }
 
-// Return types
-
-#[derive(Serialize)]
-pub struct OpenedDocument {
-    pub path: String,
-    pub json: String,
-}
-
-#[derive(Serialize)]
-pub struct OpenedGcodeFile {
-    pub path: String,
-    #[serde(rename = "gcodeContent")]
-    pub gcode_content: String,
-}
-
 // Tauri commands
 
 #[tauri::command]
 pub fn get_recent_files(app: AppHandle) -> Vec<String> {
     load_recent_files(&app)
+}
+
+#[tauri::command]
+pub fn push_recent_file(app: AppHandle, file_path: String) {
+    push_recent(&app, &file_path);
 }
 
 #[tauri::command]
@@ -97,84 +85,13 @@ pub fn get_gcode_dir(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn save_gcode_file(path: String, content: String) -> Result<(), String> {
-    // Validate that the path has a .gcode extension to prevent writing arbitrary files.
-    let p = std::path::Path::new(&path);
-    match p.extension().and_then(|e| e.to_str()) {
-        Some(ext) if ext.eq_ignore_ascii_case("gcode") => {}
-        _ => return Err("Only .gcode files may be saved with this command.".to_string()),
-    }
-
-    fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn open_gcode_file(app: AppHandle, path: String) -> Result<OpenedGcodeFile, String> {
-    let p = std::path::Path::new(&path);
-    match p.extension().and_then(|e| e.to_str()) {
-        Some(ext) if ext.eq_ignore_ascii_case("gcode") => {}
-        _ => return Err("Only .gcode files may be opened with this command.".to_string()),
-    }
-    let gcode_content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    push_recent(&app, &path);
-    Ok(OpenedGcodeFile { path, gcode_content })
-}
-
-
-#[tauri::command]
-pub fn create_document(app: AppHandle, name: String) -> Result<OpenedDocument, String> {
-    let dir = plotters_dir(&app)?;
-
-    // Sanitise name — strip path separators and reserved chars
-    let safe: String = name
-        .trim()
-        .chars()
-        .map(|c| {
-            if matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') {
-                '_'
-            } else {
-                c
-            }
-        })
-        .collect();
-    let safe = if safe.is_empty() {
-        "Untitled".to_string()
-    } else {
-        safe
-    };
-
-    // Find a unique filename
-    let mut file_path = dir.join(format!("{}.pnplttr", safe));
-    let mut counter = 1u32;
-    while file_path.exists() {
-        file_path = dir.join(format!("{} ({}).pnplttr", safe, counter));
-        counter += 1;
-    }
-
-    let doc = PnplttrDocument::new_default();
-    let json = serde_json::to_string_pretty(&doc).map_err(|e| e.to_string())?;
-    fs::write(&file_path, &json).map_err(|e| e.to_string())?;
-
-    let path = file_path.to_string_lossy().to_string();
-    push_recent(&app, &path);
-
-    Ok(OpenedDocument { path, json })
-}
-
-#[tauri::command]
-pub fn open_document(app: AppHandle, path: String) -> Result<OpenedDocument, String> {
+pub fn open_file(path: String) -> Result<String, String> {
     let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let _: PnplttrDocument = serde_json::from_str(&content)
-        .map_err(|e| format!("Invalid .pnplttr file: {}", e))?;
-    push_recent(&app, &path);
-    Ok(OpenedDocument { path, json: content })
+    Ok(content)
 }
 
+
 #[tauri::command]
-pub fn save_document(app: AppHandle, path: String, content: String) -> Result<(), String> {
-    let _: PnplttrDocument = serde_json::from_str(&content)
-        .map_err(|e| format!("Invalid document: {}", e))?;
-    fs::write(&path, &content).map_err(|e| e.to_string())?;
-    push_recent(&app, &path);
-    Ok(())
+pub fn save_file(path: String, content: String) -> Result<(), String> {
+    fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())
 }
