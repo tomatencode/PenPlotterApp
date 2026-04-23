@@ -1,9 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { Element, Tool, PageSettings } from "./types";
-import { newId, workspaceBounds } from "./types";
+import type { Element, Tool, PageSettings } from "../../components/document/types";
+import { newId, workspaceBounds } from "../../components/document/types";
 import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
-import type { Viewport } from "./CanvasArea";
-import { viewportToDoc } from "./CanvasArea";
+import type { Viewport } from "../../components/document/CanvasArea";
+import { viewportToDoc } from "../../components/document/CanvasArea";
 
 // ── Ghost (in-progress draw preview) ─────────────────────────────────────────
 

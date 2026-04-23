@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import type { Element, PnplttrDocument, Tool } from "./types";
 import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
-import { useCanvasPointer, ghostToSvgPaths } from "./useCanvasPointer";
+import { useCanvasPointer, ghostToSvgPaths } from "../../hooks/document/useCanvasPointer";
 
 // ── Viewport helpers ──────────────────────────────────────────────────────────
 
