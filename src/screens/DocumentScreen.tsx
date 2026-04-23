@@ -21,10 +21,10 @@ export default function DocumentScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { path } = (location.state as { path: string | null }) ?? { path: null };
+  useEffect(() => { docRef.current = doc; });
 
   const [doc, dispatch] = useReducer(docReducer, undefined, () => initialDoc("{}"));
   const docRef = useRef(doc);
-  useEffect(() => { docRef.current = doc; });
 
   // Load file content on mount
   useEffect(() => {
@@ -116,6 +116,7 @@ export default function DocumentScreen() {
   }
 
   function deleteLayer(id: string) {
+    recordHistory();
     if (activeLayerId === id) {
       const idx = doc.layers.findIndex((l) => l.id === id);
       const next = doc.layers.filter((l) => l.id !== id);
@@ -266,7 +267,7 @@ export default function DocumentScreen() {
       <GcodePopup
         isOpen={isGcodePopupOpen}
         onClose={() => setIsGcodePopupOpen(false)}
-        documentJson={docToJson(doc)}
+        doc={doc}
         defaultFileName={fileName}
       />
     </div>

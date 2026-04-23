@@ -77,29 +77,6 @@ export function elementToStrokes(el: Element, selected: boolean): { strokes: Str
   }
 }
 
-export function transformStroke(strokes: Stroke, dx: number, dy: number): Stroke {
-  return {
-    start: [strokes.start[0] + dx, strokes.start[1] + dy],
-    moves: strokes.moves.map(move => {
-      switch (move.type) {
-        case "Line":
-          return { type: "Line", x2: move.x2 + dx, y2: move.y2 + dy };
-        case "Arc":
-          return { type: "Arc", cx: move.cx + dx, cy: move.cy + dy, r: move.r, startAngle: move.startAngle, endAngle: move.endAngle };
-        case "QuadBezier":
-          return { type: "QuadBezier", cx: move.cx + dx, cy: move.cy + dy, x2: move.x2 + dx, y2: move.y2 + dy };
-        case "CubicBezier":
-          return {
-            type: "CubicBezier",
-            cx1: move.cx1 + dx, cy1: move.cy1 + dy,
-            cx2: move.cx2 + dx, cy2: move.cy2 + dy,
-            x2: move.x2 + dx,   y2: move.y2 + dy,
-          };
-      }
-    }),
-  };
-}
-
 // ── Stroke → SVG path string ──────────────────────────────────────────────────
 // Converts a single Stroke to an SVG path `d` attribute string.
 // Used by CanvasArea to render strokes as <path> elements.

@@ -13,9 +13,9 @@ use stroke_to_gcode::stroke_to_gcode;
 use compress_gcode::compress_gcode;
 
 #[tauri::command]
-pub fn convert_document_to_gcode(_json: String) -> Result<String, String> {
+pub fn convert_document_to_gcode(json: String) -> Result<String, String> {
     let doc: PnplttrDocument =
-        serde_json::from_str(&_json).map_err(|e| format!("Invalid document: {}", e))?;
+        serde_json::from_str(&json).map_err(|e| format!("Invalid document: {}", e))?;
 
     let converter = CoordinateConverter::from_document(&doc);
 

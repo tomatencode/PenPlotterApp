@@ -5,11 +5,13 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterClient } from "../../api/plotterClient";
 import PlotterDetailsRow from "../common/PlotterDetailsRow";
 import { usePlotterDiscovery } from "../../context/PlotterDiscoveryContext";
+import { PnplttrDocument } from "./types";
+import { docToJson } from "../../hooks/document/documentState";
 
 interface Props {
 	isOpen: boolean;
 	onClose: () => void;
-	documentJson: string;
+	doc: PnplttrDocument;
 	defaultFileName: string;
 }
 
@@ -21,7 +23,7 @@ function toGcodeName(fileName: string): string {
 export default function GcodePopup({
 	isOpen,
 	onClose,
-	documentJson,
+	doc,
 	defaultFileName,
 }: Props) {
 	const [gcode, setGcode] = useState<string>("");
@@ -51,7 +53,7 @@ export default function GcodePopup({
 		if (!isOpen) return;
 		void handleGenerateGcode();
 		// Regenerate on open or whenever the document changed.
-	}, [isOpen, documentJson]);
+	}, [isOpen, doc]);
 
 	useEffect(() => {
 		invoke<string>("get_gcode_dir").then(setGcodeDir).catch(() => setGcodeDir(null));
@@ -75,7 +77,7 @@ export default function GcodePopup({
 		await withBusy(async () => {
 			setStatusText("Generating GCode...");
 			try {
-				const result = await invoke<string>("convert_document_to_gcode", { json: documentJson });
+				const result = await invoke<string>("convert_document_to_gcode", { json: docToJson(doc) });
 				setGcode(result);
 				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
 			} catch (e) {
