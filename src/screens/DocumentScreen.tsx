@@ -14,18 +14,15 @@ import PagePanel from "../components/document/PagePanel";
 import PropertiesPanel from "../components/document/PropertiesPanel";
 import DocumentStatusBar from "../components/document/DocumentStatusBar";
 import GcodePopup from "../components/document/GcodePopup";
-import { usePlotterDiscovery } from "../context/PlotterDiscoveryContext";
 
 export default function DocumentScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { plotters } = usePlotterDiscovery();
   const { path } = (location.state as { path: string | null }) ?? { path: null };
 
   const [doc, dispatch] = useReducer(docReducer, undefined, () => initialDoc("{}"));
   const docRef = useRef(doc);
   useEffect(() => { docRef.current = doc; });
-  const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
 
   // Load file content on mount
   useEffect(() => {
@@ -39,6 +36,8 @@ export default function DocumentScreen() {
       .catch(console.error);
   }, [path]);
 
+  const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<Tool>("select");
 
@@ -47,7 +46,7 @@ export default function DocumentScreen() {
   
   const [isGcodePopupOpen, setIsGcodePopupOpen] = useState(false);
 
-  // Initial viewport: centre the A4 page with a reasonable zoom
+  // Initial doc viewport: centre the A4 page with a reasonable zoom
   const [viewport, setViewport] = useState<Viewport>(() => {
     const width = window.innerWidth - 60 - 300; // minus side panels
     const height = window.innerHeight - 64 - 24; // minus toolbar and status bar
@@ -71,7 +70,7 @@ export default function DocumentScreen() {
     }
   }, [path, docRef]);
 
-  // Auto-save 800ms after any doc change
+  // Auto-save 800ms after any doc change, timer resets if doc changes again before that
   useEffect(() => {
     if (!path) return;
     const timer = setTimeout(() => { handleSave(); }, 800);
@@ -83,26 +82,21 @@ export default function DocumentScreen() {
     setRedoStack([]);
   }, []);
 
-  const applyDoc = useCallback((snapshot: PnplttrDocument) => {
-    dispatch({ type: "SET_LAYERS", layers: snapshot.layers });
-    dispatch({ type: "UPDATE_PAGE", page: snapshot.page });
-  }, []);
-
   const handleUndo = useCallback(() => {
     if (undoStack.length === 0) return;
     const prev = undoStack[undoStack.length - 1];
     setRedoStack((r) => [...r, docRef.current]);
     setUndoStack((h) => h.slice(0, -1));
-    applyDoc(prev);
-  }, [undoStack, docRef, applyDoc]);
+    dispatch({ type: "LOAD", doc: prev });
+  }, [undoStack, docRef]);
 
   const handleRedo = useCallback(() => {
     if (redoStack.length === 0) return;
     const next = redoStack[redoStack.length - 1];
     setUndoStack((h) => [...h, docRef.current]);
     setRedoStack((r) => r.slice(0, -1));
-    applyDoc(next);
-  }, [redoStack, docRef, applyDoc]);
+    dispatch({ type: "LOAD", doc: next });
+  }, [redoStack, docRef]);
 
   const handleAddElement = useCallback((layerId: string, el: Element) => {
     recordHistory();
@@ -279,7 +273,6 @@ export default function DocumentScreen() {
         onClose={() => setIsGcodePopupOpen(false)}
         documentJson={docToJson(doc)}
         defaultFileName={fileName}
-        plotters={plotters}
       />
     </div>
   );
