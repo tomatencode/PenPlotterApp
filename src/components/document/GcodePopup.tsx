@@ -4,14 +4,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterClient } from "../../api/plotterClient";
 import PlotterDetailsRow from "../common/PlotterDetailsRow";
-import type { Plotter } from "../../context/PlotterDiscoveryContext";
+import { usePlotterDiscovery } from "../../context/PlotterDiscoveryContext";
 
 interface Props {
 	isOpen: boolean;
 	onClose: () => void;
 	documentJson: string;
 	defaultFileName: string;
-	plotters: Plotter[];
 }
 
 function toGcodeName(fileName: string): string {
@@ -24,7 +23,6 @@ export default function GcodePopup({
 	onClose,
 	documentJson,
 	defaultFileName,
-	plotters,
 }: Props) {
 	const [gcode, setGcode] = useState<string>("");
 	const [selectedPlotterUrl, setSelectedPlotterUrl] = useState<string>("");
@@ -33,6 +31,7 @@ export default function GcodePopup({
 	const [isBusy, setIsBusy] = useState(false);
 	const [status, setStatusText] = useState<string>("");
 	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
+	const { plotters } = usePlotterDiscovery();
 
 	const navigate = useNavigate();
 
