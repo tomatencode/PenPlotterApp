@@ -30,7 +30,7 @@ interface Props {
   onAddElement: (layerId: string, el: Element) => void;
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
-  onMoveStart: () => void;
+  onMoveStart: (elementId: string) => void;
   onViewportChange: (v: Viewport) => void;
 }
 

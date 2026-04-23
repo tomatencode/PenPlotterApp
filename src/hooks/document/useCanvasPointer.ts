@@ -68,7 +68,7 @@ interface Options {
   onAddElement: (layerId: string, el: Element) => void;
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
-  onMoveStart: () => void;
+  onMoveStart: (elementId: string) => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -217,7 +217,7 @@ export function useCanvasPointer({
 
   function startElementDrag(e: React.PointerEvent, elementId: string) {
     onSelectElement(elementId);
-    onMoveStart();
+    onMoveStart(elementId);
     const [grabDocX, grabDocY] = getSvgPoint(e, svgRef, viewport);
     dragRef.current = { elementId, grabDocX, grabDocY };
     svgRef.current!.setPointerCapture(e.pointerId);

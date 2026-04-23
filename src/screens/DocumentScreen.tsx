@@ -43,7 +43,7 @@ export default function DocumentScreen() {
 
   const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
   const [redoStack, setRedoStack] = useState<PnplttrDocument[]>([]);
-  const dragBaseRef = useRef<PnplttrDocument | null>(null);
+  const dragBaseRef = useRef<{ layerId: string; element: Element; bounds: ReturnType<typeof elementBounds> } | null>(null);
   
   const [isGcodePopupOpen, setIsGcodePopupOpen] = useState(false);
 
@@ -83,10 +83,11 @@ export default function DocumentScreen() {
     setRedoStack([]);
   }, []);
 
-  // Called at the start of every element drag; snapshots the doc so
-  // handleMoveElement can apply a total-delta against the original position.
-  const handleMoveStart = useCallback(() => {
-    dragBaseRef.current = docRef.current;
+  const handleMoveStart = useCallback((elementId: string) => {
+    const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === elementId));
+    if (!layer) return;
+    const element = layer.elements.find(el => el.id === elementId)!;
+    dragBaseRef.current = { layerId: layer.id, element, bounds: elementBounds(element) };
     setUndoStack((h) => [...h, docRef.current]);
     setRedoStack([]);
   }, []);
@@ -112,18 +113,14 @@ export default function DocumentScreen() {
     dispatch({ type: "ADD_ELEMENT", layerId, element: el });
   }, [dispatch, recordHistory]);
 
-  // dx/dy are the total displacement from the drag-start position (not per-frame deltas).
-  // Using the pre-drag snapshot means clamping doesn't accumulate drift over time.
   const handleMoveElement = useCallback((id: string, totalDx: number, totalDy: number) => {
-    const base = dragBaseRef.current ?? docRef.current;
-    const layer = base.layers.find(l => l.elements.some(el => el.id === id));
-    if (!layer) return;
-    const el = layer.elements.find(e => e.id === id)!;
-    const b  = elementBounds(el);
+    const snap = dragBaseRef.current;
+    if (!snap || snap.element.id !== id) return;
+    const { layerId, element, bounds: b } = snap;
     const ws = workspaceBounds(docRef.current.page);
     const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, totalDx));
     const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, totalDy));
-    dispatch({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, clampedDx, clampedDy) });
+    dispatch({ type: "UPDATE_ELEMENT", layerId, element: translateElement(element, clampedDx, clampedDy) });
   }, [dispatch]);
 
   function addLayer() {
