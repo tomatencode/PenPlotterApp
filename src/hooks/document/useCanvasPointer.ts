@@ -26,6 +26,37 @@ export function ghostToSvgPaths(ghost: Ghost | null): string[] {
   return elementToStrokes(ghostToElement(ghost)).map((s) => strokeToSvgPath(s));
 }
 
+// ── Pure helpers ────────────────────────────────────────────────────────────────
+
+function getSvgPoint(
+  e: React.PointerEvent,
+  svgRef: React.RefObject<SVGSVGElement | null>,
+  viewport: Viewport,
+): [number, number] {
+  const rect = svgRef.current!.getBoundingClientRect();
+  return viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
+}
+
+function clampToWorkspace(x: number, y: number, page: PageSettings): [number, number] {
+  const ws = workspaceBounds(page);
+  return [
+    Math.max(ws.x, Math.min(ws.x + ws.w, x)),
+    Math.max(ws.y, Math.min(ws.y + ws.h, y)),
+  ];
+}
+
+/** Maximum radius that keeps the full circle inside the workspace. */
+function clampedCircleRadius(sx: number, sy: number, mx: number, my: number, page: PageSettings): number {
+  const ws = workspaceBounds(page);
+  return Math.min(
+    Math.hypot(mx - sx, my - sy),
+    sx - ws.x,           // distance to left edge
+    ws.x + ws.w - sx,    // distance to right edge
+    sy - ws.y,           // distance to top edge
+    ws.y + ws.h - sy,    // distance to bottom edge
+  );
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 interface Options {
@@ -55,17 +86,10 @@ export function useCanvasPointer({
   onMoveStart,
   onViewportChange,
 }: Options) {
-  function clampToWorkspace(x: number, y: number): [number, number] {
-    const ws = workspaceBounds(page);
-    return [
-      Math.max(ws.x, Math.min(ws.x + ws.w, x)),
-      Math.max(ws.y, Math.min(ws.y + ws.h, y)),
-    ];
-  }
   const [ghost, setGhost] = useState<Ghost | null>(null);
-  const panStart          = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
-  const elementDragLast   = useRef<{ docX: number; docY: number } | null>(null);
-  const createDragStart   = useRef<{ docX: number; docY: number } | null>(null);
+  const panRef     = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
+  const dragRef    = useRef<{ docX: number; docY: number } | null>(null);
+  const shapeStart = useRef<{ docX: number; docY: number } | null>(null);
 
   // Clear ghost / selection when tool changes
   useEffect(() => {
@@ -73,88 +97,79 @@ export function useCanvasPointer({
     else onSelectElement(null);
   }, [activeTool, onSelectElement]);
 
-  function getSvgPoint(e: React.PointerEvent): [number, number] {
-    const rect = svgRef.current!.getBoundingClientRect();
-    return viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
-  }
-
   const onPointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    // Alt+drag or right-click → pan
-    if ((e.button === 0 && e.altKey) || e.button === 2) {
+    const isPan = (e.button === 0 && e.altKey) || e.button === 2;
+    if (isPan) {
       const rect = svgRef.current!.getBoundingClientRect();
-      panStart.current = { vp: viewport, px: e.clientX - rect.left, py: e.clientY - rect.top };
+      panRef.current = { vp: viewport, px: e.clientX - rect.left, py: e.clientY - rect.top };
       (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
       e.preventDefault();
       return;
     }
 
-    if (e.button !== 0) return;
+    if (e.button !== 0) return; // ignore middle-click etc.
 
     if (activeTool === "select") {
       onSelectElement(null);
       return;
     }
 
-    const [mx, my] = clampToWorkspace(...getSvgPoint(e));
-    createDragStart.current = { docX: mx, docY: my };
+    const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+    shapeStart.current = { docX: mx, docY: my };
     (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
-  }, [activeTool, viewport, onSelectElement]);
+  }, [activeTool, viewport, page, onSelectElement]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     // Pan
-    if (panStart.current) {
+    if (panRef.current) {
       const rect = svgRef.current!.getBoundingClientRect();
-      const dx = (e.clientX - rect.left) - panStart.current.px;
-      const dy = (e.clientY - rect.top)  - panStart.current.py;
-      onViewportChange({ ...panStart.current.vp, panX: panStart.current.vp.panX + dx, panY: panStart.current.vp.panY + dy });
+      const dx = (e.clientX - rect.left) - panRef.current.px;
+      const dy = (e.clientY - rect.top)  - panRef.current.py;
+      onViewportChange({ ...panRef.current.vp, panX: panRef.current.vp.panX + dx, panY: panRef.current.vp.panY + dy });
       return;
     }
 
-    // Element drag (move)
-    if (elementDragLast.current && selectedId && activeTool === "select") {
-      const [curDocX, curDocY] = getSvgPoint(e);
-      const dx = curDocX - elementDragLast.current.docX;
-      const dy = curDocY - elementDragLast.current.docY;
-      elementDragLast.current = { docX: curDocX, docY: curDocY };
-      onMoveElement(selectedId, dx, dy);
-      return;
-    }
-
-    // Shape creation ghost
-    if (!createDragStart.current || activeTool === "select" || e.buttons !== 1) {
-      if (e.buttons === 0) setGhost(null);
-      return;
-    }
-    const { docX: sx, docY: sy } = createDragStart.current;
-    const [mx, my] = clampToWorkspace(...getSvgPoint(e));
-    switch (activeTool) {
-      case "line": {
-        setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my }); break;
+    // Select tool: element drag, or nothing to do
+    if (activeTool === "select") {
+      if (dragRef.current && selectedId) {
+        const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
+        const dx = curDocX - dragRef.current.docX;
+        const dy = curDocY - dragRef.current.docY;
+        dragRef.current = { docX: curDocX, docY: curDocY };
+        onMoveElement(selectedId, dx, dy);
       }
+      return;
+    }
+
+    // Shape creation ghost (drawing tools only)
+    if (e.buttons === 0) { setGhost(null); return; }
+    if (!shapeStart.current || e.buttons !== 1) return;
+
+    const { docX: sx, docY: sy } = shapeStart.current;
+    const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+    switch (activeTool) {
+      case "line":
+        setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my });
+        break;
       case "rect": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
-        setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) }); break;
+        setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
+        break;
       }
-      case "circle": {
-        const ws = workspaceBounds(page);
-        const max_r_x_right = sx - ws.x;
-        const max_r_x_left  = ws.x + ws.w - sx;
-        const max_r_y_up    = sy - ws.y;
-        const max_r_y_down = ws.y + ws.h - sy;
-        const r = Math.min(Math.hypot(mx - sx, my - sy), max_r_x_right, max_r_x_left, max_r_y_up, max_r_y_down  );
-        setGhost({ tool: "circle", cx: sx, cy: sy, r: r }); break;
-      }
+      case "circle":
+        setGhost({ tool: "circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) });
+        break;
     }
-  }, [activeTool, selectedId, viewport, onViewportChange, onMoveElement]);
+  }, [activeTool, selectedId, viewport, page, onViewportChange, onMoveElement]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    if (elementDragLast.current) { elementDragLast.current = null; return; }
-    if (panStart.current)        { panStart.current = null; return; }
-    if (!createDragStart.current || activeTool === "select") return;
+    if (dragRef.current)  { dragRef.current = null; return; }
+    if (panRef.current)    { panRef.current = null; return; }
+    if (activeTool === "select" || !shapeStart.current) return;
 
-    const { docX: sx, docY: sy } = createDragStart.current;
-    const [mx, my] = clampToWorkspace(...getSvgPoint(e));
-    createDragStart.current = null;
+    const { docX: sx, docY: sy } = shapeStart.current;
+    const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+    shapeStart.current = null;
     setGhost(null);
 
     if (Math.hypot(mx - sx, my - sy) < 0.5) return; // ignore accidental clicks
@@ -162,29 +177,21 @@ export function useCanvasPointer({
     const id = newId();
     let el: Element;
     switch (activeTool) {
-      case "line": {
+      case "line":
         el = { id, type: "Line", x1: sx, y1: sy, x2: mx, y2: my };
         break;
-      }
       case "rect": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         el = { id, type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) };
         break;
       }
-      case "circle": {
-        const ws = workspaceBounds(page);
-        const max_r_x_right = sx - ws.x;
-        const max_r_x_left  = ws.x + ws.w - sx;
-        const max_r_y_up    = sy - ws.y;
-        const max_r_y_down = ws.y + ws.h - sy;
-        const r = Math.min(Math.hypot(mx - sx, my - sy), max_r_x_right, max_r_x_left, max_r_y_up, max_r_y_down  );
-        el = { id, type: "Circle", cx: sx, cy: sy, r: r };
+      case "circle":
+        el = { id, type: "Circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) };
         break;
-      }
       default: return;
     }
     onAddElement(activeLayerId, el);
-  }, [activeTool, activeLayerId, viewport, onAddElement]);
+  }, [activeTool, activeLayerId, viewport, page, onAddElement]);
 
   const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect();
@@ -197,25 +204,23 @@ export function useCanvasPointer({
       panX: px - (px - viewport.panX) * (newZoom / viewport.zoom),
       panY: py - (py - viewport.panY) * (newZoom / viewport.zoom),
     };
-    if (panStart.current) {
-      const dx = panStart.current.px - (e.clientX - rect.left);
-      const dy = panStart.current.py - (e.clientY - rect.top);
-      panStart.current = {
+    if (panRef.current) {
+      const dx = panRef.current.px - (e.clientX - rect.left);
+      const dy = panRef.current.py - (e.clientY - rect.top);
+      panRef.current = {
         vp: { ...newVp, panX: newVp.panX + dx, panY: newVp.panY + dy },
-        px: panStart.current.px,
-        py: panStart.current.py,
+        px: panRef.current.px,
+        py: panRef.current.py,
       };
     }
     onViewportChange(newVp);
   }, [viewport, onViewportChange]);
 
-  // Exposed so the hit-target paths can start a drag
   function startElementDrag(e: React.PointerEvent, elementId: string) {
     onSelectElement(elementId);
     onMoveStart();
-    const rect = svgRef.current!.getBoundingClientRect();
-    const [docX, docY] = viewportToDoc(e.clientX - rect.left, e.clientY - rect.top, viewport);
-    elementDragLast.current = { docX, docY };
+    const [docX, docY] = getSvgPoint(e, svgRef, viewport);
+    dragRef.current = { docX, docY };
   }
 
   return { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag };
