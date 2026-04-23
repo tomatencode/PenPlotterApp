@@ -43,6 +43,7 @@ export default function DocumentScreen() {
 
   const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
   const [redoStack, setRedoStack] = useState<PnplttrDocument[]>([]);
+  const dragBaseRef = useRef<PnplttrDocument | null>(null);
   
   const [isGcodePopupOpen, setIsGcodePopupOpen] = useState(false);
 
@@ -82,6 +83,14 @@ export default function DocumentScreen() {
     setRedoStack([]);
   }, []);
 
+  // Called at the start of every element drag; snapshots the doc so
+  // handleMoveElement can apply a total-delta against the original position.
+  const handleMoveStart = useCallback(() => {
+    dragBaseRef.current = docRef.current;
+    setUndoStack((h) => [...h, docRef.current]);
+    setRedoStack([]);
+  }, []);
+
   const handleUndo = useCallback(() => {
     if (undoStack.length === 0) return;
     const prev = undoStack[undoStack.length - 1];
@@ -103,16 +112,18 @@ export default function DocumentScreen() {
     dispatch({ type: "ADD_ELEMENT", layerId, element: el });
   }, [dispatch, recordHistory]);
 
-  const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
-    const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === id));
-    if (!layer) { console.log("element to move not found:", id); return; }
+  // dx/dy are the total displacement from the drag-start position (not per-frame deltas).
+  // Using the pre-drag snapshot means clamping doesn't accumulate drift over time.
+  const handleMoveElement = useCallback((id: string, totalDx: number, totalDy: number) => {
+    const base = dragBaseRef.current ?? docRef.current;
+    const layer = base.layers.find(l => l.elements.some(el => el.id === id));
+    if (!layer) return;
     const el = layer.elements.find(e => e.id === id)!;
     const b  = elementBounds(el);
     const ws = workspaceBounds(docRef.current.page);
-    const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, dx));
-    const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, dy));
+    const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, totalDx));
+    const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, totalDy));
     dispatch({ type: "UPDATE_ELEMENT", layerId: layer.id, element: translateElement(el, clampedDx, clampedDy) });
-    // Don't save on every move for performance, only at the end of the drag
   }, [dispatch]);
 
   function addLayer() {
@@ -225,7 +236,7 @@ export default function DocumentScreen() {
           onAddElement={handleAddElement}
           onSelectElement={setSelectedId}
           onMoveElement={handleMoveElement}
-          onMoveStart={recordHistory}
+          onMoveStart={handleMoveStart}
           onViewportChange={setViewport}
         />
 

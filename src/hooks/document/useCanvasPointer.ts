@@ -63,7 +63,6 @@ interface Options {
   svgRef: React.RefObject<SVGSVGElement | null>;
   viewport: Viewport;
   activeTool: Tool;
-  selectedId: string | null;
   activeLayerId: string;
   page: PageSettings;
   onAddElement: (layerId: string, el: Element) => void;
@@ -77,7 +76,6 @@ export function useCanvasPointer({
   svgRef,
   viewport,
   activeTool,
-  selectedId,
   activeLayerId,
   page,
   onAddElement,
@@ -88,7 +86,7 @@ export function useCanvasPointer({
 }: Options) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const panRef     = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
-  const dragRef    = useRef<{ docX: number; docY: number } | null>(null);
+  const dragRef    = useRef<{ elementId: string; grabDocX: number; grabDocY: number } | null>(null);
   const shapeStart = useRef<{ docX: number; docY: number } | null>(null);
 
   // Clear ghost / selection when tool changes
@@ -131,12 +129,13 @@ export function useCanvasPointer({
 
     // Select tool: element drag, or nothing to do
     if (activeTool === "select") {
-      if (dragRef.current && selectedId) {
+      if (dragRef.current) {
         const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
-        const dx = curDocX - dragRef.current.docX;
-        const dy = curDocY - dragRef.current.docY;
-        dragRef.current = { docX: curDocX, docY: curDocY };
-        onMoveElement(selectedId, dx, dy);
+        onMoveElement(
+          dragRef.current.elementId,
+          curDocX - dragRef.current.grabDocX,
+          curDocY - dragRef.current.grabDocY,
+        );
       }
       return;
     }
@@ -160,7 +159,7 @@ export function useCanvasPointer({
         setGhost({ tool: "circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) });
         break;
     }
-  }, [activeTool, selectedId, viewport, page, onViewportChange, onMoveElement]);
+  }, [activeTool, viewport, page, onViewportChange, onMoveElement]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     if (dragRef.current)  { dragRef.current = null; return; }
@@ -219,8 +218,9 @@ export function useCanvasPointer({
   function startElementDrag(e: React.PointerEvent, elementId: string) {
     onSelectElement(elementId);
     onMoveStart();
-    const [docX, docY] = getSvgPoint(e, svgRef, viewport);
-    dragRef.current = { docX, docY };
+    const [grabDocX, grabDocY] = getSvgPoint(e, svgRef, viewport);
+    dragRef.current = { elementId, grabDocX, grabDocY };
+    svgRef.current!.setPointerCapture(e.pointerId);
   }
 
   return { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag };
