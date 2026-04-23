@@ -95,7 +95,10 @@ export default function CanvasArea({
                   <g key={`${layer.id}-${el.id}-${stroke.start[0]}-${stroke.start[1]}`}>
                     <path d={d} fill="none" stroke={isSelected ? "#60a5fa" : layer.pen.color}
                       strokeWidth={layer.pen.width / viewport.zoom}
-                      strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
+                      strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"
+                    />
+                    
+                    {/* Invisible hit area for selection */}
                     {activeTool === "select" && (
                       <path d={d} fill="none" stroke="transparent"
                         strokeWidth={(layer.pen.width + 8) / viewport.zoom}
