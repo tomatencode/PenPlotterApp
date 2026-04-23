@@ -69,6 +69,8 @@ interface Options {
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
   onMoveStart: (elementId: string) => void;
+  onDeformStart: (elementId: string, handleId: string) => void;
+  onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -82,17 +84,22 @@ export function useCanvasPointer({
   onSelectElement,
   onMoveElement,
   onMoveStart,
+  onDeformStart,
+  onDeformElement,
   onViewportChange,
 }: Options) {
   const [ghost, setGhost] = useState<Ghost | null>(null);
-  const panRef     = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
-  const dragRef    = useRef<{ elementId: string; grabDocX: number; grabDocY: number } | null>(null);
-  const shapeStart = useRef<{ docX: number; docY: number } | null>(null);
+  const panRef        = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
+  const dragRef       = useRef<{ elementId: string; grabDocX: number; grabDocY: number } | null>(null);
+  const handleDragRef = useRef<{ elementId: string; handleId: string } | null>(null);
+  const shapeStart    = useRef<{ docX: number; docY: number } | null>(null);
 
-  // Clear ghost / selection when tool changes
+  // Clear interaction state when the active tool changes
   useEffect(() => {
     if (activeTool === "select") setGhost(null);
     else onSelectElement(null);
+    dragRef.current = null;
+    handleDragRef.current = null;
   }, [activeTool, onSelectElement]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
@@ -127,8 +134,13 @@ export function useCanvasPointer({
       return;
     }
 
-    // Select tool: element drag, or nothing to do
+    // Select tool: handle deform, element drag, or nothing to do
     if (activeTool === "select") {
+      if (handleDragRef.current) {
+        const [x, y] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+        onDeformElement(handleDragRef.current.elementId, handleDragRef.current.handleId, x, y);
+        return;
+      }
       if (dragRef.current) {
         const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
         onMoveElement(
@@ -159,11 +171,12 @@ export function useCanvasPointer({
         setGhost({ tool: "circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) });
         break;
     }
-  }, [activeTool, viewport, page, onViewportChange, onMoveElement]);
+  }, [activeTool, viewport, page, onViewportChange, onMoveElement, onDeformElement]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    if (dragRef.current)  { dragRef.current = null; return; }
-    if (panRef.current)    { panRef.current = null; return; }
+    if (handleDragRef.current) { handleDragRef.current = null; return; }
+    if (dragRef.current)       { dragRef.current = null; return; }
+    if (panRef.current)        { panRef.current = null; return; }
     if (activeTool === "select" || !shapeStart.current) return;
 
     const { docX: sx, docY: sy } = shapeStart.current;
@@ -223,5 +236,11 @@ export function useCanvasPointer({
     svgRef.current!.setPointerCapture(e.pointerId);
   }
 
-  return { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag };
+  function startHandleDrag(e: React.PointerEvent, elementId: string, handleId: string) {
+    onDeformStart(elementId, handleId);
+    handleDragRef.current = { elementId, handleId };
+    svgRef.current!.setPointerCapture(e.pointerId);
+  }
+
+  return { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag };
 }

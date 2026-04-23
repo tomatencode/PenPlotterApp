@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { Element, PnplttrDocument, Tool } from "./types";
 import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
+import { getHandles } from "../../utils/handles";
 import { useCanvasPointer, ghostToSvgPaths } from "../../hooks/document/useCanvasPointer";
 
 // ── Viewport helpers ──────────────────────────────────────────────────────────
@@ -31,6 +32,8 @@ interface Props {
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
   onMoveStart: (elementId: string) => void;
+  onDeformStart: (elementId: string, handleId: string) => void;
+  onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -46,15 +49,22 @@ export default function CanvasArea({
   onSelectElement,
   onMoveElement,
   onMoveStart,
+  onDeformStart,
+  onDeformElement,
   onViewportChange,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag } =
+  const { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag } =
     useCanvasPointer({
       svgRef, viewport, activeTool, activeLayerId, page: doc.page,
-      onAddElement, onSelectElement, onMoveElement, onMoveStart, onViewportChange,
+      onAddElement, onSelectElement, onMoveElement, onMoveStart,
+      onDeformStart, onDeformElement, onViewportChange,
     });
+
+  const selectedElement = selectedId
+    ? doc.layers.flatMap(l => l.elements).find(el => el.id === selectedId) ?? null
+    : null;
 
   const cursorClass = activeTool === "select" ? "cursor-default" : "cursor-crosshair";
   const transform   = `translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`;
@@ -112,6 +122,23 @@ export default function CanvasArea({
               })
             )
           )}
+
+          {/* Selection handles */}
+          {selectedElement && activeTool === "select" &&
+            getHandles(selectedElement).map((handle) => (
+              <circle
+                key={handle.id}
+                cx={handle.x}
+                cy={handle.y}
+                r={5 / viewport.zoom}
+                fill="#2c3e49"
+                stroke="#60a5fa"
+                strokeWidth={1 / viewport.zoom}
+                style={{ cursor: "crosshair" }}
+                onPointerDown={(e) => { e.stopPropagation(); startHandleDrag(e, selectedElement.id, handle.id); }}
+              />
+            ))
+          }
 
           {/* Ghost preview */}
           {ghostPaths.map((d, i) => (

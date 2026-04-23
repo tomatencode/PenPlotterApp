@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import {
   type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings, type Pen,
-  newId, DEFAULT_PEN, translateElement, elementBounds, workspaceBounds,
+  newId, DEFAULT_PEN,
 } from "../components/document/types";
 import { docReducer, initialDoc, docToJson } from "../hooks/document/documentState";
+import { useElementDrag } from "../hooks/document/useElementDrag";
+import { useElementDeform } from "../hooks/document/useElementDeform";
 import DocumentToolbar from "../components/document/DocumentToolbar";
 import ToolPalette from "../components/document/ToolPalette";
 import CanvasArea, { type Viewport } from "../components/document/CanvasArea";
@@ -43,7 +45,6 @@ export default function DocumentScreen() {
 
   const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
   const [redoStack, setRedoStack] = useState<PnplttrDocument[]>([]);
-  const dragBaseRef = useRef<{ layerId: string; element: Element; bounds: ReturnType<typeof elementBounds> } | null>(null);
   
   const [isGcodePopupOpen, setIsGcodePopupOpen] = useState(false);
 
@@ -83,14 +84,8 @@ export default function DocumentScreen() {
     setRedoStack([]);
   }, []);
 
-  const handleMoveStart = useCallback((elementId: string) => {
-    const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === elementId));
-    if (!layer) return;
-    const element = layer.elements.find(el => el.id === elementId)!;
-    dragBaseRef.current = { layerId: layer.id, element, bounds: elementBounds(element) };
-    setUndoStack((h) => [...h, docRef.current]);
-    setRedoStack([]);
-  }, []);
+  const { onMoveStart, onMoveElement } = useElementDrag(docRef, dispatch, recordHistory);
+  const { onDeformStart, onDeformElement } = useElementDeform(docRef, dispatch, recordHistory);
 
   const handleUndo = useCallback(() => {
     if (undoStack.length === 0) return;
@@ -112,16 +107,6 @@ export default function DocumentScreen() {
     recordHistory();
     dispatch({ type: "ADD_ELEMENT", layerId, element: el });
   }, [dispatch, recordHistory]);
-
-  const handleMoveElement = useCallback((id: string, totalDx: number, totalDy: number) => {
-    const snap = dragBaseRef.current;
-    if (!snap || snap.element.id !== id) return;
-    const { layerId, element, bounds: b } = snap;
-    const ws = workspaceBounds(docRef.current.page);
-    const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, totalDx));
-    const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, totalDy));
-    dispatch({ type: "UPDATE_ELEMENT", layerId, element: translateElement(element, clampedDx, clampedDy) });
-  }, [dispatch]);
 
   function addLayer() {
     recordHistory();
@@ -232,8 +217,10 @@ export default function DocumentScreen() {
           viewport={viewport}
           onAddElement={handleAddElement}
           onSelectElement={setSelectedId}
-          onMoveElement={handleMoveElement}
-          onMoveStart={handleMoveStart}
+          onMoveElement={onMoveElement}
+          onMoveStart={onMoveStart}
+          onDeformStart={onDeformStart}
+          onDeformElement={onDeformElement}
           onViewportChange={setViewport}
         />
 
