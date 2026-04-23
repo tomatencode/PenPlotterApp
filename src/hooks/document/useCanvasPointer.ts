@@ -145,7 +145,12 @@ export function useCanvasPointer({
 
     if (activeTool === "pen") {
       if (!ghostRef.current || ghostRef.current.tool !== "drawing") return;
+      
       const [docX, docY] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+      const lastPoint = ghostRef.current.points[ghostRef.current.points.length - 1];
+      const dist = Math.hypot(docX - lastPoint[0], docY - lastPoint[1]);
+      if (dist < 0.5) return;
+
       setGhost({ tool: "drawing", points: [...ghostRef.current.points, [docX, docY]] });
       return;
     }
