@@ -1,7 +1,23 @@
 import { useRef, useCallback } from "react";
 import type { Element, PnplttrDocument } from "../../components/document/types";
-import { translateElement, elementBounds, workspaceBounds } from "../../components/document/types";
+import { workspaceBounds } from "../../components/document/types";
 import type { DocAction } from "./documentState";
+
+function elementBounds(el: Element): { minX: number; minY: number; maxX: number; maxY: number } {
+  switch (el.type) {
+    case "Line":   return { minX: Math.min(el.x1, el.x2), minY: Math.min(el.y1, el.y2), maxX: Math.max(el.x1, el.x2), maxY: Math.max(el.y1, el.y2) };
+    case "Rect":   return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
+    case "Circle": return { minX: el.cx - el.r, minY: el.cy - el.r, maxX: el.cx + el.r, maxY: el.cy + el.r };
+  }
+}
+
+function translateElement(el: Element, dx: number, dy: number): Element {
+  switch (el.type) {
+    case "Line":   return { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy };
+    case "Rect":   return { ...el, x: el.x + dx, y: el.y + dy };
+    case "Circle": return { ...el, cx: el.cx + dx, cy: el.cy + dy };
+  }
+}
 
 type DragSnap = {
   layerId: string;
