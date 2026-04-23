@@ -66,7 +66,7 @@ export default function DocumentScreen() {
     if (!path) return;
     try {
       const content = docToJson(docRef.current);
-      await invoke("save_document", { path, content });
+      await invoke("save_file", { path, content });
     } catch (e) {
       console.error("Save failed:", e);
     }

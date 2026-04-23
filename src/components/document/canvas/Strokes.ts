@@ -69,6 +69,11 @@ export function elementToStrokes(el: Element, selected: boolean): { strokes: Str
       if (selected) color = "#4d90fe";
       return { strokes: circleToStrokes(el), color };
     }
+    case "Drawing": {
+      if (el.points.length < 2) return { strokes: [], color };
+      if (selected) color = "#4d90fe";
+      return { strokes: [{ start: el.points[0], moves: el.points.slice(1).map(([x, y]) => ({ type: "Line" as const, x2: x, y2: y })) }], color };
+    }
   }
 }
 

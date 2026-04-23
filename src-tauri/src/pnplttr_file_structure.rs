@@ -23,6 +23,7 @@ pub struct Pen {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub enum Element {
+    Drawing { id: String, points: Vec<[f64; 2]> },
     Line   { id: String, x1: f64, y1: f64, x2: f64, y2: f64 },
     Rect   { id: String, x: f64, y: f64, w: f64, h: f64 },
     Circle { id: String, cx: f64, cy: f64, r: f64 },

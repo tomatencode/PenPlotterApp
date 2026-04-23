@@ -5,6 +5,16 @@ pub fn elements_to_strokes(elements: &[Element]) -> Vec<PlotterStroke> {
     let mut strokes = Vec::new();
     for element in elements {
         match element {
+            Element::Drawing { points, .. } => {
+                if points.len() < 2 { continue; }
+                let moves = points.windows(2).map(|w| PlotterMove::Line { x1: w[0][0], y1: w[0][1], x2: w[1][0], y2: w[1][1] }).collect();
+                strokes.push(PlotterStroke::Open {
+                    start: (points[0][0], points[0][1]),
+                    end:   (points.last().unwrap()[0], points.last().unwrap()[1]),
+                    moves,
+                    reversed: false,
+                });
+            }
             Element::Line { x1, y1, x2, y2, .. } => {
                 strokes.push(PlotterStroke::Open {
                     start: (*x1, *y1),

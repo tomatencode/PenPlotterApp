@@ -9,9 +9,10 @@ export interface Pen {
 }
 
 export type Element =
-  | { id: string; type: "Line";   x1: number; y1: number; x2: number; y2: number }
-  | { id: string; type: "Rect";   x: number;  y: number;  w: number;  h: number  }
-  | { id: string; type: "Circle"; cx: number; cy: number; r: number              };
+  | { id: string; type: "Drawing"; points: [x: number, y: number][] }
+  | { id: string; type: "Line";    x1: number; y1: number; x2: number; y2: number }
+  | { id: string; type: "Rect";    x: number;  y: number;  w: number;  h: number  }
+  | { id: string; type: "Circle";  cx: number; cy: number; r: number              };
 
 export interface Layer {
   id: string;       // UI-only, not in file format — stripped on save
@@ -56,7 +57,7 @@ export function workspaceBounds(page: PageSettings): { x: number; y: number; w: 
 }
 
 // ── Tool ──────────────────────────────────────────────────────────────────────
-export type Tool = "select" | "line" | "rect" | "circle";
+export type Tool = "select" | "pen" | "line" | "rect" | "circle";
 
 // ── Page presets ──────────────────────────────────────────────────────────────
 

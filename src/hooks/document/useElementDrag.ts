@@ -5,6 +5,11 @@ import type { DocAction } from "./documentState";
 
 function elementBounds(el: Element): { minX: number; minY: number; maxX: number; maxY: number } {
   switch (el.type) {
+    case "Drawing": {
+      const xs = el.points.map(p => p[0]);
+      const ys = el.points.map(p => p[1]);
+      return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+    }
     case "Line":   return { minX: Math.min(el.x1, el.x2), minY: Math.min(el.y1, el.y2), maxX: Math.max(el.x1, el.x2), maxY: Math.max(el.y1, el.y2) };
     case "Rect":   return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
     case "Circle": return { minX: el.cx - el.r, minY: el.cy - el.r, maxX: el.cx + el.r, maxY: el.cy + el.r };
@@ -13,6 +18,7 @@ function elementBounds(el: Element): { minX: number; minY: number; maxX: number;
 
 function translateElement(el: Element, dx: number, dy: number): Element {
   switch (el.type) {
+    case "Drawing": return { ...el, points: el.points.map(([x, y]) => [x + dx, y + dy]) };
     case "Line":   return { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy };
     case "Rect":   return { ...el, x: el.x + dx, y: el.y + dy };
     case "Circle": return { ...el, cx: el.cx + dx, cy: el.cy + dy };

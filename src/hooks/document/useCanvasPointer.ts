@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import type { Element, Tool, PageSettings } from "../../components/document/types";
 import { newId, workspaceBounds } from "../../components/document/types";
 import { Ghost } from "../../components/document/canvas/Ghost";
@@ -75,6 +75,8 @@ export function useCanvasPointer({
   const dragRef       = useRef<{ elementId: string; grabDocX: number; grabDocY: number } | null>(null);
   const handleDragRef = useRef<{ elementId: string; handleId: string } | null>(null);
   const shapeStart    = useRef<{ docX: number; docY: number } | null>(null);
+  const ghostRef      = useRef<Ghost | null>(ghost);
+  ghostRef.current    = ghost;
 
   // Clear interaction state when the active tool changes
   useEffect(() => {
@@ -98,6 +100,13 @@ export function useCanvasPointer({
 
     if (activeTool === "select") {
       onSelectElement(null);
+      return;
+    }
+
+    if (activeTool === "pen") {
+      const [docX, docY] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+      setGhost({ tool: "drawing", points: [[docX, docY]] });
+      (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
       return;
     }
 
@@ -134,6 +143,13 @@ export function useCanvasPointer({
       return;
     }
 
+    if (activeTool === "pen") {
+      if (!ghostRef.current || ghostRef.current.tool !== "drawing") return;
+      const [docX, docY] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+      setGhost({ tool: "drawing", points: [...ghostRef.current.points, [docX, docY]] });
+      return;
+    }
+
     // Shape creation ghost (drawing tools only)
     if (e.buttons === 0) { setGhost(null); return; }
     if (!shapeStart.current || e.buttons !== 1) return;
@@ -159,6 +175,15 @@ export function useCanvasPointer({
     if (handleDragRef.current) { handleDragRef.current = null; return; }
     if (dragRef.current)       { dragRef.current = null; return; }
     if (panRef.current)        { panRef.current = null; return; }
+
+    if (activeTool === "pen") {
+      if (!ghostRef.current || ghostRef.current.tool !== "drawing" || ghostRef.current.points.length < 2) { setGhost(null); return; }
+      const id = newId();
+      onAddElement(activeLayerId, { id, type: "Drawing", points: ghostRef.current.points });
+      setGhost(null);
+      return;
+    }
+
     if (activeTool === "select" || !shapeStart.current) return;
 
     const { docX: sx, docY: sy } = shapeStart.current;

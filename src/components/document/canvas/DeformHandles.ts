@@ -14,6 +14,8 @@ export interface Handle {
 /** Returns the handle control points for a selected element. */
 export function getHandles(el: Element): Handle[] {
   switch (el.type) {
+    case "Drawing":
+      return []
     case "Line":
       return [
         { id: "p1", x: el.x1, y: el.y1 },
@@ -37,6 +39,8 @@ export function getHandles(el: Element): Handle[] {
 /** Returns the updated element after dragging `handleId` to doc-space (x, y). */
 export function applyHandleDrag(el: Element, handleId: string, x: number, y: number, page: PageSettings): Element {
   switch (el.type) {
+    case "Drawing":
+      return el;
     case "Line":
       if (handleId === "p1") return { ...el, x1: x, y1: y };
       if (handleId === "p2") return { ...el, x2: x, y2: y };
