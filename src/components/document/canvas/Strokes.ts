@@ -19,7 +19,7 @@ export interface Stroke {
 // MIRROR of pnplttr_file_structure.rs :: Element::to_strokes()
 // Canonical source of truth: Rust. If you change one, change the other.
 
-import type { Element } from "../components/document/types";
+import type { Element } from "../types";
 
 // A Line produces one stroke: pen down at (x1,y1), one line move to (x2,y2).
 function lineToStrokes(el: Extract<Element, { type: "Line" }>): Stroke[] {
@@ -54,11 +54,21 @@ function circleToStrokes(el: Extract<Element, { type: "Circle" }>): Stroke[] {
   }];
 }
 
-export function elementToStrokes(el: Element): Stroke[] {
+export function elementToStrokes(el: Element, selected: boolean): { strokes: Stroke[], color: string | undefined } {
+  let color: string | undefined = undefined;
   switch (el.type) {
-    case "Line":   return lineToStrokes(el);
-    case "Rect":   return rectToStrokes(el);
-    case "Circle": return circleToStrokes(el);
+    case "Line": {
+      if (selected) color = "#4d90fe";
+      return { strokes: lineToStrokes(el), color };
+    }
+    case "Rect": {
+      if (selected) color = "#4d90fe";
+      return { strokes: rectToStrokes(el), color };
+    }
+    case "Circle": {
+      if (selected) color = "#4d90fe";
+      return { strokes: circleToStrokes(el), color };
+    }
   }
 }
 

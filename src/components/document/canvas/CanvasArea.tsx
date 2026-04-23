@@ -1,8 +1,9 @@
-import { useRef } from "react";
-import type { Element, PnplttrDocument, Tool } from "./types";
-import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
-import { getHandles } from "../../utils/handles";
-import { useCanvasPointer, ghostToSvgPaths } from "../../hooks/document/useCanvasPointer";
+import { useRef, useState } from "react";
+import type { Element, PnplttrDocument, Tool } from "../types";
+import { elementToStrokes, strokeToSvgPath } from "./Strokes";
+import { Ghost, ghostToSvgPaths } from "./Ghost";
+import { getHandles } from "./DeformHandles";
+import { useCanvasPointer } from "../../../hooks/document/useCanvasPointer";
 
 // ── Viewport helpers ──────────────────────────────────────────────────────────
 
@@ -54,10 +55,10 @@ export default function CanvasArea({
   onViewportChange,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-
-  const { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag } =
+  const [ghost, setGhost] = useState<Ghost | null>(null);
+  const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag } =
     useCanvasPointer({
-      svgRef, viewport, activeTool, activeLayerId, page: doc.page,
+      svgRef, viewport, activeTool, activeLayerId, ghost, setGhost, page: doc.page,
       onAddElement, onSelectElement, onMoveElement, onMoveStart,
       onDeformStart, onDeformElement, onViewportChange,
     });
@@ -97,13 +98,13 @@ export default function CanvasArea({
 
           {/* Elements */}
           {doc.layers.flatMap((layer) =>
-            layer.elements.flatMap((el) =>
-              elementToStrokes(el).map((stroke) => {
-                const d          = strokeToSvgPath(stroke);
-                const isSelected = el.id === selectedId;
+            layer.elements.flatMap((el) => {
+              const { strokes, color } = elementToStrokes(el, el.id === selectedId);
+              return strokes.map((stroke) => {
+                const d = strokeToSvgPath(stroke);
                 return (
                   <g key={`${layer.id}-${el.id}-${stroke.start[0]}-${stroke.start[1]}`}>
-                    <path d={d} fill="none" stroke={isSelected ? "#60a5fa" : layer.pen.color}
+                    <path d={d} fill="none" stroke={color ?? layer.pen.color}
                       strokeWidth={layer.pen.width / viewport.zoom}
                       strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"
                     />
@@ -120,7 +121,7 @@ export default function CanvasArea({
                   </g>
                 );
               })
-            )
+            })
           )}
 
           {/* Selection handles */}

@@ -10,7 +10,7 @@ import { useElementDrag } from "../hooks/document/useElementDrag";
 import { useElementDeform } from "../hooks/document/useElementDeform";
 import DocumentToolbar from "../components/document/DocumentToolbar";
 import ToolPalette from "../components/document/ToolPalette";
-import CanvasArea, { type Viewport } from "../components/document/CanvasArea";
+import CanvasArea, { type Viewport } from "../components/document/canvas/CanvasArea";
 import LayersPanel from "../components/document/LayersPanel";
 import PagePanel from "../components/document/PagePanel";
 import PropertiesPanel from "../components/document/PropertiesPanel";

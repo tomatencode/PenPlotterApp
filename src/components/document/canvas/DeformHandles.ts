@@ -2,8 +2,8 @@
 // Defines the control points shown on a selected element and how dragging them
 // deforms the element. Add a case here for every new element type.
 
-import type { Element, PageSettings } from "../components/document/types";
-import { workspaceBounds } from "../components/document/types";
+import type { Element, PageSettings } from "../types";
+import { workspaceBounds } from "../types";
 
 export interface Handle {
   id: string;

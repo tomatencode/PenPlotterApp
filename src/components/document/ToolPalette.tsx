@@ -18,6 +18,16 @@ export const TOOLS: ToolDef[] = [
     ),
   },
   {
+    id: "pen",
+    label: "Pen",
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+        <path d="M11 2 L14 5 L6 13 L2 14 L3 10 Z" />
+        <line x1="9.5" y1="3.5" x2="12.5" y2="6.5" />
+      </svg>
+    ),
+  },
+  {
     id: "line",
     label: "Line",
     icon: (

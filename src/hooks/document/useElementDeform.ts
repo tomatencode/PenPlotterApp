@@ -1,6 +1,6 @@
 import { useRef, useCallback } from "react";
 import type { Element, PnplttrDocument } from "../../components/document/types";
-import { applyHandleDrag } from "../../utils/handles";
+import { applyHandleDrag } from "../../components/document/canvas/DeformHandles";
 import type { DocAction } from "./documentState";
 
 type DeformSnap = {

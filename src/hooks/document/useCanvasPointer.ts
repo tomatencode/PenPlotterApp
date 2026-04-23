@@ -1,30 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { Element, Tool, PageSettings } from "../../components/document/types";
 import { newId, workspaceBounds } from "../../components/document/types";
-import { elementToStrokes, strokeToSvgPath } from "../../utils/strokes";
-import type { Viewport } from "../../components/document/CanvasArea";
-import { viewportToDoc } from "../../components/document/CanvasArea";
-
-// ── Ghost (in-progress draw preview) ─────────────────────────────────────────
-
-export type Ghost =
-  | { tool: "line";   x1: number; y1: number; x2: number; y2: number }
-  | { tool: "rect";   x: number;  y: number;  w: number;  h: number  }
-  | { tool: "circle"; cx: number; cy: number; r: number              };
-
-export function ghostToElement(g: Ghost): Element {
-  const id = "__ghost__";
-  switch (g.tool) {
-    case "line":   return { id, type: "Line",   x1: g.x1, y1: g.y1, x2: g.x2, y2: g.y2 };
-    case "rect":   return { id, type: "Rect",   x: g.x, y: g.y, w: g.w, h: g.h };
-    case "circle": return { id, type: "Circle", cx: g.cx, cy: g.cy, r: g.r };
-  }
-}
-
-export function ghostToSvgPaths(ghost: Ghost | null): string[] {
-  if (!ghost) return [];
-  return elementToStrokes(ghostToElement(ghost)).map((s) => strokeToSvgPath(s));
-}
+import { Ghost } from "../../components/document/canvas/Ghost";
+import type { Viewport } from "../../components/document/canvas/CanvasArea";
+import { viewportToDoc } from "../../components/document/canvas/CanvasArea";
 
 // ── Pure helpers ────────────────────────────────────────────────────────────────
 
@@ -64,8 +43,10 @@ interface Options {
   viewport: Viewport;
   activeTool: Tool;
   activeLayerId: string;
+  ghost: Ghost | null;
   page: PageSettings;
   onAddElement: (layerId: string, el: Element) => void;
+  setGhost: (g: Ghost | null) => void;
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
   onMoveStart: (elementId: string) => void;
@@ -79,8 +60,10 @@ export function useCanvasPointer({
   viewport,
   activeTool,
   activeLayerId,
+  ghost,
   page,
   onAddElement,
+  setGhost,
   onSelectElement,
   onMoveElement,
   onMoveStart,
@@ -88,7 +71,6 @@ export function useCanvasPointer({
   onDeformElement,
   onViewportChange,
 }: Options) {
-  const [ghost, setGhost] = useState<Ghost | null>(null);
   const panRef        = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
   const dragRef       = useRef<{ elementId: string; grabDocX: number; grabDocY: number } | null>(null);
   const handleDragRef = useRef<{ elementId: string; handleId: string } | null>(null);
