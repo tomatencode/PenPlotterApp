@@ -6,7 +6,7 @@ import { PlotterClient } from "../../api/plotterClient";
 import PlotterDetailsRow from "../common/PlotterDetailsRow";
 import { usePlotterDiscovery } from "../../context/PlotterDiscoveryContext";
 import { PnplttrDocument } from "./types";
-import { docToJson } from "../../hooks/document/documentState";
+import { documentToGcode } from "../../gcode/convertToGcode";
 
 interface Props {
 	isOpen: boolean;
@@ -77,7 +77,7 @@ export default function GcodePopup({
 		await withBusy(async () => {
 			setStatusText("Generating GCode...");
 			try {
-				const result = await invoke<string>("convert_document_to_gcode", { json: docToJson(doc) });
+				const result = documentToGcode(doc);
 				setGcode(result);
 				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
 			} catch (e) {

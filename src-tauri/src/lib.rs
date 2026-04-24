@@ -1,7 +1,5 @@
 mod file_actions;
-mod gcode_conversion;
 mod plotter_discovery;
-pub mod pnplttr_file_structure;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -21,7 +19,6 @@ pub fn run() {
             file_actions::open_file,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
-            gcode_conversion::convert_document_to_gcode,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
