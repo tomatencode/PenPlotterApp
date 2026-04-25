@@ -6,6 +6,7 @@ import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
 import { useFontRegistry } from "../fonts/fontRegistry";
+import { getHints } from "../canvas/SelectionHints";
 
 interface Props {
   doc: PnplttrDocument;
@@ -108,22 +109,31 @@ export default function CanvasArea({
             })
           )}
 
-          {/* Selection handles */}
-          {selectedElement && activeTool === "select" &&
-            getHandles(selectedElement).map((handle) => (
-              <circle
-                key={handle.id}
-                cx={handle.x}
-                cy={handle.y}
-                r={5 / viewport.zoom}
-                fill="#2c3e49"
-                stroke="#60a5fa"
-                strokeWidth={1 / viewport.zoom}
-                style={{ cursor: "crosshair" }}
-                onPointerDown={(e) => { e.stopPropagation(); startHandleDrag(e, selectedElement.id, handle.id); }}
-              />
-            ))
-          }
+          {/* Selection handles and hints */}
+          {selectedElement && activeTool === "select" && (
+            <>
+              {getHints(selectedElement).map((hint, i) => (
+                <path key={i} d={strokeToSvgPath(hint)} fill="none" stroke="#60a5fa" opacity={0.5}
+                  strokeWidth={1 / viewport.zoom} strokeLinecap="round" strokeLinejoin="round"
+                  strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
+                />
+              ))}
+
+              {getHandles(selectedElement).map((handle) => (
+                <circle
+                  key={handle.id}
+                  cx={handle.x}
+                  cy={handle.y}
+                  r={5 / viewport.zoom}
+                  fill="#2c3e49"
+                  stroke="#60a5fa"
+                  strokeWidth={1 / viewport.zoom}
+                  style={{ cursor: "crosshair" }}
+                  onPointerDown={(e) => { e.stopPropagation(); startHandleDrag(e, selectedElement.id, handle.id); }}
+                />
+              ))}
+            </>
+          )}
 
           {/* Ghost preview */}
           {ghostPaths.map((d, i) => (
