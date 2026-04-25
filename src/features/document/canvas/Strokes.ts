@@ -49,9 +49,14 @@ export function plotterStrokeToSvgStroke(stroke: PlotterStroke): SvgStroke {
   return { start: stroke.start, moves: stroke.moves.map(plotterMoveToSvgMove) };
 }
 
-// ── SvgStroke → SVG path string ───────────────────────────────────────────────
+// ── Public API for canvas components ─────────────────────────────────────────
 
-export function svgStrokeToPath(stroke: SvgStroke): string {
+export function elementToStrokes(el: Element): SvgStroke[] {
+  const strokes = elementsToPlotterStrokes([el]).map(plotterStrokeToSvgStroke);
+  return strokes;
+}
+
+export function strokeToSvgPath(stroke: SvgStroke): string {
   const parts: string[] = [`M ${stroke.start[0]} ${stroke.start[1]}`];
   for (const move of stroke.moves) {
     switch (move.type) {
@@ -62,16 +67,4 @@ export function svgStrokeToPath(stroke: SvgStroke): string {
     }
   }
   return parts.join(" ");
-}
-
-// ── Public API for canvas components ─────────────────────────────────────────
-
-export function elementToStrokes(el: Element, selected: boolean): { strokes: SvgStroke[]; color: string | undefined } {
-  const color = selected ? "#4d90fe" : undefined;
-  const strokes = elementsToPlotterStrokes([el]).map(plotterStrokeToSvgStroke);
-  return { strokes, color };
-}
-
-export function strokeToSvgPath(stroke: SvgStroke): string {
-  return svgStrokeToPath(stroke);
 }

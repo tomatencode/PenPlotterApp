@@ -20,6 +20,6 @@ function ghostToElement(g: Ghost): Element {
 export function ghostToSvgPaths(ghost: Ghost | null): string[] {
   if (!ghost) return [];
     const el = ghostToElement(ghost);
-    const { strokes } = elementToStrokes(el, false);
+    const strokes = elementToStrokes(el);
     return strokes.map(strokeToSvgPath);
 }

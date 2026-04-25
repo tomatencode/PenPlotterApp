@@ -80,13 +80,13 @@ export default function CanvasArea({
           {/* Elements */}
           {doc.layers.flatMap((layer) =>
             layer.elements.flatMap((el) => {
-              const { strokes, color } = elementToStrokes(el, el.id === selectedId);
+              const strokes = elementToStrokes(el);
               let i = 0;
               return strokes.map((stroke) => {
                 const d = strokeToSvgPath(stroke);
                 return (
                   <g key={`${layer.id}-${el.id}-${i++}`}>
-                    <path d={d} fill="none" stroke={color ?? layer.pen.color}
+                    <path d={d} fill="none" stroke={el.id === selectedId ? "#4d90fe" : layer.pen.color}
                       strokeWidth={layer.pen.width / viewport.zoom}
                       strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"
                     />
