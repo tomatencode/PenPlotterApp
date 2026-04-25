@@ -1,7 +1,3 @@
-// Converts document elements to the internal GStroke representation.
-// Each element type maps to either an OpenStroke (has a distinct start and end)
-// or a LoopStroke (closed path that can start at any joint).
-
 import type { Element } from "../types";
 import type { GMove, GStroke } from "./types";
 

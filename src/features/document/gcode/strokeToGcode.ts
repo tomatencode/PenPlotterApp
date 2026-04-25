@@ -1,9 +1,5 @@
-// Converts a GStroke (with its committed entry direction) to GCode lines.
-
 import type { GMove, GStroke } from "./types";
 import { type Converter, docToGcode } from "./converter";
-
-// ── Move → GCode ──────────────────────────────────────────────────────────────
 
 function moveToGcode(m: GMove, reversed: boolean, conv: Converter): string {
   switch (m.type) {
@@ -44,8 +40,6 @@ function moveToGcode(m: GMove, reversed: boolean, conv: Converter): string {
     }
   }
 }
-
-// ── Stroke → GCode ────────────────────────────────────────────────────────────
 
 export function strokeToGcode(stroke: GStroke, conv: Converter): string {
   let gcode = "";

@@ -1,7 +1,3 @@
-// Post-processes raw GCode output:
-//   - Removes redundant M3 (pen down) / M5 (pen up) commands
-//   - Strips trailing zeros from numbers  (X1.200 → X1.2,  Y0.000 → Y0)
-
 function formatToken(token: string): string {
   // Advance past any letter prefix (X, CX1, G, M …)
   let i = 0;

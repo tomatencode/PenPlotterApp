@@ -1,7 +1,3 @@
-// ── Drag handles ──────────────────────────────────────────────────────────────
-// Defines the control points shown on a selected element and how dragging them
-// deforms the element. Add a case here for every new element type.
-
 import { Element, PageSettings, workspaceBounds } from "../types";
 
 export interface Handle {
@@ -35,7 +31,6 @@ export function getHandles(el: Element): Handle[] {
   }
 }
 
-/** Returns the updated element after dragging `handleId` to doc-space (x, y). */
 export function applyHandleDrag(el: Element, handleId: string, x: number, y: number, page: PageSettings): Element {
   switch (el.type) {
     case "Drawing":
@@ -69,19 +64,19 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
       if (handleId === "r") {
         const ws = workspaceBounds(page);
         const maxR = Math.min(
-          el.cx - ws.x,           // distance to left edge
-          ws.x + ws.w - el.cx,    // distance to right edge
-          el.cy - ws.y,           // distance to top edge
-          ws.y + ws.h - el.cy,    // distance to bottom edge
+          el.cx - ws.x,
+          ws.x + ws.w - el.cx,
+          el.cy - ws.y,
+          ws.y + ws.h - el.cy,
         );
         return { ...el, r: Math.max(0.5, Math.min(maxR, Math.hypot(x - el.cx, y - el.cy))) };
       }
       if (handleId === "c") {
         const ws = workspaceBounds(page);
-        const maxCx = ws.w + ws.x - el.r; // right edge minus radius
-        const minCx = ws.x + el.r;      // left edge plus radius
-        const maxCy = ws.h + ws.y - el.r; // bottom edge minus radius
-        const minCy = ws.y + el.r;      // top edge plus radius
+        const maxCx = ws.w + ws.x - el.r;
+        const minCx = ws.x + el.r;
+        const maxCy = ws.h + ws.y - el.r;
+        const minCy = ws.y + el.r;
         return { ...el, cx: Math.max(minCx, Math.min(maxCx, x)), cy: Math.max(minCy, Math.min(maxCy, y)) };
     }
       return el;

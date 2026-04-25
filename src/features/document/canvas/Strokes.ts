@@ -1,8 +1,4 @@
-// ── Plotter stroke types ──────────────────────────────────────────────────────
-// MIRROR of pnplttr_file_structure.rs :: PlotterMove / Stroke
-// Canonical source of truth: Rust. If you change one, change the other.
-//
-// All coordinates are in millimetres, absolute document space.
+import type { Element } from "../types";
 
 export type PlotterMove =
   | { type: "Line";        x2: number; y2: number }
@@ -15,13 +11,6 @@ export interface Stroke {
   moves: PlotterMove[];
 }
 
-// ── Element → Strokes conversion ──────────────────────────────────────────────
-// MIRROR of pnplttr_file_structure.rs :: Element::to_strokes()
-// Canonical source of truth: Rust. If you change one, change the other.
-
-import type { Element } from "../types";
-
-// A Line produces one stroke: pen down at (x1,y1), one line move to (x2,y2).
 function lineToStrokes(el: Extract<Element, { type: "Line" }>): Stroke[] {
   return [{
     start: [el.x1, el.y1],
@@ -29,7 +18,6 @@ function lineToStrokes(el: Extract<Element, { type: "Line" }>): Stroke[] {
   }];
 }
 
-// A Rect produces one stroke: start top-left, go clockwise, close back to start.
 function rectToStrokes(el: Extract<Element, { type: "Rect" }>): Stroke[] {
   return [{
     start: [el.x, el.y],
@@ -42,8 +30,6 @@ function rectToStrokes(el: Extract<Element, { type: "Rect" }>): Stroke[] {
   }];
 }
 
-// A Circle produces one stroke: two semicircle arcs (top→bottom, bottom→top).
-// A single SVG arc cannot draw a full circle because start and end XY would coincide.
 function circleToStrokes(el: Extract<Element, { type: "Circle" }>): Stroke[] {
   return [{
     start: [el.cx, el.cy - el.r],
@@ -76,10 +62,6 @@ export function elementToStrokes(el: Element, selected: boolean): { strokes: Str
     }
   }
 }
-
-// ── Stroke → SVG path string ──────────────────────────────────────────────────
-// Converts a single Stroke to an SVG path `d` attribute string.
-// Used by CanvasArea to render strokes as <path> elements.
 
 export function strokeToSvgPath(stroke: Stroke): string {
   const parts: string[] = [`M ${stroke.start[0]} ${stroke.start[1]}`];

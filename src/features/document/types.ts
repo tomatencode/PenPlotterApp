@@ -1,8 +1,3 @@
-// ── File format mirror ────────────────────────────────────────────────────────
-// These interfaces MIRROR pnplttr_file_structure.rs exactly.
-// Field names must stay in sync — JSON is parsed directly into these types.
-// Canonical source of truth: Rust. If you change one, change the other.
-
 export interface Pen {
   color: string;
   width: number; // mm
@@ -15,7 +10,7 @@ export type Element =
   | { id: string; type: "Circle";  cx: number; cy: number; r: number              };
 
 export interface Layer {
-  id: string;       // UI-only, not in file format — stripped on save
+  id: string;
   name: string;
   pen: Pen;
   elements: Element[];
@@ -39,7 +34,7 @@ export interface PnplttrDocument {
   layers: Layer[];
 }
 
-// ── UI helpers ────────────────────────────────────────────────────────────────
+// UI helpers
 
 export function newId(): string {
   return Math.random().toString(36).slice(2, 9);
@@ -56,11 +51,9 @@ export function workspaceBounds(page: PageSettings): { x: number; y: number; w: 
   };
 }
 
-// ── Tool ──────────────────────────────────────────────────────────────────────
 export type Tool = "select" | "pen" | "line" | "rect" | "circle";
 
-// ── Page presets ──────────────────────────────────────────────────────────────
-
+// Page presets
 export interface PagePreset {
   label: string;
   width: number;  // mm

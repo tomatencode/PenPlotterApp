@@ -8,14 +8,6 @@ type DeformSnap = {
   element: Element; // original element at drag-start
 };
 
-/**
- * Owns the snapshot logic for handle-drag deformation.
- * Plugs into useCanvasPointer via onDeformStart / onDeformElement callbacks.
- *
- * Snapshotting the element at drag-start is important for handles like Rect
- * corners: applyHandleDrag uses the opposite corner from the snapshot, so
- * inverting the shape and dragging back always refers to the original geometry.
- */
 export function useElementDeform(
   docRef: React.RefObject<PnplttrDocument>,
   dispatch: React.Dispatch<DocAction>,

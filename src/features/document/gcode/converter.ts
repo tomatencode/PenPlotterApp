@@ -1,8 +1,3 @@
-// Coordinate conversion between document space and GCode space.
-//
-// Document space: origin top-left,    +Y down  (mm)
-// GCode space:    origin bottom-left, +Y up    (mm)
-
 import type { PageSettings } from "../types";
 
 export interface Converter {

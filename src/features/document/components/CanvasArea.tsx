@@ -6,8 +6,6 @@ import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
 interface Props {
   doc: PnplttrDocument;
   activeLayerId: string;
@@ -22,8 +20,6 @@ interface Props {
   onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CanvasArea({
   doc,
