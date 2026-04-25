@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Layer, Element, PnplttrDocument, Tool, PageSettings, Pen } from "../features/document/types";
 import { newId } from "../features/document/utils";
 import { DEFAULT_PEN } from "../features/document/constants";
-import { docReducer, initialDoc, docToJson } from "../features/document/state";
+import { docReducer, initialDoc, docToJson } from "../features/document/docState";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";
 import DocumentToolbar from "../features/document/components/DocumentToolbar";

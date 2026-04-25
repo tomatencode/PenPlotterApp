@@ -1,7 +1,7 @@
-import type { GMove, GStroke } from "./types";
+import type { PlotterMove, GStroke } from "./types";
 import { type Converter, docToGcode } from "./converter";
 
-function moveToGcode(m: GMove, reversed: boolean, conv: Converter): string {
+function moveToGcode(m: PlotterMove, reversed: boolean, conv: Converter): string {
   switch (m.type) {
     case "Line": {
       const [tx, ty] = reversed ? docToGcode(m.x1, m.y1, conv) : docToGcode(m.x2, m.y2, conv);

@@ -1,92 +1,77 @@
 import type { Element } from "../types";
+import { type PlotterMove, type PlotterStroke, elementsToPlotterStrokes } from "../plotterMove";
 
-export type PlotterMove =
-  | { type: "Line";        x2: number; y2: number }
-  | { type: "Arc";         cx: number; cy: number; r: number; startAngle: number; endAngle: number }
-  | { type: "QuadBezier";  cx: number; cy: number; x2: number; y2: number }
-  | { type: "CubicBezier"; cx1: number; cy1: number; cx2: number; cy2: number; x2: number; y2: number };
+// ── SvgMove / SvgStroke ───────────────────────────────────────────────────────
+// SVG-specific rendering types derived from PlotterStroke.
+// Pipeline: Element → PlotterStroke (plotter.ts) → SvgStroke → path string
 
-export interface Stroke {
-  start: [number, number]; // pen-down position in mm
-  moves: PlotterMove[];
+export type SvgMove =
+  | { type: "L"; x: number; y: number }
+  | { type: "A"; r: number; largeArc: 0 | 1; sweep: 0 | 1; x: number; y: number }
+  | { type: "Q"; cx: number; cy: number; x: number; y: number }
+  | { type: "C"; cx1: number; cy1: number; cx2: number; cy2: number; x: number; y: number };
+
+export interface SvgStroke {
+  start: [number, number];
+  moves: SvgMove[];
 }
 
-function lineToStrokes(el: Extract<Element, { type: "Line" }>): Stroke[] {
-  return [{
-    start: [el.x1, el.y1],
-    moves: [{ type: "Line", x2: el.x2, y2: el.y2 }],
-  }];
-}
+// ── PlotterMove → SvgMove ─────────────────────────────────────────────────────
 
-function rectToStrokes(el: Extract<Element, { type: "Rect" }>): Stroke[] {
-  return [{
-    start: [el.x, el.y],
-    moves: [
-      { type: "Line", x2: el.x + el.w, y2: el.y           },
-      { type: "Line", x2: el.x + el.w, y2: el.y + el.h    },
-      { type: "Line", x2: el.x,        y2: el.y + el.h    },
-      { type: "Line", x2: el.x,        y2: el.y           },
-    ],
-  }];
-}
+function plotterMoveToSvgMove(move: PlotterMove): SvgMove {
+  switch (move.type) {
+    case "Line":
+      return { type: "L", x: move.x2, y: move.y2 };
 
-function circleToStrokes(el: Extract<Element, { type: "Circle" }>): Stroke[] {
-  return [{
-    start: [el.cx, el.cy - el.r],
-    moves: [
-      { type: "Arc", cx: el.cx, cy: el.cy, r: el.r, startAngle: -Math.PI / 2, endAngle:  Math.PI / 2 },
-      { type: "Arc", cx: el.cx, cy: el.cy, r: el.r, startAngle:  Math.PI / 2, endAngle:  Math.PI * 1.5 },
-    ],
-  }];
-}
+    case "Arc": {
+      const r = Math.hypot(move.x1 - move.cx, move.y1 - move.cy);
+      const startAngle = Math.atan2(move.y1 - move.cy, move.x1 - move.cx);
+      const endAngle   = Math.atan2(move.y2 - move.cy, move.x2 - move.cx);
+      // Angular span in the direction of travel, normalised to (0, 2π]
+      let span = move.clockwise
+        ? (endAngle - startAngle + 2 * Math.PI) % (2 * Math.PI)
+        : (startAngle - endAngle + 2 * Math.PI) % (2 * Math.PI);
+      if (span === 0) span = 2 * Math.PI;
+      return { type: "A", r, largeArc: span > Math.PI ? 1 : 0, sweep: move.clockwise ? 1 : 0, x: move.x2, y: move.y2 };
+    }
 
-export function elementToStrokes(el: Element, selected: boolean): { strokes: Stroke[], color: string | undefined } {
-  let color: string | undefined = undefined;
-  switch (el.type) {
-    case "Line": {
-      if (selected) color = "#4d90fe";
-      return { strokes: lineToStrokes(el), color };
-    }
-    case "Rect": {
-      if (selected) color = "#4d90fe";
-      return { strokes: rectToStrokes(el), color };
-    }
-    case "Circle": {
-      if (selected) color = "#4d90fe";
-      return { strokes: circleToStrokes(el), color };
-    }
-    case "Drawing": {
-      if (el.points.length < 2) return { strokes: [], color };
-      if (selected) color = "#4d90fe";
-      return { strokes: [{ start: el.points[0], moves: el.points.slice(1).map(([x, y]) => ({ type: "Line" as const, x2: x, y2: y })) }], color };
-    }
+    case "QuadBezier":
+      return { type: "Q", cx: move.cx, cy: move.cy, x: move.x2, y: move.y2 };
+
+    case "CubicBezier":
+      return { type: "C", cx1: move.cx1, cy1: move.cy1, cx2: move.cx2, cy2: move.cy2, x: move.x2, y: move.y2 };
   }
 }
 
-export function strokeToSvgPath(stroke: Stroke): string {
+// ── PlotterStroke → SvgStroke ─────────────────────────────────────────────────
+
+export function plotterStrokeToSvgStroke(stroke: PlotterStroke): SvgStroke {
+  return { start: stroke.start, moves: stroke.moves.map(plotterMoveToSvgMove) };
+}
+
+// ── SvgStroke → SVG path string ───────────────────────────────────────────────
+
+export function svgStrokeToPath(stroke: SvgStroke): string {
   const parts: string[] = [`M ${stroke.start[0]} ${stroke.start[1]}`];
   for (const move of stroke.moves) {
     switch (move.type) {
-      case "Line":
-        parts.push(`L ${move.x2} ${move.y2}`);
-        break;
-      case "Arc": {
-        // Normalise span into (0, 2π] so wrapping angles and full circles work correctly.
-        const span = (move.endAngle - move.startAngle + 2 * Math.PI) % (2 * Math.PI) || 2 * Math.PI;
-        const largeArcFlag = span > Math.PI ? 1 : 0;
-        const sweepFlag = 1; // Always clockwise
-        const endX = move.cx + move.r * Math.cos(move.endAngle);
-        const endY = move.cy + move.r * Math.sin(move.endAngle);
-        parts.push(`A ${move.r} ${move.r} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`);
-        break;
-      }
-      case "QuadBezier":
-        parts.push(`Q ${move.cx} ${move.cy} ${move.x2} ${move.y2}`);
-        break;
-      case "CubicBezier":
-        parts.push(`C ${move.cx1} ${move.cy1} ${move.cx2} ${move.cy2} ${move.x2} ${move.y2}`);
-        break;
+      case "L": parts.push(`L ${move.x} ${move.y}`); break;
+      case "A": parts.push(`A ${move.r} ${move.r} 0 ${move.largeArc} ${move.sweep} ${move.x} ${move.y}`); break;
+      case "Q": parts.push(`Q ${move.cx} ${move.cy} ${move.x} ${move.y}`); break;
+      case "C": parts.push(`C ${move.cx1} ${move.cy1} ${move.cx2} ${move.cy2} ${move.x} ${move.y}`); break;
     }
   }
   return parts.join(" ");
+}
+
+// ── Public API for canvas components ─────────────────────────────────────────
+
+export function elementToStrokes(el: Element, selected: boolean): { strokes: SvgStroke[]; color: string | undefined } {
+  const color = selected ? "#4d90fe" : undefined;
+  const strokes = elementsToPlotterStrokes([el]).map(plotterStrokeToSvgStroke);
+  return { strokes, color };
+}
+
+export function strokeToSvgPath(stroke: SvgStroke): string {
+  return svgStrokeToPath(stroke);
 }

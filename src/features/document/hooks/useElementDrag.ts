@@ -1,7 +1,7 @@
 import { useRef, useCallback } from "react";
 import type { Element, PnplttrDocument } from "../types";
 import { workspaceBounds } from "../utils";
-import type { DocAction } from "../state";
+import type { DocAction } from "../docState";
 
 function elementBounds(el: Element): { minX: number; minY: number; maxX: number; maxY: number } {
   switch (el.type) {
