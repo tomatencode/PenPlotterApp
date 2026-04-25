@@ -5,7 +5,7 @@ import { Ghost, ghostToSvgPaths } from "../canvas/Ghost";
 import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
-import { useFontRegistry } from "../fonts/fontRegistry";
+import { useTextElementToStrokes } from "../fonts/textToStrokes";
 import { getHints } from "../canvas/SelectionHints";
 
 interface Props {
@@ -39,7 +39,7 @@ export default function CanvasArea({
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null);
-  const { fonts } = useFontRegistry();
+  const renderText = useTextElementToStrokes();
   const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag } =
     useCanvasPointer({
       svgRef, viewport, activeTool, activeLayerId, ghost, setGhost, page: doc.page,
@@ -83,7 +83,7 @@ export default function CanvasArea({
           {/* Elements */}
           {doc.layers.flatMap((layer) =>
             layer.elements.flatMap((el) => {
-              const strokes = elementToStrokes(el, fonts);
+              const strokes = elementToStrokes(el, renderText);
               let i = 0;
               return strokes.map((stroke) => {
                 const d = strokeToSvgPath(stroke);

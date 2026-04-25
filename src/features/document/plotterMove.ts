@@ -8,6 +8,8 @@
 
 import type { Element } from "./types";
 
+type TextEl = Extract<Element, { type: "Text" }>;
+
 export type PlotterMove =
   | { type: "Line";        x1: number; y1: number; x2: number; y2: number }
   | { type: "Arc";         x1: number; y1: number; cx: number; cy: number; x2: number; y2: number; clockwise: boolean }
@@ -30,7 +32,10 @@ export interface PlotterStroke {
 // Both canvas rendering and gcode generation call this function so the preview
 // always matches what the plotter will actually draw.
 
-export function elementsToPlotterStrokes(elements: Element[]): PlotterStroke[] {
+export function elementsToPlotterStrokes(
+  elements: Element[],
+  renderText?: (el: TextEl) => PlotterStroke[],
+): PlotterStroke[] {
   const strokes: PlotterStroke[] = [];
 
   for (const el of elements) {
@@ -83,6 +88,10 @@ export function elementsToPlotterStrokes(elements: Element[]): PlotterStroke[] {
         });
         break;
       }
+
+      case "Text":
+        if (renderText) strokes.push(...renderText(el));
+        break;
     }
   }
 

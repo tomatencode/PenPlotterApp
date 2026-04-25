@@ -1,6 +1,5 @@
-import type { Element, PlttrFont } from "../types";
-import { type PlotterMove, type PlotterStroke } from "../plotterMove";
-import { allElementsToPlotterStrokes } from "../fonts/textToStrokes";
+import type { Element } from "../types";
+import { type PlotterMove, type PlotterStroke, elementsToPlotterStrokes } from "../plotterMove";
 
 // ── SvgMove / SvgStroke ───────────────────────────────────────────────────────
 // SVG-specific rendering types derived from PlotterStroke.
@@ -52,8 +51,11 @@ export function plotterStrokeToSvgStroke(stroke: PlotterStroke): SvgStroke {
 
 // ── Public API for canvas components ─────────────────────────────────────────
 
-export function elementToStrokes(el: Element, fonts: Map<string, PlttrFont> = new Map()): SvgStroke[] {
-  return allElementsToPlotterStrokes([el], fonts).map(plotterStrokeToSvgStroke);
+export function elementToStrokes(
+  el: Element,
+  renderText?: (el: Extract<Element, { type: "Text" }>) => PlotterStroke[],
+): SvgStroke[] {
+  return elementsToPlotterStrokes([el], renderText).map(plotterStrokeToSvgStroke);
 }
 
 export function strokeToSvgPath(stroke: SvgStroke): string {
