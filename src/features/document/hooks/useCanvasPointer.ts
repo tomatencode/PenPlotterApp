@@ -104,7 +104,7 @@ export function useCanvasPointer({
 
     if (activeTool === "pen") {
       const [docX, docY] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
-      setGhost({ tool: "drawing", points: [[docX, docY]] });
+      setGhost({ type: "Drawing", points: [[docX, docY]] });
       (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
       return;
     }
@@ -143,14 +143,14 @@ export function useCanvasPointer({
     }
 
     if (activeTool === "pen") {
-      if (!ghostRef.current || ghostRef.current.tool !== "drawing") return;
+      if (!ghostRef.current || ghostRef.current.type !== "Drawing") return;
       
       const [docX, docY] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
       const lastPoint = ghostRef.current.points[ghostRef.current.points.length - 1];
       const dist = Math.hypot(docX - lastPoint[0], docY - lastPoint[1]);
       if (dist < 0.5) return;
 
-      setGhost({ tool: "drawing", points: [...ghostRef.current.points, [docX, docY]] });
+      setGhost({ type: "Drawing", points: [...ghostRef.current.points, [docX, docY]] });
       return;
     }
 
@@ -162,15 +162,15 @@ export function useCanvasPointer({
     const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
     switch (activeTool) {
       case "line":
-        setGhost({ tool: "line", x1: sx, y1: sy, x2: mx, y2: my });
+        setGhost({ type: "Line", x1: sx, y1: sy, x2: mx, y2: my });
         break;
       case "rect": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
-        setGhost({ tool: "rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
+        setGhost({ type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
         break;
       }
       case "circle":
-        setGhost({ tool: "circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) });
+        setGhost({ type: "Circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) });
         break;
     }
   }, [activeTool, viewport, page, onViewportChange, onMoveElement, onDeformElement]);
@@ -181,7 +181,7 @@ export function useCanvasPointer({
     if (panRef.current)        { panRef.current = null; return; }
 
     if (activeTool === "pen") {
-      if (!ghostRef.current || ghostRef.current.tool !== "drawing" || ghostRef.current.points.length < 2) { setGhost(null); return; }
+      if (!ghostRef.current || ghostRef.current.type !== "Drawing" || ghostRef.current.points.length < 2) { setGhost(null); return; }
       const id = newId();
       onAddElement(activeLayerId, { id, type: "Drawing", points: ghostRef.current.points });
       setGhost(null);
