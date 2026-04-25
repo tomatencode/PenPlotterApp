@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from "react";
 import type { Element, Tool, PageSettings } from "../types";
-import { newId, workspaceBounds } from "../types";
+import { newId, workspaceBounds } from "../utils";
 import { Ghost } from "../canvas/Ghost";
 import { type Viewport, viewportToDoc } from "../canvas/viewport";
 

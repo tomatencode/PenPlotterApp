@@ -1,4 +1,5 @@
-import { Element, PageSettings, workspaceBounds } from "../types";
+import type { Element, PageSettings } from "../types";
+import { workspaceBounds } from "../utils";
 
 export interface Handle {
   id: string;

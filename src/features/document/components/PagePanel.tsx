@@ -1,7 +1,5 @@
-import {
-  type PageSettings,
-  PAGE_PRESETS, WORKSPACE_PRESETS,
-} from "../types";
+import type { PageSettings } from "../types";
+import { PAGE_PRESETS, WORKSPACE_PRESETS } from "../constants";
 
 interface Props {
   page: PageSettings;

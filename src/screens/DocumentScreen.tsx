@@ -1,10 +1,9 @@
 import { useReducer, useState, useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings, type Pen,
-  newId, DEFAULT_PEN,
-} from "../features/document/types";
+import type { Layer, Element, PnplttrDocument, Tool, PageSettings, Pen } from "../features/document/types";
+import { newId } from "../features/document/utils";
+import { DEFAULT_PEN } from "../features/document/constants";
 import { docReducer, initialDoc, docToJson } from "../features/document/state";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";

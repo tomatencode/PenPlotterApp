@@ -1,12 +1,6 @@
-import {
-  type Layer,
-  type Element,
-  type Pen,
-  type PageSettings,
-  type PnplttrDocument,
-  newId,
-  DEFAULT_PEN,
-} from "./types";
+import type { Layer, Element, Pen, PageSettings, PnplttrDocument } from "./types";
+import { newId } from "./utils";
+import { DEFAULT_PEN } from "./constants";
 
 export type DocAction =
   | { type: "LOAD"; doc: PnplttrDocument }
