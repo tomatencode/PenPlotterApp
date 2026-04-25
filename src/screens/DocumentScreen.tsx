@@ -4,18 +4,18 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   type Layer, type Element, type PnplttrDocument, type Tool, type PageSettings, type Pen,
   newId, DEFAULT_PEN,
-} from "../components/document/types";
-import { docReducer, initialDoc, docToJson } from "../hooks/document/documentState";
-import { useElementDrag } from "../hooks/document/useElementDrag";
-import { useElementDeform } from "../hooks/document/useElementDeform";
-import DocumentToolbar from "../components/document/DocumentToolbar";
-import ToolPalette from "../components/document/ToolPalette";
-import CanvasArea, { type Viewport } from "../components/document/canvas/CanvasArea";
-import LayersPanel from "../components/document/LayersPanel";
-import PagePanel from "../components/document/PagePanel";
-import PropertiesPanel from "../components/document/PropertiesPanel";
-import DocumentStatusBar from "../components/document/DocumentStatusBar";
-import GcodePopup from "../components/document/GcodePopup";
+} from "../features/document/types";
+import { docReducer, initialDoc, docToJson } from "../features/document/state";
+import { useElementDrag } from "../features/document/hooks/useElementDrag";
+import { useElementDeform } from "../features/document/hooks/useElementDeform";
+import DocumentToolbar from "../features/document/components/DocumentToolbar";
+import ToolPalette from "../features/document/components/ToolPalette";
+import CanvasArea, { type Viewport } from "../features/document/components/canvas/CanvasArea";
+import LayersPanel from "../features/document/components/LayersPanel";
+import PagePanel from "../features/document/components/PagePanel";
+import PropertiesPanel from "../features/document/components/PropertiesPanel";
+import DocumentStatusBar from "../features/document/components/DocumentStatusBar";
+import GcodePopup from "../features/document/components/GcodePopup";
 
 export default function DocumentScreen() {
   const location = useLocation();

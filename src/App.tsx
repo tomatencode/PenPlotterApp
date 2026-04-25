@@ -3,8 +3,8 @@ import HomeScreen from "./screens/HomeScreen";
 import DocumentScreen from "./screens/DocumentScreen";
 import PlotterScreen from "./screens/PlotterScreen";
 import GcodeScreen from "./screens/GcodeScreen";
-import TitleBar from "./components/TitleBar";
-import { PlotterDiscoveryProvider } from "./context/PlotterDiscoveryContext";
+import TitleBar from "./shared/components/TitleBar";
+import { PlotterDiscoveryProvider } from "./features/plotter/context";
 import "./App.css";
 
 function App() {

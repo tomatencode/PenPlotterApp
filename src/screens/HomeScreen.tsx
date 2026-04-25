@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getVersion } from "@tauri-apps/api/app";
-import DocumentActions from "../components/home/DocumentActions";
-import PlotterList from "../components/home/PlotterList";
-import RecentFilesList from "../components/home/RecentFilesList";
-import { usePlotterDiscovery } from "../context/PlotterDiscoveryContext";
+import DocumentActions from "../features/home/components/DocumentActions";
+import PlotterList from "../features/home/components/PlotterList";
+import RecentFilesList from "../features/home/components/RecentFilesList";
+import { usePlotterDiscovery } from "../features/plotter/context";
 
 export default function HomeScreen() {
   const navigate = useNavigate();

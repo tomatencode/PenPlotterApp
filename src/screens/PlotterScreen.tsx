@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import ScreenHeader from "../components/ScreenHeader";
-import PlotterView from "../components/plotter/plotterGaphic/PlotterView";
-import PlotterStatusCard from "../components/plotter/PlotterStatusCard";
-import PlotterDetailsPanel from "../components/plotter/PlotterDetailsPanel";
-import PlotterSettingsPanel from "../components/plotter/PlotterSettingsPanel";
-import PlotterFileList from "../components/plotter/PlotterFileList";
-import JobControlBar from "../components/plotter/JobControllBar";
-import { PlotterClient } from "../api/plotterClient";
-import type { SettingKey, PlotterSettings, WsStateMessage } from "../api/plotterClient";
-import type { UiState } from "../components/plotter/PlotterStatusCard";
-import type { PlotterInfo } from "../components/plotter/PlotterDetailsPanel";
+import ScreenHeader from "../shared/components/ScreenHeader";
+import PlotterView from "../features/plotter/components/graphic/PlotterView";
+import PlotterStatusCard from "../features/plotter/components/PlotterStatusCard";
+import PlotterDetailsPanel from "../features/plotter/components/PlotterDetailsPanel";
+import PlotterSettingsPanel from "../features/plotter/components/PlotterSettingsPanel";
+import PlotterFileList from "../features/plotter/components/PlotterFileList";
+import JobControlBar from "../features/plotter/components/JobControllBar";
+import { PlotterClient } from "../features/plotter/api/plotterClient";
+import type { SettingKey, PlotterSettings, WsStateMessage } from "../features/plotter/api/plotterClient";
+import type { UiState } from "../features/plotter/components/PlotterStatusCard";
+import type { PlotterInfo } from "../features/plotter/components/PlotterDetailsPanel";
 
 export default function PlotterScreen() {
   const navigate = useNavigate();
