@@ -1,5 +1,5 @@
 import { elementToStrokes, strokeToSvgPath } from "./Strokes";
-import type { Element } from "../../types";
+import type { Element } from "../types";
 
 export type Ghost =
   | { tool: "drawing"; points: [x: number, y: number][] }

@@ -19,7 +19,7 @@ export interface Stroke {
 // MIRROR of pnplttr_file_structure.rs :: Element::to_strokes()
 // Canonical source of truth: Rust. If you change one, change the other.
 
-import type { Element } from "../../types";
+import type { Element } from "../types";
 
 // A Line produces one stroke: pen down at (x1,y1), one line move to (x2,y2).
 function lineToStrokes(el: Extract<Element, { type: "Line" }>): Stroke[] {
