@@ -7,6 +7,7 @@ import { DEFAULT_PEN } from "../features/document/constants";
 import { docReducer, initialDoc, docToJson } from "../features/document/docState";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";
+import { FontRegistryProvider, useFontRegistry } from "../features/document/fonts/fontRegistry";
 import DocumentToolbar from "../features/document/components/DocumentToolbar";
 import ToolPalette from "../features/document/components/ToolPalette";
 import CanvasArea from "../features/document/components/CanvasArea";
@@ -18,6 +19,15 @@ import DocumentStatusBar from "../features/document/components/DocumentStatusBar
 import GcodePopup from "../features/document/components/GcodePopup";
 
 export default function DocumentScreen() {
+  return (
+    <FontRegistryProvider>
+      <DocumentScreenContent />
+    </FontRegistryProvider>
+  );
+}
+
+function DocumentScreenContent() {
+  const { addFonts } = useFontRegistry();
   const location = useLocation();
   const navigate = useNavigate();
   const { path } = (location.state as { path: string | null }) ?? { path: null };
@@ -34,6 +44,8 @@ export default function DocumentScreen() {
         const loaded = initialDoc(json);
         dispatch({ type: "LOAD", doc: loaded });
         setActiveLayerId(loaded.layers[0].id);
+        // Inject any custom fonts embedded in the document into the registry
+        if (loaded.fonts) addFonts(loaded.fonts);
       })
       .catch(console.error);
   }, [path]);

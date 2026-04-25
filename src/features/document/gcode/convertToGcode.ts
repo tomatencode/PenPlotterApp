@@ -1,6 +1,7 @@
 import type { PnplttrDocument } from "../types";
-import { elementsToPlotterStrokes } from "../plotterMove";
 import { makeConverter, gcodeToDoc } from "./converter";
+import { allElementsToPlotterStrokes } from "../fonts/textToStrokes";
+import { DEFAULT_FONTS } from "../fonts/defaultFonts";
 import { optimizeStrokes } from "./optimizeStrokes";
 import { strokeToGcode } from "./strokeToGcode";
 import { compressGcode } from "./compressGcode";
@@ -8,6 +9,8 @@ import { compressGcode } from "./compressGcode";
 export function documentToGcode(doc: PnplttrDocument): string {
   const conv = makeConverter(doc.page);
   const home = gcodeToDoc(0, 0, conv);
+  // Merge default fonts with any custom fonts embedded in the document
+  const fonts = new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]);
 
   let gcode = "G28 ; Home all axes\n\n";
 
@@ -15,7 +18,7 @@ export function documentToGcode(doc: PnplttrDocument): string {
     gcode += `; Layer: ${layer.name}\n`;
     // TODO: add pen switching GCode commands here, using layer.pen.color / layer.pen.width
 
-    const strokes = elementsToPlotterStrokes(layer.elements);
+    const strokes = allElementsToPlotterStrokes(layer.elements, fonts);
     const optimized = optimizeStrokes(strokes, home);
 
     gcode += "M5\n"; // ensure pen up before moving to first stroke

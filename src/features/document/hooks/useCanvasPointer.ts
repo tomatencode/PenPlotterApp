@@ -164,7 +164,8 @@ export function useCanvasPointer({
       case "line":
         setGhost({ type: "Line", x1: sx, y1: sy, x2: mx, y2: my });
         break;
-      case "rect": {
+      case "rect":
+      case "text": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         setGhost({ type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
         break;
@@ -206,6 +207,12 @@ export function useCanvasPointer({
       case "rect": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         el = { id, type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) };
+        break;
+      }
+      case "text": {
+        const x = Math.min(sx, mx), y = Math.min(sy, my);
+        el = { id, type: "Text", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
+               text: "Text", fontName: "Simplex", size: 10 };
         break;
       }
       case "circle":

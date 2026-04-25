@@ -1,3 +1,5 @@
+import type { PlotterStroke } from "./plotterMove";
+
 export interface Pen {
   color: string;
   width: number; // mm
@@ -7,7 +9,8 @@ export type Element =
   | { id: string; type: "Drawing"; points: [x: number, y: number][] }
   | { id: string; type: "Line";    x1: number; y1: number; x2: number; y2: number }
   | { id: string; type: "Rect";    x: number;  y: number;  w: number;  h: number  }
-  | { id: string; type: "Circle";  cx: number; cy: number; r: number              };
+  | { id: string; type: "Circle";  cx: number; cy: number; r: number              }
+  | { id: string; type: "Text";    x: number;  y: number;  w: number;  h: number; text: string; fontName: string; size: number };
 
 export interface Layer {
   id: string;
@@ -32,6 +35,14 @@ export interface PnplttrDocument {
   meta: MetaSettings;
   page: PageSettings;
   layers: Layer[];
+  /** Custom fonts embedded in the document (default fonts are always available). */
+  fonts?: Record<string, PlttrFont>;
 }
 
-export type Tool = "select" | "pen" | "line" | "rect" | "circle";
+export interface PlttrFont {
+  name: string;
+  height: number;
+  glyphs: Record<string, { width: number; paths: PlotterStroke[] }>;
+}
+
+export type Tool = "select" | "pen" | "line" | "rect" | "circle" | "text";

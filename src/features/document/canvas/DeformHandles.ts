@@ -29,6 +29,13 @@ export function getHandles(el: Element): Handle[] {
         { id: "c", x: el.cx, y: el.cy },
         { id: "r", x: el.cx + el.r, y: el.cy }
     ];
+    case "Text":
+      return [
+        { id: "tl", x: el.x,        y: el.y        },
+        { id: "tr", x: el.x + el.w, y: el.y        },
+        { id: "bl", x: el.x,        y: el.y + el.h },
+        { id: "br", x: el.x + el.w, y: el.y + el.h },
+      ];
   }
 }
 
@@ -81,6 +88,25 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
         return { ...el, cx: Math.max(minCx, Math.min(maxCx, x)), cy: Math.max(minCy, Math.min(maxCy, y)) };
     }
       return el;
+    }
+
+    case "Text": {
+      const br = { x: el.x + el.w, y: el.y + el.h };
+      const corners: Record<string, { fx: number; fy: number }> = {
+        tl: { fx: br.x,  fy: br.y  },
+        tr: { fx: el.x,  fy: br.y  },
+        bl: { fx: br.x,  fy: el.y  },
+        br: { fx: el.x,  fy: el.y  },
+      };
+      const fixed = corners[handleId];
+      if (!fixed) return el;
+      return {
+        ...el,
+        x: Math.min(x, fixed.fx),
+        y: Math.min(y, fixed.fy),
+        w: Math.abs(x - fixed.fx),
+        h: Math.abs(y - fixed.fy),
+      };
     }
   }
 }

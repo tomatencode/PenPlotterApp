@@ -1,4 +1,5 @@
 import type { Element, Layer } from "../types";
+import { useFontRegistry } from "../fonts/fontRegistry";
 
 interface Props {
   layers: Layer[];
@@ -22,6 +23,7 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
 }
 
 export default function PropertiesPanel({ layers, selectedId, onUpdateElement, onDeleteElement }: Props) {
+  const { fonts } = useFontRegistry();
   // Find the selected element and which layer it belongs to
   let found: { layerId: string; el: Element } | null = null;
   if (selectedId) {
@@ -91,6 +93,38 @@ export default function PropertiesPanel({ layers, selectedId, onUpdateElement, o
               <NumField label="CX (mm)"     value={el.cx} onChange={(v) => update({ cx: v })} />
               <NumField label="CY (mm)"     value={el.cy} onChange={(v) => update({ cy: v })} />
               <NumField label="Radius (mm)" value={el.r}  onChange={(v) => update({ r: Math.max(0.1, v) })} />
+            </>;
+          })()}
+
+          {found.el.type === "Text" && (() => {
+            const el = found.el;
+            return <>
+              <div className="flex flex-col gap-1 min-w-0">
+                <span className="text-xs text-slate-600">Content</span>
+                <textarea
+                  value={el.text}
+                  rows={3}
+                  onChange={(e) => update({ text: e.target.value })}
+                  className="w-full px-2 py-1 rounded-md bg-[#0a0c10] border border-slate-700/60 text-xs text-slate-300 outline-none focus:border-blue-500/50 resize-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs text-slate-600 w-16 shrink-0">Font</span>
+                <select
+                  value={el.fontName}
+                  onChange={(e) => update({ fontName: e.target.value })}
+                  className="bg-slate-800 w-full appearance-none border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {[...fonts.keys()].map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <NumField label="Size (mm)"   value={el.size} onChange={(v) => update({ size: Math.max(0.5, v) })} />
+              <NumField label="X (mm)"      value={el.x}    onChange={(v) => update({ x: v })} />
+              <NumField label="Y (mm)"      value={el.y}    onChange={(v) => update({ y: v })} />
+              <NumField label="Width (mm)"  value={el.w}    onChange={(v) => update({ w: Math.max(1, v) })} />
+              <NumField label="Height (mm)" value={el.h}    onChange={(v) => update({ h: Math.max(1, v) })} />
             </>;
           })()}
         </div>
