@@ -66,13 +66,13 @@ export function textElementToStrokes(el: TextEl, font: PlttrFont): PlotterStroke
   // Word-wrap
   const lines: string[] = [];
   let current = "";
-  for (const word of el.text.split(" ")) {
+  for (const word of el.text.split(/(\s+)/)) {
     const test = current ? `${current} ${word}` : word;
-    if (current && measureLine(test, font, scale) > el.w) {
+    if (current && (measureLine(test, font, scale) > el.w || word.includes("\n"))) {
       lines.push(current);
-      current = word;
+      current = word.replace("\n", "");
     } else {
-      current = test;
+      current = test.replace("\n", "");
     }
   }
   if (current) lines.push(current);
