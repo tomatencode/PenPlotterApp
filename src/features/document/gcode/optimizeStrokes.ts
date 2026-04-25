@@ -21,9 +21,16 @@ function endPoint(stroke: PlotterStroke): [number, number] {
   return [last.x2, last.y2];
 }
 
+/** True when the stroke forms a closed loop (last move ends at start). */
+export function isClosed(stroke: PlotterStroke): boolean {
+  if (stroke.moves.length === 0) return false;
+  const end = endPoint(stroke);
+  return end[0] === stroke.start[0] && end[1] === stroke.start[1];
+}
+
 /** The entry point on a stroke closest to the current pen position. */
 function bestEntry(pen: [number, number], stroke: PlotterStroke): [number, number] {
-  if (!stroke.closed) {
+  if (!isClosed(stroke)) {
     const end = endPoint(stroke);
     return dist(pen, stroke.start) <= dist(pen, end) ? stroke.start : end;
   }
@@ -35,7 +42,7 @@ function bestEntry(pen: [number, number], stroke: PlotterStroke): [number, numbe
 
 /** Where the pen ends up after drawing the stroke, given it enters from `pen`. */
 function bestExit(pen: [number, number], stroke: PlotterStroke): [number, number] {
-  if (!stroke.closed) {
+  if (!isClosed(stroke)) {
     const end = endPoint(stroke);
     return dist(pen, stroke.start) <= dist(pen, end) ? end : stroke.start;
   }
@@ -134,7 +141,7 @@ function reverseMove(m: PlotterMove): PlotterMove {
 }
 
 function commitEntry(stroke: PlotterStroke, entry: [number, number]): PlotterStroke {
-  if (!stroke.closed) {
+  if (!isClosed(stroke)) {
     const end = endPoint(stroke);
     const reversed =
       entry[0] === end[0] && entry[1] === end[1] &&

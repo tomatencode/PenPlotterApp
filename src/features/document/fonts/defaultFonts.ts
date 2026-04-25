@@ -12,7 +12,7 @@ function rawToPlotterStrokes(rawStrokes: number[][][]): PlotterStroke[] {
       x1: pts[i][0], y1: pts[i][1],
       x2: pt[0],     y2: pt[1],
     }));
-    return { start, moves, closed: false };
+    return { start, moves };
   });
 }
 

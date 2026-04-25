@@ -18,13 +18,10 @@ export type PlotterMove =
 
 // ── PlotterStroke ─────────────────────────────────────────────────────────────
 // A pen-down stroke: move to start, put pen down, execute moves, lift pen.
-// closed = true means the last move ends at start (Rect, Circle) — the gcode
-// optimizer uses this to pick the best loop entry point.
 
 export interface PlotterStroke {
   start: [number, number];
   moves: PlotterMove[];
-  closed: boolean;
 }
 
 // ── Element → PlotterStroke[] ─────────────────────────────────────────────────
@@ -47,7 +44,7 @@ export function elementsToPlotterStrokes(
           x1: p[0], y1: p[1],
           x2: el.points[i + 1][0], y2: el.points[i + 1][1],
         }));
-        strokes.push({ start: [el.points[0][0], el.points[0][1]], moves, closed: false });
+        strokes.push({ start: [el.points[0][0], el.points[0][1]], moves });
         break;
       }
 
@@ -55,7 +52,6 @@ export function elementsToPlotterStrokes(
         strokes.push({
           start: [el.x1, el.y1],
           moves: [{ type: "Line", x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 }],
-          closed: false,
         });
         break;
 
@@ -69,7 +65,6 @@ export function elementsToPlotterStrokes(
             { type: "Line", x1: x + w, y1: y + h, x2: x,     y2: y + h },
             { type: "Line", x1: x,     y1: y + h, x2: x,     y2: y     },
           ],
-          closed: true,
         });
         break;
       }
@@ -84,7 +79,6 @@ export function elementsToPlotterStrokes(
             { type: "Arc", x1: right[0], y1: right[1], cx, cy, x2: left[0],  y2: left[1],  clockwise: true },
             { type: "Arc", x1: left[0],  y1: left[1],  cx, cy, x2: right[0], y2: right[1], clockwise: true },
           ],
-          closed: true,
         });
         break;
       }

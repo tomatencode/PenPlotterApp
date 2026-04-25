@@ -44,7 +44,6 @@ function transformStroke(
   return {
     start: [tx(stroke.start[0]), ty(stroke.start[1])],
     moves: stroke.moves.map((m) => transformMove(m, tx, ty)),
-    closed: stroke.closed,
   };
 }
 
