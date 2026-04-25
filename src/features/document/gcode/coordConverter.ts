@@ -1,12 +1,12 @@
 import type { PageSettings } from "../types";
 
-export interface Converter {
+export interface ConverterProps {
   xOffset: number;
   yOffset: number;
   wsHeight: number;
 }
 
-export function makeConverter(page: PageSettings): Converter {
+export function makeConverter(page: PageSettings): ConverterProps {
   return {
     xOffset:  (page.workspace_width  - page.page_width)  / 2,
     yOffset:  (page.workspace_height - page.page_height) / 2,
@@ -14,11 +14,11 @@ export function makeConverter(page: PageSettings): Converter {
   };
 }
 
-export function docToGcode(x: number, y: number, c: Converter): [number, number] {
+export function docToGcode(x: number, y: number, c: ConverterProps): [number, number] {
   return [x + c.xOffset, c.wsHeight - (y + c.yOffset)];
 }
 
 /** The GCode origin (0, 0) expressed in document space — used as the optimizer home. */
-export function gcodeToDoc(x: number, y: number, c: Converter): [number, number] {
+export function gcodeToDoc(x: number, y: number, c: ConverterProps): [number, number] {
   return [x - c.xOffset, c.wsHeight - y - c.yOffset];
 }

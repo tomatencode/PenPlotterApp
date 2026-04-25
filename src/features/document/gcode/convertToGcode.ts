@@ -1,7 +1,7 @@
 import type { PnplttrDocument, Element } from "../types";
 import { elementsToPlotterStrokes } from "../plotterMove";
 import { textElementToStrokes } from "../fonts/textToStrokes";
-import { makeConverter, gcodeToDoc } from "./converter";
+import { makeConverter, gcodeToDoc } from "./coordConverter";
 import { DEFAULT_FONTS } from "../fonts/defaultFonts";
 import { optimizeStrokes } from "./optimizeStrokes";
 import { strokeToGcode } from "./strokeToGcode";
@@ -19,7 +19,7 @@ export function documentToGcode(doc: PnplttrDocument): string {
     return font ? textElementToStrokes(el, font) : [];
   };
 
-  let gcode = "G28 ; Home all axes\n\n";
+  let gcode = "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
 
   for (const layer of doc.layers) {
     gcode += `; Layer: ${layer.name}\n`;

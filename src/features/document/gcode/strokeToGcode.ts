@@ -3,9 +3,9 @@
 // so this function just walks moves[] in order.
 
 import type { PlotterStroke, PlotterMove } from "../plotterMove";
-import { type Converter, docToGcode } from "./converter";
+import { type ConverterProps, docToGcode } from "./coordConverter";
 
-function moveToGcode(m: PlotterMove, conv: Converter): string {
+function moveToGcode(m: PlotterMove, conv: ConverterProps): string {
   switch (m.type) {
     case "Line": {
       const [tx, ty] = docToGcode(m.x2, m.y2, conv);
@@ -36,7 +36,7 @@ function moveToGcode(m: PlotterMove, conv: Converter): string {
   }
 }
 
-export function strokeToGcode(stroke: PlotterStroke, conv: Converter): string {
+export function strokeToGcode(stroke: PlotterStroke, conv: ConverterProps): string {
   const [px, py] = docToGcode(stroke.start[0], stroke.start[1], conv);
   let gcode = `G0 X${px.toFixed(3)} Y${py.toFixed(3)}\n`;
   gcode += "M3\n"; // pen down
