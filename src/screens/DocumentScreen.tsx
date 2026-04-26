@@ -7,7 +7,7 @@ import { DEFAULT_PEN } from "../features/document/constants";
 import { docReducer, initialDoc, docToJson } from "../features/document/docState";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";
-import { FontRegistryProvider, useFontRegistry } from "../features/document/fonts/fontRegistry";
+import { FontRegistryProvider, useFontRegistry } from "../features/document/text/fontRegistry";
 import DocumentToolbar from "../features/document/components/DocumentToolbar";
 import ToolPalette from "../features/document/components/ToolPalette";
 import CanvasArea from "../features/document/components/CanvasArea";

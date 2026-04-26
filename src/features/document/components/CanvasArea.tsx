@@ -5,7 +5,7 @@ import { Ghost, ghostToSvgPaths } from "../canvas/Ghost";
 import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
-import { useTextElementToStrokes } from "../fonts/textToStrokes";
+import { useTextElementToStrokes } from "../text/textToStrokes";
 import { getHints } from "../canvas/SelectionHints";
 
 interface Props {

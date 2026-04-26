@@ -1,14 +1,12 @@
-// Raw glyph data for the Hershey-style Simplex single-stroke font.
-// Coordinate system: x right, y up, baseline at y=0, cap-height at y=21.
-// Format: [advance_width, ...strokes], each stroke = [[x,y], [x,y], ...]
-// All moves are implicitly Line segments — ideal for pen plotters.
+import type { PlttrFont } from "../../types";
+import type { PlotterMove, PlotterStroke } from "../../plotterMove";
 
-export const SIMPLEX_HEIGHT = 21;
+const SIMPLEX_HEIGHT = 21;
 
 // [advance_width, ...polyline_strokes]
 type G = [number, ...(number[][])[]]
 
-export const SIMPLEX_GLYPHS: Record<string, G> = {
+const SIMPLEX_GLYPHS: Record<string, G> = {
   ' ':  [5],
   '!':  [5,  [[2,21],[2,5]], [[2,1],[2,0]]],
   '"':  [9,  [[2,21],[2,17]], [[6,21],[6,17]]],
@@ -104,4 +102,27 @@ export const SIMPLEX_GLYPHS: Record<string, G> = {
   '|':  [5,  [[2,21],[2,0]]],
   '}':  [8,  [[2,21],[4,19],[4,13],[5,11],[4,9],[4,3],[2,1]]],
   '~':  [11, [[0,10],[2,14],[5,10],[8,14],[10,10]]],
+};
+
+function rawToPlotterStrokes(rawStrokes: number[][][]): PlotterStroke[] {
+  return rawStrokes.map((pts) => {
+    const start: [number, number] = [pts[0][0], pts[0][1]];
+    const moves: PlotterMove[] = pts.slice(1).map((pt, i) => ({
+      type:  "Line" as const,
+      x1: pts[i][0], y1: pts[i][1],
+      x2: pt[0],     y2: pt[1],
+    }));
+    return { start, moves };
+  });
+}
+
+export const SIMPLEX_FONT: PlttrFont = {
+  name:   "Simplex",
+  height: SIMPLEX_HEIGHT,
+  glyphs: Object.fromEntries(
+    Object.entries(SIMPLEX_GLYPHS).map(([char, [width, ...rawStrokes]]) => [
+      char,
+      { width, paths: rawToPlotterStrokes(rawStrokes as number[][][]) },
+    ]),
+  ),
 };

@@ -1,5 +1,5 @@
 import type { Element, Layer } from "../types";
-import { useFontRegistry } from "../fonts/fontRegistry";
+import { useFontRegistry } from "../text/fontRegistry";
 
 interface Props {
   layers: Layer[];

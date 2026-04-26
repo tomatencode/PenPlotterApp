@@ -1,8 +1,8 @@
 import type { PnplttrDocument, Element } from "../types";
 import { elementsToPlotterStrokes } from "../plotterMove";
-import { textElementToStrokes } from "../fonts/textToStrokes";
+import { textElementToStrokes } from "../text/textToStrokes";
 import { makeConverter, gcodeToDoc } from "./coordConverter";
-import { DEFAULT_FONTS } from "../fonts/defaultFonts";
+import { DEFAULT_FONTS } from "../text/defaultFonts";
 import { optimizeStrokes } from "./optimizeStrokes";
 import { strokeToGcode } from "./strokeToGcode";
 import { compressGcode } from "./compressGcode";
