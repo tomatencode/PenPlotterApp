@@ -7,6 +7,8 @@ import type {
   PlotterIteration,
   PlotterSettings,
   SettingKey,
+  FileInfo,
+
   UploadResult,
   WorkspaceSize,
   WsStateMessage,
@@ -25,6 +27,7 @@ export type {
   PlotterIteration,
   PlotterSettings,
   SettingKey,
+  FileInfo,
   UploadResult,
   WorkspaceSize,
   WsStateMessage,
@@ -152,6 +155,14 @@ export class PlotterClient {
       await fetch(`${this.baseUrl}/upload`, { method: "POST", body }),
     );
     return res.json() as Promise<UploadResult>;
+  }
+
+  // get metadata about a stored file, including line count and size in bytes.
+  async getFileInfo(filename: string): Promise<FileInfo> {
+    const url = new URL(`${this.baseUrl}/fileInfo`);
+    url.searchParams.set("file", filename);
+    const res = await checkResponse(await fetch(url.toString()));
+    return res.json() as Promise<FileInfo>;
   }
 
   // Delete a stored gcode file by name.

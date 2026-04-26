@@ -35,6 +35,11 @@ export interface JobStatus {
   progress: number;
 }
 
+export interface FileInfo {
+  lines: number;
+  sizeBytes: number;
+}
+
 // ─── Pen Slots ────────────────────────────────────────────────────────────────
 
 /** color is RGBA (0–255 each), stroke is 0–255 */

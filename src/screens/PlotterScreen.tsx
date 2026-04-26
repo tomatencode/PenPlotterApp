@@ -68,6 +68,16 @@ export default function PlotterScreen() {
     client.listFiles().then(setFiles).catch(console.error);
   }, [client]);
 
+  async function handleDeleteFile(filename: string) {
+    try {
+      await client.deleteFile(filename);
+      const updated = await client.listFiles();
+      setFiles(updated);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   async function handleStartFile(filename: string) {
     if (startingFile !== null) return;
     setStartingFile(filename);
@@ -162,6 +172,8 @@ export default function PlotterScreen() {
               uiState={uiState}
               startingFile={startingFile}
               onStartFile={handleStartFile}
+              onDeleteFile={handleDeleteFile}
+              onFetchFileInfo={filename => client.getFileInfo(filename)}
             />
           )}
         </aside>
