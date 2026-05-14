@@ -156,12 +156,6 @@ export default function GcodeControlsPanel({
 					Stream Live
 				</button>
 			</div>
-
-			<div className="px-4 pb-4 mt-auto">
-				<p className="text-xs text-slate-600 leading-relaxed">
-					Upload & Start begins plotting immediately. Stream Live sends commands line by line.
-				</p>
-			</div>
 		</aside>
 	);
 }

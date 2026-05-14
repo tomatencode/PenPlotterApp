@@ -166,7 +166,6 @@ export default function GcodeScreen() {
       </div>
 
       <footer className="h-6 border-t border-slate-700/60 bg-[#0d1017] flex items-center px-4 shrink-0">
-        <p className="text-xs text-slate-600 truncate">{status || "Ready"}</p>
       </footer>
     </div>
   );
