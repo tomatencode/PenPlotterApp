@@ -122,7 +122,11 @@ pub fn generate_handwriting(
 
     match model_result {
         Err(e) => Err(e.clone()),
-        Ok(model) => run_inference(model, &text, style, steps),
+        Ok(model) => {
+            let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+            if lines.is_empty() { return Ok(vec![]); }
+            run_inference(model, &lines, style, steps)
+        }
     }
 }
 
@@ -130,47 +134,63 @@ pub fn generate_handwriting(
 
 fn run_inference(
     model: &Arc<HandwritingModel>,
-    text: &str,
+    lines: &[&str],
     style: u32,
     steps: u32,
 ) -> Result<Vec<PlotterStroke>, String> {
-    let char_indices: Vec<i32> = text.chars().map(char_to_index).collect();
-    if char_indices.is_empty() {
+    let encoded_lines: Vec<Vec<i32>> = lines
+        .iter()
+        .map(|l| l.chars().chain(std::iter::once(' ')).map(char_to_index).collect())
+        .collect();
+    // +1 ensures a trailing zero past the last character so the model's attention
+    // mechanism can "step past" the final character (mirrors the Python which always
+    // pads chars to a fixed width of 120 with zeros).
+    let max_seq_len = encoded_lines.iter().map(|v| v.len()).max().unwrap_or(0) + 1;
+    if max_seq_len == 1 {
         return Ok(vec![]);
     }
+    let num_samples = encoded_lines.len();
 
     // style 0 → bias 1.0, style 9 → bias 3.0  (higher = cleaner writing)
     let bias: f32 = 1.0 + style as f32 * (2.0 / 9.0);
-    // Auto-calculate steps if 0: ~25 per character, clamped to [400, 2000]
+    // Auto-calculate steps if 0: ~25 per character of the longest line, clamped to [400, 2000]
     let max_steps: i32 = if steps == 0 {
-        ((char_indices.len() as i32) * 25).clamp(400, 2000)
+        (max_seq_len as i32 * 25).clamp(400, 2000)
     } else {
         steps as i32
     };
 
-    // Build input tensors: shape `[]` = scalar, `[n]` = 1-D vector.
+    // Build padded char tensor [num_samples, max_seq_len] (zero-pad shorter lines)
+    let mut chars_data = vec![0i32; num_samples * max_seq_len];
+    let mut chars_len_data = vec![0i32; num_samples];
+    for (i, encoded) in encoded_lines.iter().enumerate() {
+        for (j, &c) in encoded.iter().enumerate() {
+            chars_data[i * max_seq_len + j] = c;
+        }
+        chars_len_data[i] = encoded.len() as i32;
+    }
+
+    // Build input tensors.
     // NOTE: if prime was exported as INT32 change `bool` → `i32` and `false` → `0i32`.
-    let seq_len = char_indices.len();
-    // c:0 must be rank 2: [num_samples=1, seq_len]
-    let c_t      = Tensor::<i32>::from_array(([1usize, seq_len], char_indices))
+    let c_t     = Tensor::<i32>::from_array(([num_samples, max_seq_len], chars_data))
         .map_err(|e| format!("c tensor: {e}"))?;
-    let clen_t   = Tensor::<i32>::from_array(([1usize], vec![seq_len as i32]))
+    let clen_t  = Tensor::<i32>::from_array(([num_samples], chars_len_data))
         .map_err(|e| format!("c_len tensor: {e}"))?;
-    let nsamp_t  = Tensor::<i32>::from_array(([] as [usize; 0], vec![1i32]))
+    let nsamp_t = Tensor::<i32>::from_array(([] as [usize; 0], vec![num_samples as i32]))
         .map_err(|e| format!("num_samples tensor: {e}"))?;
-    let tstep_t  = Tensor::<i32>::from_array(([] as [usize; 0], vec![max_steps]))
+    let tstep_t = Tensor::<i32>::from_array(([] as [usize; 0], vec![max_steps]))
         .map_err(|e| format!("sample_tsteps tensor: {e}"))?;
-    let prime_t  = Tensor::<bool>::from_array(([] as [usize; 0], vec![false]))
+    let prime_t = Tensor::<bool>::from_array(([] as [usize; 0], vec![false]))
         .map_err(|e| format!("prime tensor: {e}"))?;
-    let bias_t   = Tensor::<f32>::from_array(([1usize], vec![bias]))
+    let bias_t  = Tensor::<f32>::from_array(([num_samples], vec![bias; num_samples]))
         .map_err(|e| format!("bias tensor: {e}"))?;
-    let xp_t     = Tensor::<f32>::from_array(([1usize, 1, 3], vec![0.0f32; 3]))
+    // x_prime: dummy zeros [num_samples, 1, 3] when prime=false
+    let xp_t    = Tensor::<f32>::from_array(([num_samples, 1, 3], vec![0.0f32; num_samples * 3]))
         .map_err(|e| format!("x_prime tensor: {e}"))?;
-    // x_prime_len:0 shape [1]; pass [1] when prime=false (dummy x_prime has T=1)
-    let xplen_t  = Tensor::<i32>::from_array(([1usize], vec![1i32]))
+    let xplen_t = Tensor::<i32>::from_array(([num_samples], vec![1i32; num_samples]))
         .map_err(|e| format!("x_prime_len tensor: {e}"))?;
 
-    eprintln!("[handwriting] Running inference: text={:?} bias={}", text, bias);
+    eprintln!("[handwriting] Running inference: {} line(s) bias={}", num_samples, bias);
     let mut session = model.lock().map_err(|e| format!("Lock poisoned: {e}"))?;
     let outputs = session
         .run(ort::inputs![
@@ -186,74 +206,93 @@ fn run_inference(
         .map_err(|e| format!("Inference failed: {e}"))?;
     eprintln!("[handwriting] Inference OK, reading output...");
 
-    // Output: cond/Merge:0  shape [1, steps, 3]
+    // Output: cond/Merge:0  shape [num_samples, max_steps, 3]
     let (shape, data) = outputs[0]
         .try_extract_tensor::<f32>()
         .map_err(|e| format!("Failed to read output tensor: {e}"))?;
     eprintln!("[handwriting] Output shape={:?} data_len={}", &shape[..], data.len());
-    let steps = shape[1] as usize;
-    let result = strokes_from_steps(data, steps);
-    if let Ok(ref s) = result { eprintln!("[handwriting] Produced {} strokes", s.len()); }
-    result
+
+    let steps_per_sample = shape[1] as usize;
+
+    // Collect raw strokes per line (y already flipped to doc space), then stack
+    // them vertically before doing a single global normalisation so that the
+    // relative size and aspect ratio of every line is preserved.
+    let mut all_raw: Vec<Vec<[f64; 2]>> = Vec::new();
+    let mut y_cursor = 0.0_f64;
+    for i in 0..num_samples {
+        let offset = i * steps_per_sample * 3;
+        let slice = &data[offset..offset + steps_per_sample * 3];
+        let Some(mut line_raw) = raw_strokes_from_steps(slice, steps_per_sample) else {
+            continue;
+        };
+        // Shift this line so its top sits at y_cursor
+        let y_min = line_raw.iter().flatten().map(|&[_, py]| py).fold(f64::MAX, f64::min);
+        let y_max = line_raw.iter().flatten().map(|&[_, py]| py).fold(f64::MIN, f64::max);
+        let shift = y_cursor - y_min;
+        for stroke in &mut line_raw {
+            for pt in stroke { pt[1] += shift; }
+        }
+        y_cursor += (y_max - y_min).max(1e-6) * 1.2; // line height + 20% gap
+        all_raw.extend(line_raw);
+    }
+    if all_raw.is_empty() {
+        eprintln!("[handwriting] All lines produced empty output");
+        return Ok(vec![]);
+    }
+    let all_strokes = normalise_strokes(all_raw);
+    eprintln!("[handwriting] Produced {} total strokes across {} line(s)", all_strokes.len(), num_samples);
+    Ok(all_strokes)
 }
 
 // ── Output post-processing ────────────────────────────────────────────────────
 
-/// Integrates (dx, dy, pen_up) steps into absolute-coordinate strokes, then
-/// normalises to [0, 1] × [0, 1] space so the TS layer can scale to the
-/// element bounding box.
-fn strokes_from_steps(
-    data: &[f32],
-    steps: usize,
-) -> Result<Vec<PlotterStroke>, String> {
-    // ── Step 1: strip trailing padding (all-zero rows) ────────────────────────
-    // The model pads output with (0,0,0) rows after generation finishes.
+/// Integrates (dx, dy, pen_up) steps into raw absolute-coordinate strokes.
+/// y is flipped immediately (model y grows upward → doc y grows downward).
+/// Returns None if the output is all padding or produces fewer than 2 points.
+fn raw_strokes_from_steps(data: &[f32], steps: usize) -> Option<Vec<Vec<[f64; 2]>>> {
+    // Strip trailing padding: model pads with (0,0,0) rows after generation finishes.
     let last_real = (0..steps)
         .rev()
-        .find(|&i| data[i*3].abs() + data[i*3+1].abs() > 1e-6 || data[i*3+2] > 0.5);
-    let Some(last_real) = last_real else { return Ok(vec![]); };
+        .find(|&i| data[i*3].abs() + data[i*3+1].abs() > 1e-6 || data[i*3+2] > 0.5)?;
 
-    // ── Step 2: integrate dx/dy into absolute positions ───────────────────────
     let n = last_real + 1;
-    let mut pts  = Vec::with_capacity(n);
-    let mut eos  = Vec::with_capacity(n);   // eos[t] → controls transition t→t+1
+    let mut pts = Vec::with_capacity(n);
+    let mut eos = Vec::with_capacity(n);
     let mut x = 0.0_f64;
     let mut y = 0.0_f64;
     for i in 0..n {
         x += data[i * 3    ] as f64;
         y += data[i * 3 + 1] as f64;
-        pts.push([x, y]);
+        pts.push([x, -y]); // flip y: model up → doc down
         eos.push(data[i * 3 + 2] > 0.5);
     }
-    if pts.len() < 2 { return Ok(vec![]); }
+    if pts.len() < 2 { return None; }
 
-    // ── Step 3: build strokes using eos lookahead semantics ───────────────────
     // eos[t] = false → draw line from pts[t] to pts[t+1]
     // eos[t] = true  → lift pen;  pts[t+1] is the start of the next stroke
-    let mut raw_strokes: Vec<Vec<[f64; 2]>> = Vec::new();
+    let mut strokes: Vec<Vec<[f64; 2]>> = Vec::new();
     let mut current: Vec<[f64; 2]> = vec![pts[0]];
     for i in 0..pts.len() - 1 {
         if eos[i] {
-            // End current stroke at pts[i], start next at pts[i+1]
-            if current.len() >= 2 { raw_strokes.push(current.clone()); }
+            if current.len() >= 2 { strokes.push(current.clone()); }
             current = vec![pts[i + 1]];
         } else {
             current.push(pts[i + 1]);
         }
     }
-    if current.len() >= 2 { raw_strokes.push(current); }
+    if current.len() >= 2 { strokes.push(current); }
 
+    if strokes.is_empty() { None } else { Some(strokes) }
+}
 
-    if raw_strokes.is_empty() {
-        return Ok(vec![]);
-    }
-
-    // Bounding box for normalisation.
+/// Applies a single global normalisation to all raw strokes using a uniform scale
+/// derived from the combined bounding box, so relative sizes between lines are preserved.
+fn normalise_strokes(all_raw: Vec<Vec<[f64; 2]>>) -> Vec<PlotterStroke> {
     let mut min_x = f64::MAX;
     let mut min_y = f64::MAX;
     let mut max_x = f64::MIN;
     let mut max_y = f64::MIN;
-    for stroke in &raw_strokes {
+    for stroke in &all_raw {
         for &[px, py] in stroke {
             if px < min_x { min_x = px; }
             if py < min_y { min_y = py; }
@@ -261,32 +300,24 @@ fn strokes_from_steps(
             if py > max_y { max_y = py; }
         }
     }
-
-    // Use a uniform scale so the aspect ratio of the handwriting is preserved.
-    // ny uses (max_y - py) to flip the y axis: the model's y grows upward but
-    // SVG/document space has y growing downward.
     let range_x = (max_x - min_x).max(1e-6);
     let range_y = (max_y - min_y).max(1e-6);
-    let scale   = range_x.max(range_y); // uniform — preserves aspect ratio
+    let scale   = range_x.max(range_y); // uniform — preserves aspect ratio across lines
     let nx = |px: f64| (px - min_x) / scale;
-    let ny = |py: f64| (max_y - py) / scale; // flipped
+    let ny = |py: f64| (py - min_y) / scale; // y already oriented correctly
 
-    let strokes = raw_strokes
+    all_raw
         .into_iter()
         .map(|pts| {
             let start = [nx(pts[0][0]), ny(pts[0][1])];
             let moves = pts
                 .windows(2)
                 .map(|w| PlotterMove::Line {
-                    x1: nx(w[0][0]),
-                    y1: ny(w[0][1]),
-                    x2: nx(w[1][0]),
-                    y2: ny(w[1][1]),
+                    x1: nx(w[0][0]), y1: ny(w[0][1]),
+                    x2: nx(w[1][0]), y2: ny(w[1][1]),
                 })
                 .collect();
             PlotterStroke { start, moves }
         })
-        .collect();
-
-    Ok(strokes)
+        .collect()
 }

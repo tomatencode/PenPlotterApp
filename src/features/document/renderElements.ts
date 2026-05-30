@@ -99,8 +99,8 @@ export function elementsToPlotterStrokes(
         }
         if (maxX === 0 || maxY === 0) break; // avoid division by zero
 
-        const tx = (nx: number) => el.x + nx / maxX * el.w;
-        const ty = (ny: number) => el.y + ny / maxY * el.h;
+        const tx = (nx: number) => el.x + nx/maxX * el.w;
+        const ty = (ny: number) => el.y + ny/maxY * el.h;
         for (const s of el.strokes) {
           strokes.push({
             start: [tx(s.start[0]), ty(s.start[1])],

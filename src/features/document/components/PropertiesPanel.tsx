@@ -183,7 +183,7 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
                   hover:bg-blue-600/30 hover:border-blue-500/60
                   disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {generating ? "Generating…" : "Generate"}
+                Generate
               </button>
             </>;
           })()}
