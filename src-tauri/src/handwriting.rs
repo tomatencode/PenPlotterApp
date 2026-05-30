@@ -303,8 +303,16 @@ fn normalise_strokes(all_raw: Vec<Vec<[f64; 2]>>) -> Vec<PlotterStroke> {
     all_raw
         .into_iter()
         .map(|pts| {
-            let start = [nx(pts[0][0]), ny(pts[0][1])];
-            let moves = pts
+            // Decimate: one move per 2 AI steps, always keeping the final point
+            // so strokes aren't truncated.
+            let decimated: Vec<[f64; 2]> = pts
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i % 2 == 0 || *i == pts.len() - 1)
+                .map(|(_, &pt)| pt)
+                .collect();
+            let start = [nx(decimated[0][0]), ny(decimated[0][1])];
+            let moves = decimated
                 .windows(2)
                 .map(|w| PlotterMove::Line {
                     x1: nx(w[0][0]), y1: ny(w[0][1]),
