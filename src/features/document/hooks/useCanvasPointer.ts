@@ -97,7 +97,7 @@ export function useCanvasPointer({
   const dragRef       = useRef<{ elementIds: string[]; grabDocX: number; grabDocY: number } | null>(null);
   const handleDragRef = useRef<{ elementId: string; handleId: string } | null>(null);
   const shapeStart    = useRef<{ docX: number; docY: number } | null>(null);
-  const marqueeStart  = useRef<{ docX: number; docY: number } | null>(null);
+  const marqueeStart  = useRef<{ docX: number; docY: number; additive: boolean } | null>(null);
   const ghostRef      = useRef<Ghost | null>(ghost);
   ghostRef.current    = ghost;
 
@@ -131,10 +131,11 @@ export function useCanvasPointer({
     if (e.button !== 0) return;
 
     if (activeTool === "select") {
-      // Clear selection and start a potential marquee drag
-      onSelectElements([]);
+      const additive = e.ctrlKey || e.metaKey;
+      // Without Ctrl: clear existing selection. With Ctrl: keep it and add to it.
+      if (!additive) onSelectElements([]);
       const [docX, docY] = getSvgPoint(e, svgRef, viewport);
-      marqueeStart.current = { docX, docY };
+      marqueeStart.current = { docX, docY, additive };
       (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
       return;
     }
@@ -231,7 +232,7 @@ export function useCanvasPointer({
     if (activeTool === "select") {
       if (marqueeStart.current) {
         const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
-        const { docX: startDocX, docY: startDocY } = marqueeStart.current;
+        const { docX: startDocX, docY: startDocY, additive } = marqueeStart.current;
         marqueeStart.current = null;
         setMarquee(null);
         const x = Math.min(startDocX, curDocX);
@@ -240,9 +241,16 @@ export function useCanvasPointer({
         const h = Math.abs(curDocY - startDocY);
         if (w > 2 && h > 2) {
           const mode = curDocX >= startDocX ? "enclosed" : "crossing";
-          onSelectElements(elementsInMarquee(layers, x, y, w, h, mode));
+          const hit = elementsInMarquee(layers, x, y, w, h, mode);
+          if (additive) {
+            // Union: add newly hit elements to the existing selection
+            const merged = [...new Set([...selectedIdsRef.current, ...hit])];
+            onSelectElements(merged);
+          } else {
+            onSelectElements(hit);
+          }
         }
-        // else: treated as empty-space click → selection already cleared in onPointerDown
+        // else: treated as empty-space click → selection already handled in onPointerDown
       }
       return;
     }
@@ -316,6 +324,17 @@ export function useCanvasPointer({
     marqueeStart.current = null;
     setMarquee(null);
     const current = selectedIdsRef.current;
+
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl+click: toggle element in/out of selection, no drag started
+      if (current.includes(elementId)) {
+        onSelectElements(current.filter(id => id !== elementId));
+      } else {
+        onSelectElements([...current, elementId]);
+      }
+      return;
+    }
+
     // If the clicked element is already part of the selection, drag the whole selection.
     // Otherwise replace the selection with just this element.
     const idsToMove = current.includes(elementId) ? current : [elementId];
