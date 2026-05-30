@@ -1,38 +1,8 @@
-// ── Handwriting generation ────────────────────────────────────────────────────
-// Generates plotter strokes from text using the sjvasquez handwriting-synthesis
-// ONNX model.
-//
-// MODEL SETUP
-// -----------
-// 1. Place the exported model at:  src-tauri/resources/handwriting.onnx
-// 2. Add to tauri.conf.json → bundle.resources:
-//      "resources/handwriting.onnx"
-//
-// INPUT TENSORS (in order)
-// ────────────────────────
-//  c:0             i32[seq_len]   character indices, 1-based into ALPHABET
-//                                 (0 = unknown / padding)
-//  num_samples:0   i32 scalar     number of sequences to generate in parallel
-//  sample_tsteps:0 i32 scalar     max generation steps  (≈ 700)
-//  prime:0         bool scalar    false for normal generation
-//  bias:0          f32[1]         writing quality — higher = cleaner (1.0–3.0)
-//  x_prime:0       f32[1,1,3]     dummy zeros  (only used when prime=true)
-//  x_prime_len:0   i32 scalar     0            (only used when prime=true)
-//
-// OUTPUT TENSOR
-// ─────────────
-//  cond/Merge:0    f32[num_samples, steps, 3]   (dx, dy, pen_up) per step
-//
-// The model is loaded lazily on the first `generate_handwriting` call and then
-// cached for the lifetime of the process.
-
 use std::sync::{Arc, Mutex, OnceLock};
 
 use ort::session::Session;
 use ort::value::Tensor;
 use serde::{Deserialize, Serialize};
-#[cfg(not(debug_assertions))]
-use tauri::Manager;
 
 // ── Types (mirror of TS PlotterMove / PlotterStroke) ─────────────────────────
 
@@ -119,15 +89,6 @@ fn load_model(#[allow(unused_variables)] app: &tauri::AppHandle) -> Result<Arc<H
         "/resources/handwriting.onnx"
     ));
 
-    #[cfg(not(debug_assertions))]
-    let model_path = {
-        let resource_dir = app
-            .path()
-            .resource_dir()
-            .map_err(|e| format!("Could not locate resource directory: {e}"))?;
-        resource_dir.join("handwriting.onnx")
-    };
-
     if !model_path.exists() {
         return Err(format!(
             "handwriting.onnx not found at {model_path:?}. \
@@ -149,8 +110,6 @@ fn load_model(#[allow(unused_variables)] app: &tauri::AppHandle) -> Result<Arc<H
 ///
 /// Returns strokes in **normalised space**: all coordinates are in [0, 1].
 /// The TypeScript layer scales them into the element bounding box at render time.
-///
-/// Falls back to a sine-wave placeholder if the model file is not present.
 #[tauri::command]
 pub fn generate_handwriting(
     app: tauri::AppHandle,
@@ -162,10 +121,7 @@ pub fn generate_handwriting(
     let model_result = state.model.get_or_init(|| load_model(&app));
 
     match model_result {
-        Err(e) => {
-            eprintln!("[handwriting] Model unavailable ({e}), using placeholder.");
-            placeholder_strokes(&text, style)
-        }
+        Err(e) => Err(e.clone()),
         Ok(model) => run_inference(model, &text, style, steps),
     }
 }
@@ -331,55 +287,6 @@ fn strokes_from_steps(
             PlotterStroke { start, moves }
         })
         .collect();
-
-    Ok(strokes)
-}
-
-// ── Placeholder stroke generator ─────────────────────────────────────────────
-// Produces a simple per-character sine-wave scribble in normalised [0,1] space.
-// Replace with real MDN inference once a model is available.
-
-fn placeholder_strokes(text: &str, _style: u32) -> Result<Vec<PlotterStroke>, String> {
-    let chars: Vec<char> = text.chars().collect();
-    if chars.is_empty() {
-        return Ok(vec![]);
-    }
-
-    let n = chars.len() as f64;
-    let segs_per_char: usize = 12;
-    let mut strokes: Vec<PlotterStroke> = Vec::new();
-
-    for (i, _ch) in chars.iter().enumerate() {
-        let x0 = i as f64 / n + 0.05 / n;
-        let x1 = (i + 1) as f64 / n - 0.05 / n;
-
-        let points: Vec<[f64; 2]> = (0..=segs_per_char)
-            .map(|j| {
-                let t = j as f64 / segs_per_char as f64;
-                let x = x0 + t * (x1 - x0);
-                // Baseline at 0.6, ascender dip to 0.3, descender to 0.85
-                let y = 0.6 + 0.18 * (t * std::f64::consts::TAU * 1.5).sin();
-                [x, y]
-            })
-            .collect();
-
-        if points.len() < 2 {
-            continue;
-        }
-
-        let start = points[0];
-        let moves: Vec<PlotterMove> = points
-            .windows(2)
-            .map(|w| PlotterMove::Line {
-                x1: w[0][0],
-                y1: w[0][1],
-                x2: w[1][0],
-                y2: w[1][1],
-            })
-            .collect();
-
-        strokes.push(PlotterStroke { start, moves });
-    }
 
     Ok(strokes)
 }
