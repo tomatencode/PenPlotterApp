@@ -12,7 +12,7 @@ export type Element =
   | { id: string; type: "Circle";  cx: number; cy: number; r: number              }
   | { id: string; type: "Text";    x: number;  y: number;  w: number;  h: number; text: string; fontName: string; size: number }
   // Handwriting: strokes stored in normalised [0,1] space, transformed to doc space at render time.
-  | { id: string; type: "Handwriting"; x: number; y: number; w: number; h: number; text: string; style: number; steps: number; strokes: PlotterStroke[] };
+  | { id: string; type: "Handwriting"; x: number; y: number; w: number; h: number; text: string; style: number; strokes: PlotterStroke[] };
 
 export interface Layer {
   id: string;
