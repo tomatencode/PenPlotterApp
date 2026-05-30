@@ -1,15 +1,15 @@
 import { useRef, useState } from "react";
-import type { Element, PnplttrDocument, Tool } from "../types";
+import type { Element, PlttrFont, PnplttrDocument, Tool } from "../types";
 import { elementToStrokes, strokeToSvgPath } from "../canvas/Strokes";
 import { Ghost, ghostToSvgPaths } from "../canvas/Ghost";
 import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
-import { useTextElementToStrokes } from "../text/textToStrokes";
 import { getHints } from "../canvas/SelectionHints";
 
 interface Props {
   doc: PnplttrDocument;
+  fonts: Map<string, PlttrFont>;
   activeLayerId: string;
   activeTool: Tool;
   selectedId: string | null;
@@ -25,6 +25,7 @@ interface Props {
 
 export default function CanvasArea({
   doc,
+  fonts,
   activeLayerId,
   activeTool,
   selectedId,
@@ -39,7 +40,6 @@ export default function CanvasArea({
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null);
-  const renderText = useTextElementToStrokes();
   const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag } =
     useCanvasPointer({
       svgRef, viewport, activeTool, activeLayerId, ghost, setGhost, page: doc.page,
@@ -83,7 +83,7 @@ export default function CanvasArea({
           {/* Elements */}
           {doc.layers.flatMap((layer) =>
             layer.elements.flatMap((el) => {
-              const strokes = elementToStrokes(el, renderText);
+              const strokes = elementToStrokes(el, fonts);
               let i = 0;
               return strokes.map((stroke) => {
                 const d = strokeToSvgPath(stroke);

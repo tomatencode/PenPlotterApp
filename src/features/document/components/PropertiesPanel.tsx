@@ -1,8 +1,8 @@
-import type { Element, Layer } from "../types";
-import { useFontRegistry } from "../text/fontRegistry";
+import type { Element, Layer, PlttrFont } from "../types";
 
 interface Props {
   layers: Layer[];
+  fonts: Map<string, PlttrFont>;
   selectedId: string | null;
   onUpdateElement: (layerId: string, el: Element) => void;
   onDeleteElement: (layerId: string, elementId: string) => void;
@@ -22,8 +22,7 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
   );
 }
 
-export default function PropertiesPanel({ layers, selectedId, onUpdateElement, onDeleteElement }: Props) {
-  const { fonts } = useFontRegistry();
+export default function PropertiesPanel({ layers, fonts, selectedId, onUpdateElement, onDeleteElement }: Props) {
   // Find the selected element and which layer it belongs to
   let found: { layerId: string; el: Element } | null = null;
   if (selectedId) {

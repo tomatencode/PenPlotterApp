@@ -1,4 +1,4 @@
-import { useReducer, useState, useCallback, useEffect, useRef } from "react";
+import { useReducer, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import type { Layer, Element, PnplttrDocument, Tool, PageSettings, Pen } from "../features/document/types";
@@ -7,7 +7,7 @@ import { DEFAULT_PEN } from "../features/document/constants";
 import { docReducer, initialDoc, docToJson } from "../features/document/docState";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";
-import { FontRegistryProvider, useFontRegistry } from "../features/document/text/fontRegistry";
+import { DEFAULT_FONTS } from "../features/document/text/defaultFonts";
 import DocumentToolbar from "../features/document/components/DocumentToolbar";
 import ToolPalette from "../features/document/components/ToolPalette";
 import CanvasArea from "../features/document/components/CanvasArea";
@@ -19,15 +19,10 @@ import DocumentStatusBar from "../features/document/components/DocumentStatusBar
 import GcodePopup from "../features/document/components/GcodePopup";
 
 export default function DocumentScreen() {
-  return (
-    <FontRegistryProvider>
-      <DocumentScreenContent />
-    </FontRegistryProvider>
-  );
+  return <DocumentScreenContent />;
 }
 
 function DocumentScreenContent() {
-  const { addFonts } = useFontRegistry();
   const location = useLocation();
   const navigate = useNavigate();
   const { path } = (location.state as { path: string | null }) ?? { path: null };
@@ -45,7 +40,6 @@ function DocumentScreenContent() {
         dispatch({ type: "LOAD", doc: loaded });
         setActiveLayerId(loaded.layers[0].id);
         // Inject any custom fonts embedded in the document into the registry
-        if (loaded.fonts) addFonts(loaded.fonts);
       })
       .catch(console.error);
   }, [path]);
@@ -200,6 +194,11 @@ function DocumentScreenContent() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleSave, handleUndo, handleRedo, selectedId, docRef]);
 
+  const fonts = useMemo(
+    () => new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]),
+    [doc.fonts],
+  );
+
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
   const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
 
@@ -224,6 +223,7 @@ function DocumentScreenContent() {
 
         <CanvasArea
           doc={doc}
+          fonts={fonts}
           activeLayerId={activeLayerId}
           activeTool={activeTool}
           selectedId={selectedId}
@@ -260,6 +260,7 @@ function DocumentScreenContent() {
 
           <PropertiesPanel
             layers={doc.layers}
+            fonts={fonts}
             selectedId={selectedId}
             onUpdateElement={(layerId, el) => dispatch({ type: "UPDATE_ELEMENT", layerId, element: el })}
             onDeleteElement={(layerId, elementId) => {

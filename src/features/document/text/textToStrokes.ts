@@ -1,11 +1,7 @@
 // Text-element rendering: converts a Text element + font into PlotterStrokes.
-// useTextElementToStrokes() is a hook that pulls fonts from FontRegistryContext
-// and returns a ready-to-use renderer — pass it to elementsToPlotterStrokes().
 
-import { useCallback } from "react";
 import type { Element, PlttrFont } from "../types";
 import type { PlotterMove, PlotterStroke } from "../plotterMove";
-import { useFontRegistry } from "./fontRegistry";
 
 type TextEl = Extract<Element, { type: "Text" }>;
 
@@ -96,16 +92,4 @@ export function textElementToStrokes(el: TextEl, font: PlttrFont): PlotterStroke
   }
 
   return strokes;
-}
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
-// Returns a stable renderer that only needs the TextEl — fonts come from context.
-// Pass the result directly to elementsToPlotterStrokes as the `renderText` arg.
-
-export function useTextElementToStrokes(): (el: TextEl) => PlotterStroke[] {
-  const { fonts } = useFontRegistry();
-  return useCallback((el: TextEl) => {
-    const font = fonts.get(el.fontName);
-    return font ? textElementToStrokes(el, font) : [];
-  }, [fonts]);
 }
