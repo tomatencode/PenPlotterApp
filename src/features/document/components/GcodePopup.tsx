@@ -228,7 +228,9 @@ export default function GcodePopup({
 						{/* Footer stat */}
 						<div className="px-4 py-2 border-t border-slate-700/60 shrink-0">
 							<p className="text-xs text-slate-600">
-								{gcode ? `${gcode.split(/\r?\n/).filter(Boolean).length} lines` : "—"}
+								{gcode
+									? `${gcode.split(/\r?\n/).filter(Boolean).length} lines · ${gcode.length >= 1024 ? `${(gcode.length / 1024).toFixed(1)} KB` : `${gcode.length} B`}`
+									: "—"}
 							</p>
 						</div>
 					</div>
