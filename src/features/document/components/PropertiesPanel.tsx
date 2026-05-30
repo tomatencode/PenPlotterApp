@@ -3,7 +3,7 @@ import type { Element, Layer, PlttrFont } from "../types";
 interface Props {
   layers: Layer[];
   fonts: Map<string, PlttrFont>;
-  selectedId: string | null;
+  selectedIds: string[] | null;
   onUpdateElement: (layerId: string, el: Element) => void;
   onDeleteElement: (layerId: string, elementId: string) => void;
 }
@@ -22,10 +22,12 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
   );
 }
 
-export default function PropertiesPanel({ layers, fonts, selectedId, onUpdateElement, onDeleteElement }: Props) {
+export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateElement, onDeleteElement }: Props) {
   // Find the selected element and which layer it belongs to
   let found: { layerId: string; el: Element } | null = null;
-  if (selectedId) {
+  
+  if (selectedIds && selectedIds.length === 1) {
+    const selectedId = selectedIds[0];
     for (const layer of layers) {
       const el = layer.elements.find((e) => e.id === selectedId);
       if (el) { found = { layerId: layer.id, el }; break; }
@@ -57,7 +59,11 @@ export default function PropertiesPanel({ layers, fonts, selectedId, onUpdateEle
       </div>
 
       {!found ? (
-        <p className="text-xs text-slate-700 italic">No element selected</p>
+        selectedIds && selectedIds.length > 1 ? (
+          <p className="text-xs text-slate-700 italic">{selectedIds.length} elements selected</p>
+        ) : (
+          <p className="text-xs text-slate-700 italic">No element selected</p>
+        )
       ) : (
         <div className="flex flex-col gap-2">
           {found.el.type === "Line" && (() => {

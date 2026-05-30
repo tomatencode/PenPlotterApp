@@ -46,7 +46,7 @@ function DocumentScreenContent() {
 
   const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeTool, setActiveTool] = useState<Tool>("select");
 
   const [undoStack, setUndoStack] = useState<PnplttrDocument[]>([]);
@@ -173,17 +173,20 @@ function DocumentScreenContent() {
         handleRedo();
       }
 
-      // Backspace to delete selected element
-      if ((e.key === "Backspace") && selectedId) {
+      // Backspace to delete selected elements
+      if ((e.key === "Backspace") && selectedIds.length > 0) {
         // Don't fire if the user is typing in an input/textarea
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+        recordHistory();
+        const idsToDelete = new Set(selectedIds);
         for (const layer of docRef.current.layers) {
-          if (layer.elements.some((el) => el.id === selectedId)) {
-            dispatch({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: selectedId });
-            setSelectedId(null);
-            break;
+          for (const el of layer.elements) {
+            if (idsToDelete.has(el.id)) {
+              dispatch({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: el.id });
+            }
           }
         }
+        setSelectedIds([]);
       }
       // Escape to switch to select tool
       if (e.key === "Escape") {
@@ -192,7 +195,7 @@ function DocumentScreenContent() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave, handleUndo, handleRedo, selectedId, docRef]);
+}, [handleSave, handleUndo, handleRedo, selectedIds, docRef]);
 
   const fonts = useMemo(
     () => new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]),
@@ -226,10 +229,10 @@ function DocumentScreenContent() {
           fonts={fonts}
           activeLayerId={activeLayerId}
           activeTool={activeTool}
-          selectedId={selectedId}
+          selectedIds={selectedIds}
           viewport={viewport}
           onAddElement={handleAddElement}
-          onSelectElement={setSelectedId}
+          onSelectElements={setSelectedIds}
           onMoveElement={onMoveElement}
           onMoveStart={onMoveStart}
           onDeformStart={onDeformStart}
@@ -261,11 +264,11 @@ function DocumentScreenContent() {
           <PropertiesPanel
             layers={doc.layers}
             fonts={fonts}
-            selectedId={selectedId}
+            selectedIds={selectedIds}
             onUpdateElement={(layerId, el) => dispatch({ type: "UPDATE_ELEMENT", layerId, element: el })}
             onDeleteElement={(layerId, elementId) => {
               dispatch({ type: "DELETE_ELEMENT", layerId, elementId });
-              setSelectedId(null);
+              setSelectedIds([]);
             }}
           />
         </aside>

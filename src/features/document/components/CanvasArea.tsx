@@ -12,12 +12,12 @@ interface Props {
   fonts: Map<string, PlttrFont>;
   activeLayerId: string;
   activeTool: Tool;
-  selectedId: string | null;
+  selectedIds: string[];
   viewport: Viewport;
   onAddElement: (layerId: string, el: Element) => void;
-  onSelectElement: (id: string | null) => void;
-  onMoveElement: (id: string, dx: number, dy: number) => void;
-  onMoveStart: (elementId: string) => void;
+  onSelectElements: (ids: string[]) => void;
+  onMoveElement: (totalDx: number, totalDy: number) => void;
+  onMoveStart: (elementIds: string[]) => void;
   onDeformStart: (elementId: string, handleId: string) => void;
   onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
@@ -28,10 +28,10 @@ export default function CanvasArea({
   fonts,
   activeLayerId,
   activeTool,
-  selectedId,
+  selectedIds,
   viewport,
   onAddElement,
-  onSelectElement,
+  onSelectElements,
   onMoveElement,
   onMoveStart,
   onDeformStart,
@@ -40,20 +40,24 @@ export default function CanvasArea({
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null);
-  const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag } =
+  const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, marquee } =
     useCanvasPointer({
-      svgRef, viewport, activeTool, activeLayerId, ghost, setGhost, page: doc.page,
-      onAddElement, onSelectElement, onMoveElement, onMoveStart,
+      svgRef, viewport, activeTool, activeLayerId,
+      layers: doc.layers, selectedIds,
+      ghost, setGhost, page: doc.page,
+      onAddElement, onSelectElements, onMoveElement, onMoveStart,
       onDeformStart, onDeformElement, onViewportChange,
     });
 
-  const selectedElement = selectedId
-    ? doc.layers.flatMap(l => l.elements).find(el => el.id === selectedId) ?? null
+  // For single-element operations (deform handles) we need the actual element
+  const singleSelectedElement = selectedIds.length === 1
+    ? doc.layers.flatMap(l => l.elements).find(el => el.id === selectedIds[0]) ?? null
     : null;
 
+  const selectedSet = new Set(selectedIds);
   const cursorClass = activeTool === "select" ? "cursor-default" : "cursor-crosshair";
   const transform   = `translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`;
-  const ghostPaths  = ghostToSvgPaths(ghost);
+  const ghostPaths  = ghostToSvgPaths(ghost, fonts);
 
   return (
     <main className={`flex-1 overflow-hidden bg-[#0a0c10] relative ${cursorClass} select-none`}>
@@ -84,16 +88,17 @@ export default function CanvasArea({
           {doc.layers.flatMap((layer) =>
             layer.elements.flatMap((el) => {
               const strokes = elementToStrokes(el, fonts);
+              const isSelected = selectedSet.has(el.id);
               let i = 0;
               return strokes.map((stroke) => {
                 const d = strokeToSvgPath(stroke);
                 return (
                   <g key={`${layer.id}-${el.id}-${i++}`}>
-                    <path d={d} fill="none" stroke={el.id === selectedId ? "#4d90fe" : layer.pen.color}
+                    <path d={d} fill="none" stroke={isSelected ? "#4d90fe" : layer.pen.color}
                       strokeWidth={layer.pen.width / viewport.zoom}
                       strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"
                     />
-                    
+
                     {/* Invisible hit area for selection */}
                     {activeTool === "select" && (
                       <path d={d} fill="none" stroke="transparent"
@@ -109,17 +114,22 @@ export default function CanvasArea({
             })
           )}
 
-          {/* Selection handles and hints */}
-          {selectedElement && activeTool === "select" && (
+          {/* Selection hints for all selected elements; deform handles only for single selection */}
+          {activeTool === "select" && selectedIds.length > 0 && (
             <>
-              {getHints(selectedElement).map((hint, i) => (
-                <path key={i} d={strokeToSvgPath(hint)} fill="none" stroke="#60a5fa" opacity={0.5}
-                  strokeWidth={1 / viewport.zoom} strokeLinecap="round" strokeLinejoin="round"
-                  strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
-                />
+              {doc.layers.flatMap(l => l.elements).filter(el => selectedSet.has(el.id)).map(el => (
+                <g key={`hint-${el.id}`}>
+                  {getHints(el).map((hint, i) => (
+                    <path key={i} d={strokeToSvgPath(hint)} fill="none" stroke="#60a5fa" opacity={0.5}
+                      strokeWidth={1 / viewport.zoom} strokeLinecap="round" strokeLinejoin="round"
+                      strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
+                    />
+                  ))}
+                </g>
               ))}
 
-              {getHandles(selectedElement).map((handle) => (
+              {/* Deform handles: only when exactly one element is selected */}
+              {singleSelectedElement && getHandles(singleSelectedElement).map((handle) => (
                 <circle
                   key={handle.id}
                   cx={handle.x}
@@ -129,7 +139,7 @@ export default function CanvasArea({
                   stroke="#60a5fa"
                   strokeWidth={1 / viewport.zoom}
                   style={{ cursor: "crosshair" }}
-                  onPointerDown={(e) => { e.stopPropagation(); startHandleDrag(e, selectedElement.id, handle.id); }}
+                  onPointerDown={(e) => { e.stopPropagation(); startHandleDrag(e, singleSelectedElement.id, handle.id); }}
                 />
               ))}
             </>
@@ -142,6 +152,18 @@ export default function CanvasArea({
               strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
             />
           ))}
+
+          {/* Marquee selection rectangle */}
+          {marquee && (
+            <rect
+              x={marquee.x} y={marquee.y} width={marquee.w} height={marquee.h}
+              fill={marquee.mode === "enclosed" ? "rgba(59,130,246,0.08)" : "rgba(34,197,94,0.08)"}
+              stroke={marquee.mode === "enclosed" ? "#3b82f6" : "#22c55e"}
+              strokeWidth={1 / viewport.zoom}
+              strokeDasharray={marquee.mode === "crossing" ? `${4 / viewport.zoom} ${4 / viewport.zoom}` : undefined}
+              pointerEvents="none"
+            />
+          )}
 
           {/* Page border */}
           <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height}

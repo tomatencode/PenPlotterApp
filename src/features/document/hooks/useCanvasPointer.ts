@@ -1,10 +1,26 @@
-import { useRef, useCallback, useEffect } from "react";
-import type { Element, Tool, PageSettings } from "../types";
+import { useRef, useState, useCallback, useEffect } from "react";
+import type { Element, Layer, Tool, PageSettings } from "../types";
 import { newId, workspaceBounds } from "../utils";
 import { Ghost } from "../canvas/Ghost";
 import { type Viewport, viewportToDoc } from "../canvas/viewport";
+import { elementsInMarquee } from "../canvas/marqueeHitTest";
 
-// ── Pure helpers ────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+/**
+ * The live marquee selection rectangle while the user is dragging.
+ * mode "enclosed"  = right-drag  → only elements fully inside are selected
+ * mode "crossing"  = left-drag   → elements that intersect the rect are selected
+ */
+export type MarqueeState = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  mode: "enclosed" | "crossing";
+};
+
+// ── Pure helpers ───────────────────────────────────────────────────────────────
 
 function getSvgPoint(
   e: React.PointerEvent,
@@ -28,10 +44,10 @@ function clampedCircleRadius(sx: number, sy: number, mx: number, my: number, pag
   const ws = workspaceBounds(page);
   return Math.min(
     Math.hypot(mx - sx, my - sy),
-    sx - ws.x,           // distance to left edge
-    ws.x + ws.w - sx,    // distance to right edge
-    sy - ws.y,           // distance to top edge
-    ws.y + ws.h - sy,    // distance to bottom edge
+    sx - ws.x,
+    ws.x + ws.w - sx,
+    sy - ws.y,
+    ws.y + ws.h - sy,
   );
 }
 
@@ -42,13 +58,18 @@ interface Options {
   viewport: Viewport;
   activeTool: Tool;
   activeLayerId: string;
+  /** All layers, needed for marquee hit-testing. */
+  layers: Layer[];
+  /** Currently selected element IDs, needed so element-click can extend vs. replace. */
+  selectedIds: string[];
   ghost: Ghost | null;
   page: PageSettings;
   onAddElement: (layerId: string, el: Element) => void;
   setGhost: (g: Ghost | null) => void;
-  onSelectElement: (id: string | null) => void;
-  onMoveElement: (id: string, dx: number, dy: number) => void;
-  onMoveStart: (elementId: string) => void;
+  /** Replace the entire selection with a new set of IDs (pass [] to clear). */
+  onSelectElements: (ids: string[]) => void;
+  onMoveStart: (elementIds: string[]) => void;
+  onMoveElement: (totalDx: number, totalDy: number) => void;
   onDeformStart: (elementId: string, handleId: string) => void;
   onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
@@ -59,31 +80,43 @@ export function useCanvasPointer({
   viewport,
   activeTool,
   activeLayerId,
+  layers,
+  selectedIds,
   ghost,
   page,
   onAddElement,
   setGhost,
-  onSelectElement,
-  onMoveElement,
+  onSelectElements,
   onMoveStart,
+  onMoveElement,
   onDeformStart,
   onDeformElement,
   onViewportChange,
 }: Options) {
   const panRef        = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
-  const dragRef       = useRef<{ elementId: string; grabDocX: number; grabDocY: number } | null>(null);
+  const dragRef       = useRef<{ elementIds: string[]; grabDocX: number; grabDocY: number } | null>(null);
   const handleDragRef = useRef<{ elementId: string; handleId: string } | null>(null);
   const shapeStart    = useRef<{ docX: number; docY: number } | null>(null);
+  const marqueeStart  = useRef<{ docX: number; docY: number } | null>(null);
   const ghostRef      = useRef<Ghost | null>(ghost);
   ghostRef.current    = ghost;
 
-  // Clear interaction state when the active tool changes
+  // selectedIds changes every render; keep a ref so startElementDrag always reads latest
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+
+  // Live marquee rect shown while dragging (rendered as SVG overlay in CanvasArea)
+  const [marquee, setMarquee] = useState<MarqueeState | null>(null);
+
+  // Reset interaction state when tool changes
   useEffect(() => {
     if (activeTool === "select") setGhost(null);
-    else onSelectElement(null);
-    dragRef.current = null;
+    else onSelectElements([]);
+    dragRef.current       = null;
     handleDragRef.current = null;
-  }, [activeTool, onSelectElement]);
+    marqueeStart.current  = null;
+    setMarquee(null);
+  }, [activeTool, onSelectElements]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     const isPan = (e.button === 0 && e.altKey) || e.button === 2;
@@ -95,10 +128,14 @@ export function useCanvasPointer({
       return;
     }
 
-    if (e.button !== 0) return; // ignore middle-click etc.
+    if (e.button !== 0) return;
 
     if (activeTool === "select") {
-      onSelectElement(null);
+      // Clear selection and start a potential marquee drag
+      onSelectElements([]);
+      const [docX, docY] = getSvgPoint(e, svgRef, viewport);
+      marqueeStart.current = { docX, docY };
+      (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
       return;
     }
 
@@ -112,7 +149,7 @@ export function useCanvasPointer({
     const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
     shapeStart.current = { docX: mx, docY: my };
     (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
-  }, [activeTool, viewport, page, onSelectElement]);
+  }, [activeTool, viewport, page, onSelectElements]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     // Pan
@@ -124,20 +161,30 @@ export function useCanvasPointer({
       return;
     }
 
-    // Select tool: handle deform, element drag, or nothing to do
     if (activeTool === "select") {
+      // Deform handle drag
       if (handleDragRef.current) {
         const [x, y] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
         onDeformElement(handleDragRef.current.elementId, handleDragRef.current.handleId, x, y);
         return;
       }
+      // Element drag (single or multi)
       if (dragRef.current) {
         const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
-        onMoveElement(
-          dragRef.current.elementId,
-          curDocX - dragRef.current.grabDocX,
-          curDocY - dragRef.current.grabDocY,
-        );
+        onMoveElement(curDocX - dragRef.current.grabDocX, curDocY - dragRef.current.grabDocY);
+        return;
+      }
+      // Marquee drag
+      if (marqueeStart.current) {
+        const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
+        const { docX: startDocX, docY: startDocY } = marqueeStart.current;
+        const x = Math.min(startDocX, curDocX);
+        const y = Math.min(startDocY, curDocY);
+        const w = Math.abs(curDocX - startDocX);
+        const h = Math.abs(curDocY - startDocY);
+        const mode = curDocX >= startDocX ? "enclosed" : "crossing";
+        if (w > 1 || h > 1) setMarquee({ x, y, w, h, mode });
+        return;
       }
       return;
     }
@@ -181,6 +228,25 @@ export function useCanvasPointer({
     if (dragRef.current)       { dragRef.current = null; return; }
     if (panRef.current)        { panRef.current = null; return; }
 
+    if (activeTool === "select") {
+      if (marqueeStart.current) {
+        const [curDocX, curDocY] = getSvgPoint(e, svgRef, viewport);
+        const { docX: startDocX, docY: startDocY } = marqueeStart.current;
+        marqueeStart.current = null;
+        setMarquee(null);
+        const x = Math.min(startDocX, curDocX);
+        const y = Math.min(startDocY, curDocY);
+        const w = Math.abs(curDocX - startDocX);
+        const h = Math.abs(curDocY - startDocY);
+        if (w > 2 && h > 2) {
+          const mode = curDocX >= startDocX ? "enclosed" : "crossing";
+          onSelectElements(elementsInMarquee(layers, x, y, w, h, mode));
+        }
+        // else: treated as empty-space click → selection already cleared in onPointerDown
+      }
+      return;
+    }
+
     if (activeTool === "pen") {
       if (!ghostRef.current || ghostRef.current.type !== "Drawing" || ghostRef.current.points.length < 2) { setGhost(null); return; }
       const id = newId();
@@ -189,14 +255,14 @@ export function useCanvasPointer({
       return;
     }
 
-    if (activeTool === "select" || !shapeStart.current) return;
+    if (!shapeStart.current) return;
 
     const { docX: sx, docY: sy } = shapeStart.current;
     const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
     shapeStart.current = null;
     setGhost(null);
 
-    if (Math.hypot(mx - sx, my - sy) < 0.5) return; // ignore accidental clicks
+    if (Math.hypot(mx - sx, my - sy) < 0.5) return;
 
     const id = newId();
     let el: Element;
@@ -221,7 +287,7 @@ export function useCanvasPointer({
       default: return;
     }
     onAddElement(activeLayerId, el);
-  }, [activeTool, activeLayerId, viewport, page, onAddElement]);
+  }, [activeTool, activeLayerId, viewport, page, layers, onAddElement, onSelectElements]);
 
   const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect();
@@ -247,10 +313,18 @@ export function useCanvasPointer({
   }, [viewport, onViewportChange]);
 
   function startElementDrag(e: React.PointerEvent, elementId: string) {
-    onSelectElement(elementId);
-    onMoveStart(elementId);
+    marqueeStart.current = null;
+    setMarquee(null);
+    const current = selectedIdsRef.current;
+    // If the clicked element is already part of the selection, drag the whole selection.
+    // Otherwise replace the selection with just this element.
+    const idsToMove = current.includes(elementId) ? current : [elementId];
+    if (!current.includes(elementId)) {
+      onSelectElements([elementId]);
+    }
+    onMoveStart(idsToMove);
     const [grabDocX, grabDocY] = getSvgPoint(e, svgRef, viewport);
-    dragRef.current = { elementId, grabDocX, grabDocY };
+    dragRef.current = { elementIds: idsToMove, grabDocX, grabDocY };
     svgRef.current!.setPointerCapture(e.pointerId);
   }
 
@@ -260,5 +334,5 @@ export function useCanvasPointer({
     svgRef.current!.setPointerCapture(e.pointerId);
   }
 
-  return { ghost, onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag };
+  return { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, marquee };
 }

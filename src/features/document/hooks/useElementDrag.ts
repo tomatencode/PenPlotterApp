@@ -1,21 +1,7 @@
 import { useRef, useCallback } from "react";
 import type { Element, PnplttrDocument } from "../types";
-import { workspaceBounds } from "../utils";
+import { workspaceBounds, elementBounds, type ElementBounds } from "../utils";
 import type { DocAction } from "../docState";
-
-function elementBounds(el: Element): { minX: number; minY: number; maxX: number; maxY: number } {
-  switch (el.type) {
-    case "Drawing": {
-      const xs = el.points.map(p => p[0]);
-      const ys = el.points.map(p => p[1]);
-      return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
-    }
-    case "Line":   return { minX: Math.min(el.x1, el.x2), minY: Math.min(el.y1, el.y2), maxX: Math.max(el.x1, el.x2), maxY: Math.max(el.y1, el.y2) };
-    case "Rect":   return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
-    case "Circle": return { minX: el.cx - el.r, minY: el.cy - el.r, maxX: el.cx + el.r, maxY: el.cy + el.r };
-    case "Text":   return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
-  }
-}
 
 function translateElement(el: Element, dx: number, dy: number): Element {
   switch (el.type) {
@@ -30,7 +16,7 @@ function translateElement(el: Element, dx: number, dy: number): Element {
 type DragSnap = {
   layerId: string;
   element: Element;
-  bounds: ReturnType<typeof elementBounds>;
+  bounds: ElementBounds;
 };
 
 export function useElementDrag(
@@ -38,26 +24,37 @@ export function useElementDrag(
   dispatch: React.Dispatch<DocAction>,
   recordHistory: () => void,
 ) {
-  const snapRef = useRef<DragSnap | null>(null);
+  const snapsRef = useRef<DragSnap[]>([]);
 
-  const onMoveStart = useCallback((elementId: string) => {
-    const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === elementId));
-    if (!layer) return;
-    const element = layer.elements.find(el => el.id === elementId)!;
-    snapRef.current = { layerId: layer.id, element, bounds: elementBounds(element) };
-    recordHistory();
+  /** Call once at the start of a drag with all element IDs that should move together. */
+  const onMoveStart = useCallback((elementIds: string[]) => {
+    snapsRef.current = elementIds.flatMap(elementId => {
+      const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === elementId));
+      if (!layer) return [];
+      const element = layer.elements.find(el => el.id === elementId)!;
+      return [{ layerId: layer.id, element, bounds: elementBounds(element) }];
+    });
+    if (snapsRef.current.length > 0) recordHistory();
   }, [docRef, recordHistory]);
 
-  // totalDx/totalDy are total displacement from drag-start, not per-frame deltas.
-  // Applying to the original snapshot means workspace clamping never accumulates drift.
-  const onMoveElement = useCallback((id: string, totalDx: number, totalDy: number) => {
-    const snap = snapRef.current;
-    if (!snap || snap.element.id !== id) return;
-    const { layerId, element, bounds: b } = snap;
+  /**
+   * totalDx/totalDy are total displacement from the drag-start position (not per-frame deltas).
+   * Applied to the original snapshots so workspace clamping never accumulates drift.
+   * Clamping respects the tightest constraint across all elements being moved.
+   */
+  const onMoveElement = useCallback((totalDx: number, totalDy: number) => {
+    const snaps = snapsRef.current;
+    if (snaps.length === 0) return;
     const ws = workspaceBounds(docRef.current.page);
-    const clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, totalDx));
-    const clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, totalDy));
-    dispatch({ type: "UPDATE_ELEMENT", layerId, element: translateElement(element, clampedDx, clampedDy) });
+    let clampedDx = totalDx;
+    let clampedDy = totalDy;
+    for (const { bounds: b } of snaps) {
+      clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, clampedDx));
+      clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, clampedDy));
+    }
+    for (const { layerId, element } of snaps) {
+      dispatch({ type: "UPDATE_ELEMENT", layerId, element: translateElement(element, clampedDx, clampedDy) });
+    }
   }, [docRef, dispatch]);
 
   return { onMoveStart, onMoveElement };
