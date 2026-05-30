@@ -69,8 +69,10 @@ export const TOOLS: ToolDef[] = [
     label: "Handwriting",
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-        <path d="M2 12 C4 8, 5 10, 7 7 C8 5, 9 8, 11 6 C12 4, 13 7, 14 5" />
-        <line x1="2" y1="13.5" x2="14" y2="13.5" />
+        {/* descender + ascender stem */}
+        <path d="M4 14 C4 14 4 4 4 3 C4 1.5 6 1 6.5 2.5 C7 4 6 6 5 7" />
+        {/* arch over to the right leg */}
+        <path d="M5 7 C6 5.5 9 5.5 9 7.5 L9 11 C9 12.5 10 13.5 11.5 13" />
       </svg>
     ),
   },
