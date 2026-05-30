@@ -2,6 +2,13 @@ import { useState } from "react";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import type { Plotter } from "../../plotter/context";
 
+
+function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 interface Props {
 	gcode: string;
 	plotters: Plotter[];
@@ -35,7 +42,7 @@ export default function GcodeControlsPanel({
 				<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">File</p>
 				<div className="flex gap-4 text-xs text-slate-500">
 					<span>{lines.filter(Boolean).length} lines</span>
-					<span>{new Blob([gcode]).size} B</span>
+					<span>{formatBytes(new Blob([gcode]).size)}</span>
 				</div>
 			</div>
 
