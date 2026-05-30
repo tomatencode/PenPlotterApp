@@ -293,7 +293,7 @@ export function useCanvasPointer({
       case "handwriting": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         el = { id, type: "Handwriting", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
-               text: "Hello", style: 5, steps: 0, strokes: [] };
+               text: "text...", style: 5, strokes: [] };
         break;
       }
       case "circle":

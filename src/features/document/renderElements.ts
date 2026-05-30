@@ -9,6 +9,7 @@
 import type { Element, PlttrFont } from "./types";
 import type { PlotterMove, PlotterStroke } from "./plotterMove";
 import { textElementToStrokes } from "./text/textToStrokes";
+import { HANDWRITING_DEFAULT_STROKES } from "./handwritingDefaultStrokes";
 
 export function elementsToPlotterStrokes(
   elements: Element[],
@@ -71,9 +72,12 @@ export function elementsToPlotterStrokes(
       }
 
       case "Handwriting": {
+
+        const plotterStrokes = el.strokes.length > 0 ? el.strokes : HANDWRITING_DEFAULT_STROKES;
+
         // Strokes are stored in normalised [0,1] space; transform to document space.
         let maxX = 0, maxY = 0;
-        for (const s of el.strokes) {
+        for (const s of plotterStrokes) {
           maxX = Math.max(maxX, s.start[0]);
           maxY = Math.max(maxY, s.start[1]);
           for (const m of s.moves) {
@@ -101,7 +105,7 @@ export function elementsToPlotterStrokes(
 
         const tx = (nx: number) => el.x + nx/maxX * el.w;
         const ty = (ny: number) => el.y + ny/maxY * el.h;
-        for (const s of el.strokes) {
+        for (const s of plotterStrokes) {
           strokes.push({
             start: [tx(s.start[0]), ty(s.start[1])],
             moves: s.moves.map((m): PlotterMove => {
