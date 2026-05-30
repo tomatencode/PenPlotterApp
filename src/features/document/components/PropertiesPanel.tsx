@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import type { Element, Layer, PlttrFont } from "../types";
+import type { PlotterStroke } from "../plotterMove";
 
 interface Props {
   layers: Layer[];
@@ -23,6 +26,8 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
 }
 
 export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateElement, onDeleteElement }: Props) {
+  const [generating, setGenerating] = useState(false);
+
   // Find the selected element and which layer it belongs to
   let found: { layerId: string; el: Element } | null = null;
   
@@ -130,6 +135,56 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
               <NumField label="Y (mm)"      value={el.y}    onChange={(v) => update({ y: v })} />
               <NumField label="Width (mm)"  value={el.w}    onChange={(v) => update({ w: Math.max(1, v) })} />
               <NumField label="Height (mm)" value={el.h}    onChange={(v) => update({ h: Math.max(1, v) })} />
+            </>;
+          })()}
+
+          {found.el.type === "Handwriting" && (() => {
+            const el = found.el;
+            async function generate() {
+              setGenerating(true);
+              try {
+                const strokes = await invoke<PlotterStroke[]>("generate_handwriting", {
+                  text: el.text,
+                  style: el.style,
+                  steps: el.steps,
+                });
+                console.log("[handwriting] Received strokes:", strokes);
+                onUpdateElement(found!.layerId, { ...el, strokes });
+              } catch (e) {
+                console.error("Handwriting generation failed:", e);
+                alert("Handwriting generation failed: " + String(e));
+              } finally {
+                setGenerating(false);
+              }
+            }
+            return <>
+              <div className="flex flex-col gap-1 min-w-0">
+                <span className="text-xs text-slate-600">Content</span>
+                <textarea
+                  value={el.text}
+                  rows={3}
+                  onChange={(e) => update({ text: e.target.value })}
+                  className="w-full px-2 py-1 rounded-md bg-[#0a0c10] border border-slate-700/60 text-xs text-slate-300 outline-none focus:border-blue-500/50 resize-none"
+                />
+              </div>
+              <NumField label="Style (0–9)" value={el.style}
+                onChange={(v) => update({ style: Math.round(Math.max(0, Math.min(9, v))) })} />
+              <NumField label="Steps (0=auto)" value={el.steps}
+                onChange={(v) => update({ steps: Math.round(Math.max(0, v)) })} />
+              <NumField label="X (mm)"      value={el.x} onChange={(v) => update({ x: v })} />
+              <NumField label="Y (mm)"      value={el.y} onChange={(v) => update({ y: v })} />
+              <NumField label="Width (mm)"  value={el.w} onChange={(v) => update({ w: Math.max(1, v) })} />
+              <NumField label="Height (mm)" value={el.h} onChange={(v) => update({ h: Math.max(1, v) })} />
+              <button
+                onClick={generate}
+                disabled={generating}
+                className="mt-1 w-full py-1.5 rounded-md text-xs font-medium transition-colors
+                  bg-blue-600/20 border border-blue-500/40 text-blue-400
+                  hover:bg-blue-600/30 hover:border-blue-500/60
+                  disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {generating ? "Generating…" : "Generate"}
+              </button>
             </>;
           })()}
         </div>

@@ -10,7 +10,9 @@ export type Element =
   | { id: string; type: "Line";    x1: number; y1: number; x2: number; y2: number }
   | { id: string; type: "Rect";    x: number;  y: number;  w: number;  h: number  }
   | { id: string; type: "Circle";  cx: number; cy: number; r: number              }
-  | { id: string; type: "Text";    x: number;  y: number;  w: number;  h: number; text: string; fontName: string; size: number };
+  | { id: string; type: "Text";    x: number;  y: number;  w: number;  h: number; text: string; fontName: string; size: number }
+  // Handwriting: strokes stored in normalised [0,1] space, transformed to doc space at render time.
+  | { id: string; type: "Handwriting"; x: number; y: number; w: number; h: number; text: string; style: number; steps: number; strokes: PlotterStroke[] };
 
 export interface Layer {
   id: string;
@@ -45,4 +47,4 @@ export interface PlttrFont {
   glyphs: Record<string, { width: number; paths: PlotterStroke[] }>;
 }
 
-export type Tool = "select" | "pen" | "line" | "rect" | "circle" | "text";
+export type Tool = "select" | "pen" | "line" | "rect" | "circle" | "text" | "handwriting";

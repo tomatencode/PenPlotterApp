@@ -30,6 +30,7 @@ export function getHandles(el: Element): Handle[] {
         { id: "r", x: el.cx + el.r, y: el.cy }
     ];
     case "Text":
+    case "Handwriting":
       return [
         { id: "tl", x: el.x,        y: el.y        },
         { id: "tr", x: el.x + el.w, y: el.y        },
@@ -90,7 +91,8 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
       return el;
     }
 
-    case "Text": {
+    case "Text":
+    case "Handwriting": {
       const br = { x: el.x + el.w, y: el.y + el.h };
       const corners: Record<string, { fx: number; fy: number }> = {
         tl: { fx: br.x,  fy: br.y  },

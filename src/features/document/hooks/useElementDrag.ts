@@ -9,7 +9,8 @@ function translateElement(el: Element, dx: number, dy: number): Element {
     case "Line":   return { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy };
     case "Rect":   return { ...el, x: el.x + dx, y: el.y + dy };
     case "Circle": return { ...el, cx: el.cx + dx, cy: el.cy + dy };
-    case "Text":   return { ...el, x: el.x + dx, y: el.y + dy };
+    case "Text":        return { ...el, x: el.x + dx, y: el.y + dy };
+    case "Handwriting":  return { ...el, x: el.x + dx, y: el.y + dy };
   }
 }
 

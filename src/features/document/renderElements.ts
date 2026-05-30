@@ -69,6 +69,26 @@ export function elementsToPlotterStrokes(
         if (font) strokes.push(...textElementToStrokes(el, font));
         break;
       }
+
+      case "Handwriting": {
+        // Strokes are stored in normalised [0,1] space; transform to document space.
+        const tx = (nx: number) => el.x + nx * el.w;
+        const ty = (ny: number) => el.y + ny * el.h;
+        for (const s of el.strokes) {
+          strokes.push({
+            start: [tx(s.start[0]), ty(s.start[1])],
+            moves: s.moves.map((m): PlotterMove => {
+              switch (m.type) {
+                case "Line":        return { type: "Line", x1: tx(m.x1), y1: ty(m.y1), x2: tx(m.x2), y2: ty(m.y2) };
+                case "Arc":         return { ...m, x1: tx(m.x1), y1: ty(m.y1), cx: tx(m.cx), cy: ty(m.cy), x2: tx(m.x2), y2: ty(m.y2) };
+                case "QuadBezier":  return { ...m, x1: tx(m.x1), y1: ty(m.y1), cx: tx(m.cx), cy: ty(m.cy), x2: tx(m.x2), y2: ty(m.y2) };
+                case "CubicBezier": return { ...m, x1: tx(m.x1), y1: ty(m.y1), cx1: tx(m.cx1), cy1: ty(m.cy1), cx2: tx(m.cx2), cy2: ty(m.cy2), x2: tx(m.x2), y2: ty(m.y2) };
+              }
+            }),
+          });
+        }
+        break;
+      }
     }
   }
 

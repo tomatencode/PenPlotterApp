@@ -64,6 +64,16 @@ export const TOOLS: ToolDef[] = [
       </svg>
     ),
   },
+  {
+    id: "handwriting",
+    label: "Handwriting",
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+        <path d="M2 12 C4 8, 5 10, 7 7 C8 5, 9 8, 11 6 C12 4, 13 7, 14 5" />
+        <line x1="2" y1="13.5" x2="14" y2="13.5" />
+      </svg>
+    ),
+  },
 ];
 
 interface Props {

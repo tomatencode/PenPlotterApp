@@ -213,7 +213,8 @@ export function useCanvasPointer({
         setGhost({ type: "Line", x1: sx, y1: sy, x2: mx, y2: my });
         break;
       case "rect":
-      case "text": {
+      case "text":
+      case "handwriting": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         setGhost({ type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
         break;
@@ -287,6 +288,12 @@ export function useCanvasPointer({
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         el = { id, type: "Text", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
                text: "Text", fontName: "Rowmans", size: 10 };
+        break;
+      }
+      case "handwriting": {
+        const x = Math.min(sx, mx), y = Math.min(sy, my);
+        el = { id, type: "Handwriting", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
+               text: "Hello", style: 5, steps: 0, strokes: [] };
         break;
       }
       case "circle":

@@ -1,4 +1,5 @@
 mod file_actions;
+mod handwriting;
 mod plotter_discovery;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -9,6 +10,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         .manage(plotter_discovery::DiscoveryState::new())
+        .manage(handwriting::HandwritingState::new())
         .invoke_handler(tauri::generate_handler![
             file_actions::get_recent_files,
             file_actions::push_recent_file,
@@ -19,6 +21,7 @@ pub fn run() {
             file_actions::open_file,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
+            handwriting::generate_handwriting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

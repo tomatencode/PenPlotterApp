@@ -78,7 +78,8 @@ function elementCrossesRect(el: Element, rx: number, ry: number, rw: number, rh:
       }
       return false;
     }
-    case "Text": {
+    case "Text":
+    case "Handwriting": {
       const x2 = el.x + el.w, y2 = el.y + el.h;
       return segmentCrossesRect(el.x, el.y, x2, el.y,  rx, ry, rw, rh)
           || segmentCrossesRect(x2,  el.y, x2, y2,     rx, ry, rw, rh)

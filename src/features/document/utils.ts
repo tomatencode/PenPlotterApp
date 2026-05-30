@@ -25,6 +25,7 @@ export function elementBounds(el: Element): ElementBounds {
     case "Line":   return { minX: Math.min(el.x1, el.x2), minY: Math.min(el.y1, el.y2), maxX: Math.max(el.x1, el.x2), maxY: Math.max(el.y1, el.y2) };
     case "Rect":   return { minX: el.x,       minY: el.y,       maxX: el.x + el.w,    maxY: el.y + el.h    };
     case "Circle": return { minX: el.cx - el.r, minY: el.cy - el.r, maxX: el.cx + el.r, maxY: el.cy + el.r };
-    case "Text":   return { minX: el.x,       minY: el.y,       maxX: el.x + el.w,    maxY: el.y + el.h    };
+    case "Text":        return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
+    case "Handwriting":  return { minX: el.x, minY: el.y, maxX: el.x + el.w, maxY: el.y + el.h };
   }
 }
