@@ -58,10 +58,14 @@ export function textElementToStrokes(el: TextEl, font: PlttrFont): PlotterStroke
   const lineHeight = el.size * 1.4;
   const strokes: PlotterStroke[] = [];
 
+  let words = el.text.split(" ");
+  // Ensure something gets rendered
+  if (words.length === 0 || (words.length === 1 && words[0] === "")) words = ["text..."];
+
   // Word-wrap
   const lines: string[] = [];
   let current = "";
-  for (const word of el.text.split(/(\s+)/)) {
+  for (const word of words) {
     const test = current ? `${current} ${word}` : word;
     if (current && (measureLine(test, font, scale) > el.w || word.includes("\n"))) {
       lines.push(current);

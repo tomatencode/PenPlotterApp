@@ -25,3 +25,24 @@ export const WORKSPACE_PRESETS: WorkspacePreset[] = [
   { label: "V2  200 × 280", width: 200, height: 280 },
   { label: "V3  Full A4",   width: 210, height: 297 },
 ];
+
+export const DEFAULT_DOCUMENT = {
+  meta: {
+    created: new Date().toISOString(),
+    doctype_version: 1,
+  },
+  page: {
+    page_width: 210,
+    page_height: 297,
+    workspace_width: 185,
+    workspace_height: 265,
+  },
+  layers: [
+    {
+      id: "layer1",
+      name: "Layer 1",
+      pen: DEFAULT_PEN,
+      elements: [],
+    },
+  ],
+};

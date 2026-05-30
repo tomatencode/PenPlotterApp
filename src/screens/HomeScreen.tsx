@@ -7,6 +7,7 @@ import DocumentActions from "../features/home/components/DocumentActions";
 import PlotterList from "../features/home/components/PlotterList";
 import RecentFilesList from "../features/home/components/RecentFilesList";
 import { usePlotterDiscovery } from "../features/plotter/context";
+import { DEFAULT_DOCUMENT } from "../features/document/constants";
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function HomeScreen() {
     try {
       const document_dir = await invoke<string>("get_documents_dir");
       const fullPath = `${document_dir}/${name}.pnplttr`;
-      await invoke("save_file", { path: fullPath });
+      await invoke("save_file", { path: fullPath, content: JSON.stringify(DEFAULT_DOCUMENT) });
       await invoke("push_recent_file", { filePath: fullPath });
 
       navigate("/document", { state: { path: fullPath } });

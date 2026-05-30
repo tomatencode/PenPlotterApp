@@ -212,7 +212,7 @@ export function useCanvasPointer({
       case "text": {
         const x = Math.min(sx, mx), y = Math.min(sy, my);
         el = { id, type: "Text", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
-               text: "Text", fontName: "Simplex", size: 10 };
+               text: "Text", fontName: "Rowmans", size: 10 };
         break;
       }
       case "circle":
