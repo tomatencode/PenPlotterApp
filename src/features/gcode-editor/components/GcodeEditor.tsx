@@ -39,7 +39,7 @@ export default function GcodeEditor({ gcode, onChange }: Props) {
 				onChange={(e) => onChange(e.target.value)}
 				onScroll={syncScroll}
 				spellCheck={false}
-				className="flex-1 min-w-0 resize-none bg-transparent font-mono text-xs text-slate-300 leading-6 p-3 outline-none caret-blue-400 placeholder-slate-700"
+				className="flex-1 min-w-0 resize-none bg-transparent font-mono text-xs text-slate-300 leading-6 p-3 outline-none caret-white/70 placeholder-slate-700"
 				placeholder="Paste or type GCode here…"
 			/>
 		</div>
