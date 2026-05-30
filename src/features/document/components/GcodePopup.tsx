@@ -6,7 +6,6 @@ import { PlotterClient } from "../../plotter/api/plotterClient";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import { usePlotterDiscovery } from "../../plotter/context";
 import { PnplttrDocument } from "../types";
-import { documentToGcode } from "../gcode/convertToGcode";
 
 interface Props {
 	isOpen: boolean;
@@ -73,18 +72,38 @@ export default function GcodePopup({
 		}
 	}
 
-	async function handleGenerateGcode() {
-		await withBusy(async () => {
-			setStatusText("Generating GCode...");
-			try {
-				const result = documentToGcode(doc);
+	function handleGenerateGcode() {
+		setIsBusy(true);
+		setStatusText("Generating GCode...");
+		setGcode("");
+		setShowPlotterDropdown(false);
+
+		const worker = new Worker(
+			new URL("../gcode/gcodeWorker.ts", import.meta.url),
+			{ type: "module" },
+		);
+
+		worker.onmessage = (e: MessageEvent<{ type: string; gcode?: string; message?: string }>) => {
+			worker.terminate();
+			if (e.data.type === "success" && e.data.gcode != null) {
+				const result = e.data.gcode;
 				setGcode(result);
 				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
-			} catch (e) {
-				console.error("GCode conversion failed:", e);
-				setStatusText(`GCode conversion failed: ${String(e)}`);
+			} else {
+				console.error("GCode conversion failed:", e.data.message);
+				setStatusText(`GCode conversion failed: ${e.data.message ?? "unknown error"}`);
 			}
-		});
+			setIsBusy(false);
+		};
+
+		worker.onerror = (err) => {
+			worker.terminate();
+			console.error("GCode worker error:", err);
+			setStatusText(`GCode conversion failed: ${err.message}`);
+			setIsBusy(false);
+		};
+
+		worker.postMessage(doc);
 	}
 
 	async function handleSaveAs() {
