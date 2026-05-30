@@ -146,7 +146,6 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
                 const strokes = await invoke<PlotterStroke[]>("generate_handwriting", {
                   text: el.text,
                   style: el.style,
-                  steps: el.steps,
                 });
                 console.log("[handwriting] Received strokes:", strokes);
                 onUpdateElement(found!.layerId, { ...el, strokes });
@@ -169,8 +168,6 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
               </div>
               <NumField label="Style (0–9)" value={el.style}
                 onChange={(v) => update({ style: Math.round(Math.max(0, Math.min(9, v))) })} />
-              <NumField label="Steps (0=auto)" value={el.steps}
-                onChange={(v) => update({ steps: Math.round(Math.max(0, v)) })} />
               <NumField label="X (mm)"      value={el.x} onChange={(v) => update({ x: v })} />
               <NumField label="Y (mm)"      value={el.y} onChange={(v) => update({ y: v })} />
               <NumField label="Width (mm)"  value={el.w} onChange={(v) => update({ w: Math.max(1, v) })} />

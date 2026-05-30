@@ -115,7 +115,6 @@ pub fn generate_handwriting(
     app: tauri::AppHandle,
     text: String,
     style: u32,
-    steps: u32,
     state: tauri::State<'_, HandwritingState>,
 ) -> Result<Vec<PlotterStroke>, String> {
     let model_result = state.model.get_or_init(|| load_model(&app));
@@ -125,7 +124,7 @@ pub fn generate_handwriting(
         Ok(model) => {
             let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
             if lines.is_empty() { return Ok(vec![]); }
-            run_inference(model, &lines, style, steps)
+            run_inference(model, &lines, style)
         }
     }
 }
@@ -136,7 +135,6 @@ fn run_inference(
     model: &Arc<HandwritingModel>,
     lines: &[&str],
     style: u32,
-    steps: u32,
 ) -> Result<Vec<PlotterStroke>, String> {
     let encoded_lines: Vec<Vec<i32>> = lines
         .iter()
@@ -154,11 +152,7 @@ fn run_inference(
     // style 0 → bias 1.0, style 9 → bias 3.0  (higher = cleaner writing)
     let bias: f32 = 1.0 + style as f32 * (2.0 / 9.0);
     // Auto-calculate steps if 0: ~25 per character of the longest line, clamped to [400, 2000]
-    let max_steps: i32 = if steps == 0 {
-        (max_seq_len as i32 * 25).clamp(400, 2000)
-    } else {
-        steps as i32
-    };
+    let max_steps: i32 = (max_seq_len as i32 * 25).clamp(400, 2000);
 
     // Build padded char tensor [num_samples, max_seq_len] (zero-pad shorter lines)
     let mut chars_data = vec![0i32; num_samples * max_seq_len];
