@@ -72,8 +72,35 @@ export function elementsToPlotterStrokes(
 
       case "Handwriting": {
         // Strokes are stored in normalised [0,1] space; transform to document space.
-        const tx = (nx: number) => el.x + nx * el.w;
-        const ty = (ny: number) => el.y + ny * el.h;
+        let maxX = 0, maxY = 0;
+        for (const s of el.strokes) {
+          maxX = Math.max(maxX, s.start[0]);
+          maxY = Math.max(maxY, s.start[1]);
+          for (const m of s.moves) {
+            switch (m.type) {
+              case "Line":
+                maxX = Math.max(maxX, m.x1, m.x2);
+                maxY = Math.max(maxY, m.y1, m.y2);
+                break;
+              case "Arc":
+                maxX = Math.max(maxX, m.x1, m.cx, m.x2);
+                maxY = Math.max(maxY, m.y1, m.cy, m.y2);
+                break;
+              case "QuadBezier":
+                maxX = Math.max(maxX, m.x1, m.cx, m.x2);
+                maxY = Math.max(maxY, m.y1, m.cy, m.y2);
+                break;
+              case "CubicBezier":
+                maxX = Math.max(maxX, m.x1, m.cx1, m.cx2, m.x2);
+                maxY = Math.max(maxY, m.y1, m.cy1, m.cy2, m.y2);
+                break;
+            }
+          }
+        }
+        if (maxX === 0 || maxY === 0) break; // avoid division by zero
+
+        const tx = (nx: number) => el.x + nx / maxX * el.w;
+        const ty = (ny: number) => el.y + ny / maxY * el.h;
         for (const s of el.strokes) {
           strokes.push({
             start: [tx(s.start[0]), ty(s.start[1])],
