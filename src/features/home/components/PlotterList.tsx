@@ -1,5 +1,5 @@
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
-import type { Plotter } from "../../plotter/context";
+import type { Plotter } from "../../plotter/discoveryContext";
 
 interface Props {
   plotters: Plotter[];

@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterClient } from "../../plotter/api/plotterClient";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
-import { usePlotterDiscovery } from "../../plotter/context";
+import { usePlotterDiscovery } from "../../plotter/discoveryContext";
 import { PnplttrDocument } from "../types";
 
 interface Props {

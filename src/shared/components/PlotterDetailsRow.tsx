@@ -1,5 +1,5 @@
 import { STATE_STYLES } from "../../features/home/types";
-import type { Plotter } from "../../features/plotter/context";
+import type { Plotter } from "../../features/plotter/discoveryContext";
 
 interface Props {
   plotter: Plotter;

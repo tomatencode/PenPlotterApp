@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { PlotterClient } from "../features/plotter/api/plotterClient";
-import { usePlotterDiscovery } from "../features/plotter/context";
+import { usePlotterDiscovery } from "../features/plotter/discoveryContext";
 import GcodeToolbar from "../features/gcode-editor/components/GcodeToolbar";
 import GcodeEditor from "../features/gcode-editor/components/GcodeEditor";
 import GcodeControlsPanel from "../features/gcode-editor/components/GcodeControlsPanel";

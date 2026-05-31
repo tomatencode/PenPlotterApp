@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
-import type { Plotter } from "../../plotter/context";
+import type { Plotter } from "../../plotter/discoveryContext";
 
 
 function formatBytes(bytes: number): string {

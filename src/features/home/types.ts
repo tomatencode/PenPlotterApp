@@ -1,4 +1,4 @@
-import type { PlotterState } from "../plotter/context";
+import type { PlotterState } from "../plotter/discoveryContext";
 
 export const STATE_STYLES: Record<PlotterState, { dot: string; label: string; text: string }> = {
   idle:    { dot: "bg-green-400",              label: "Idle",    text: "text-green-400"  },

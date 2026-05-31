@@ -6,7 +6,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import DocumentActions from "../features/home/components/DocumentActions";
 import PlotterList from "../features/home/components/PlotterList";
 import RecentFilesList from "../features/home/components/RecentFilesList";
-import { usePlotterDiscovery } from "../features/plotter/context";
+import { usePlotterDiscovery } from "../features/plotter/discoveryContext";
 import { DEFAULT_DOCUMENT } from "../features/document/constants";
 
 export default function HomeScreen() {
