@@ -53,6 +53,7 @@ class PlotterSocketManager {
     this.ws = ws;
 
     ws.onopen = () => {
+      if (this.ws !== ws) return; // superseded by a newer connection
       this.reconnectDelay = RECONNECT_BASE_MS;
     };
 
@@ -68,6 +69,7 @@ class PlotterSocketManager {
     };
 
     ws.onclose = () => {
+      if (this.ws !== ws) return; // superseded or already cleared by stop()
       this.ws = null;
       if (!this.stopped && this.listeners.size > 0) {
         this.scheduleReconnect();
