@@ -28,16 +28,8 @@ export function usePlotterDiscovery() {
   return useContext(PlotterDiscoveryContext);
 }
 
-const MOCK_MODE = false;
-
-const MOCK_PLOTTERS: Plotter[] = [
-  { url: "192.168.1.42", displayInfo: { name: "Plotter A", mdnsName: "plotter-a", iteration: 2, state: "idle" } },
-  { url: "192.168.1.43", displayInfo: { name: "Plotter B", mdnsName: "plotter-b", iteration: 1, state: "running" } },
-  { url: "192.168.1.44", displayInfo: { name: "Plotter C", mdnsName: "",           iteration: 0, state: "connecting" } },
-];
-
 export function PlotterDiscoveryProvider({ children }: { children: React.ReactNode }) {
-  const [plotters, setPlotters] = useState<Plotter[]>(MOCK_MODE ? MOCK_PLOTTERS : []);
+  const [plotters, setPlotters] = useState<Plotter[]>([]);
   const plottersRef = useRef<Plotter[]>([]);
   useEffect(() => { plottersRef.current = plotters; }, [plotters]);
 
@@ -69,8 +61,6 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
 
   // Poll motion state for all known plotters every 2 seconds.
   useEffect(() => {
-    if (MOCK_MODE) return;
-
     const id = setInterval(() => {
       for (const plotter of plottersRef.current) {
         const client = getClient(plotter.url);
@@ -148,8 +138,6 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   // Only the event listeners are removed on unmount (which won't happen in practice
   // since this provider wraps the entire app).
   useEffect(() => {
-    if (MOCK_MODE) return;
-
     (async () => {
       await listen<string>("plotter-found", (e) => addPlotter(e.payload));
       await listen<string>("plotter-lost",  (e) => removePlotter(e.payload));
