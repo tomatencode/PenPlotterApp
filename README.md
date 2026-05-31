@@ -13,7 +13,8 @@ Eine Desktop-Anwendung zum Erstellen von Zeichnungen und zum Steuern eines Pen-P
 - **GCode-Editor** — Eingebauter Editor zum Anzeigen und Bearbeiten von GCode-Dateien vor dem Senden.
 - **Plotter-Verwaltung** — Erkennt Plotter im lokalen Netzwerk automatisch per mDNS. Verbindung zum Gerät ermöglicht Echtzeit-Statusanzeige, Dateiverwaltung und Job-Steuerung (WebSocket).
 - **Eigene Schriftarten** — Strichbasierte Fonts für das Textwerkzeug; benutzerdefinierte Schriften können direkt im Dokument eingebettet werden.
-- **Zuletzt geöffnet** — Liste der zuletzt bearbeiteten `.pnplttr`-Dokumente auf dem Startbildschirm.
+- **Handschrift-Generierung** — Eingebautes rekurrentes neuronales Netz (RNN) zur Erzeugung realistischer synthetischer Handschrift. Basiert auf [sjvasquez/handwriting-synthesis](https://github.com/sjvasquez/handwriting-synthesis). Das Modell läuft lokal als ONNX-Datei über das Rust-Backend.
+- **Zuletzt geöffnet** — Liste der zuletzt bearbeiteten `.pnplttr` und `.gcode`-Dokumente auf dem Startbildschirm.
 
 ---
 
@@ -43,6 +44,7 @@ Eine Desktop-Anwendung zum Erstellen von Zeichnungen und zum Steuern eines Pen-P
 | Build | Vite 7 |
 | Geräteerkennung | mDNS (`mdns-sd` Crate) |
 | Plotter-Kommunikation | HTTP REST + WebSocket |
+| Handschrift-KI | RNN-Modell (ONNX) basierend auf [handwriting-synthesis](https://github.com/sjvasquez/handwriting-synthesis) |
 
 ---
 
