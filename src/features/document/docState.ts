@@ -1,6 +1,13 @@
 import type { Layer, Element, Pen, PageSettings, PnplttrDocument } from "./types";
 import { newId } from "./utils";
-import { DEFAULT_PEN } from "./constants";
+import { DEFAULT_DOCUMENT } from "./constants";
+
+export type HistoryAction =
+  | { type: "SNAPSHOT" }   // save present → past, clear future
+  | { type: "UNDO" }
+  | { type: "REDO" }
+  | DocAction;             // all existing actions pass through unchanged
+
 
 export type DocAction =
   | { type: "LOAD"; doc: PnplttrDocument }
@@ -14,6 +21,43 @@ export type DocAction =
   | { type: "RENAME_LAYER"; layerId: string; name: string }
   | { type: "SET_LAYERS"; layers: Layer[] }
   | { type: "UPDATE_PAGE"; page: PageSettings };
+
+export interface HistoryState {
+  present: PnplttrDocument;
+  past: PnplttrDocument[];
+  future: PnplttrDocument[];
+}
+
+export function historyReducer(state: HistoryState, action: HistoryAction): HistoryState {
+  switch (action.type) {
+    case "SNAPSHOT":
+      return { ...state, past: [...state.past, state.present], future: [] };
+
+    case "UNDO": {
+      if (state.past.length === 0) return state;
+      const previous = state.past[state.past.length - 1];
+      return {
+        present: previous,
+        past: state.past.slice(0, -1),
+        future: [state.present, ...state.future],
+      };
+    }
+
+    case "REDO": {
+      if (state.future.length === 0) return state;
+      const next = state.future[0];
+      return {
+        present: next,
+        past: [...state.past, state.present],
+        future: state.future.slice(1),
+      };
+    }
+
+    default:
+      // All DocActions pass through to the inner reducer
+      return { ...state, present: docReducer(state.present, action) };
+  }
+}
 
 export function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocument {
   switch (action.type) {
@@ -89,14 +133,13 @@ export function initialDoc(json: string): PnplttrDocument {
       return { ...doc, layers: doc.layers.map((l) => ({ ...l, id: newId() })) };
     }
   } catch {
-    // Fall through to default doc.
+    // Fall back to default document on error
   }
+  return DEFAULT_DOCUMENT;
+}
 
-  return {
-    meta: { created: new Date().toISOString(), doctype_version: 1 },
-    page: { page_width: 210, page_height: 297, workspace_width: 210, workspace_height: 297 },
-    layers: [{ id: newId(), name: "Pen 1", pen: { ...DEFAULT_PEN }, elements: [] }],
-  } as PnplttrDocument;
+export function initialHistoryState(json: string): HistoryState {
+  return { present: initialDoc(json), past: [], future: [] };
 }
 
 export function docToJson(doc: PnplttrDocument): string {

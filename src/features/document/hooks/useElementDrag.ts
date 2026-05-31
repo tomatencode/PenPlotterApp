@@ -21,7 +21,7 @@ type DragSnap = {
 };
 
 export function useElementDrag(
-  docRef: React.RefObject<PnplttrDocument>,
+  doc: PnplttrDocument,
   dispatch: React.Dispatch<DocAction>,
   recordHistory: () => void,
 ) {
@@ -30,13 +30,13 @@ export function useElementDrag(
   /** Call once at the start of a drag with all element IDs that should move together. */
   const onMoveStart = useCallback((elementIds: string[]) => {
     snapsRef.current = elementIds.flatMap(elementId => {
-      const layer = docRef.current.layers.find(l => l.elements.some(el => el.id === elementId));
+      const layer = doc.layers.find(l => l.elements.some(el => el.id === elementId));
       if (!layer) return [];
       const element = layer.elements.find(el => el.id === elementId)!;
       return [{ layerId: layer.id, element, bounds: elementBounds(element) }];
     });
     if (snapsRef.current.length > 0) recordHistory();
-  }, [docRef, recordHistory]);
+  }, [doc, recordHistory]);
 
   /**
    * totalDx/totalDy are total displacement from the drag-start position (not per-frame deltas).
@@ -46,7 +46,7 @@ export function useElementDrag(
   const onMoveElement = useCallback((totalDx: number, totalDy: number) => {
     const snaps = snapsRef.current;
     if (snaps.length === 0) return;
-    const ws = workspaceBounds(docRef.current.page);
+    const ws = workspaceBounds(doc.page);
     let clampedDx = totalDx;
     let clampedDy = totalDy;
     for (const { bounds: b } of snaps) {
@@ -56,7 +56,7 @@ export function useElementDrag(
     for (const { layerId, element } of snaps) {
       dispatch({ type: "UPDATE_ELEMENT", layerId, element: translateElement(element, clampedDx, clampedDy) });
     }
-  }, [docRef, dispatch]);
+  }, [doc, dispatch]);
 
   return { onMoveStart, onMoveElement };
 }
