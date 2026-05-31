@@ -79,7 +79,7 @@ export default function GcodePopup({
 		setShowPlotterDropdown(false);
 
 		const worker = new Worker(
-			new URL("../gcode/gcodeWorker.ts", import.meta.url),
+			new URL("../gcodeGeneration/gcodeWorker.ts", import.meta.url),
 			{ type: "module" },
 		);
 

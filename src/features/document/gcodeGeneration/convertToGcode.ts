@@ -5,12 +5,15 @@ import { DEFAULT_FONTS } from "../text/defaultFonts";
 import { optimizeStrokes } from "./optimizeStrokes";
 import { strokeToGcode } from "./strokeToGcode";
 import { compressGcode } from "./compressGcode";
+import { type JobStats, accumulateStats, statsHeader } from "./gcodeStats";
 
 export function documentToGcode(doc: PnplttrDocument): string {
   const conv = makeConverter(doc.page);
   const home = gcodeToDoc(0, 0, conv);
   const fonts = new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]);
 
+  const stats: JobStats = { travel_mm: 0, draw_mm: 0, pen_lifts: 0 };
+  let penPos: [number, number] = home;
   let gcode = "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
 
   for (const layer of doc.layers) {
@@ -19,6 +22,8 @@ export function documentToGcode(doc: PnplttrDocument): string {
 
     const strokes = elementsToPlotterStrokes(layer.elements, fonts);
     const optimized = optimizeStrokes(strokes, home);
+
+    penPos = accumulateStats(stats, optimized, penPos);
 
     gcode += "M5\n"; // ensure pen up before moving to first stroke
     for (const stroke of optimized) {
@@ -29,5 +34,5 @@ export function documentToGcode(doc: PnplttrDocument): string {
 
   gcode += "G0 X0 Y0"; // return to origin
 
-  return compressGcode(gcode);
+  return compressGcode(statsHeader(stats) + gcode);
 }
