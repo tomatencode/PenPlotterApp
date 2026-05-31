@@ -35,6 +35,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
 
   // Internal clients — not exposed, never put in React state
   const clientsRef = useRef<Map<string, PlotterClient>>(new Map());
+  const iterationFetchedRef = useRef<Set<string>>(new Set());
 
   function getClient(url: string): PlotterClient {
     if (!clientsRef.current.has(url)) {
@@ -55,6 +56,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
 
   function removePlotter(url: string) {
     clientsRef.current.delete(url);
+    iterationFetchedRef.current.delete(url);
     setPlotters((prev) => prev.filter((p) => p.url !== url));
     console.log(`Plotter lost: ${url}`);
   }
@@ -64,71 +66,75 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
     const id = setInterval(() => {
       for (const plotter of plottersRef.current) {
         const client = getClient(plotter.url);
-        let allInfoFetched = true;
         console.log(`Polling plotter: ${plotter.url}`);
 
-        client.getName()
+        const nameProm = client.getName()
           .then((name) => {
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, name } } : p)
             );
           })
           .catch(() => {
-            allInfoFetched = false;
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, name: plotter.url } } : p)
             );
+            return Promise.reject();
           });
-        
-        client.getMdnsName()
+
+        const mdnsNameProm = client.getMdnsName()
           .then((mdnsName) => {
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, mdnsName } } : p)
             );
           })
           .catch(() => {
-            allInfoFetched = false;
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, mdnsName: "" } } : p)
             );
+            return Promise.reject();
           });
 
-        client.getMotionState()
+        const motionStateProm = client.getMotionState()
           .then((state) => {
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state } } : p)
             );
           })
           .catch(() => {
-            allInfoFetched = false;
             setPlotters((prev) => prev.map(
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
             );
+            return Promise.reject();
           });
-        
-        // Only fetch iteration if we haven't successfully fetched it before - the hardware doesn't change
-        if (plotter.displayInfo.iteration === 0) {
-          client.getIteration()
+
+        const proms: Promise<void>[] = [nameProm, mdnsNameProm, motionStateProm];
+
+        // Only fetch iteration once — the hardware revision never changes.
+        if (!iterationFetchedRef.current.has(plotter.url)) {
+          const iterProm = client.getIteration()
             .then((iteration) => {
+              iterationFetchedRef.current.add(plotter.url);
               setPlotters((prev) => prev.map(
                 (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, iteration } } : p)
               );
             })
             .catch(() => {
-              allInfoFetched = false;
               setPlotters((prev) => prev.map(
                 (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, iteration: 0 } } : p)
               );
+              return Promise.reject();
             });
+          proms.push(iterProm);
         }
 
-        if (!allInfoFetched) {
-          // If we failed to fetch some info, mark the plotter as "connecting" to indicate an issue.
-          setPlotters((prev) => prev.map(
-            (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
-          );
-          continue;
-        }
+        // If any fetch failed, override state to "connecting" to indicate an issue.
+        Promise.allSettled(proms).then((results) => {
+          if (results.some((r) => r.status === "rejected")) {
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
+            );
+          }
+        });
       }
     }, 2000);
     return () => clearInterval(id);
@@ -138,11 +144,19 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   // Only the event listeners are removed on unmount (which won't happen in practice
   // since this provider wraps the entire app).
   useEffect(() => {
+    let unlistenFound: (() => void) | undefined;
+    let unlistenLost: (() => void) | undefined;
+
     (async () => {
-      await listen<string>("plotter-found", (e) => addPlotter(e.payload));
-      await listen<string>("plotter-lost",  (e) => removePlotter(e.payload));
+      unlistenFound = await listen<string>("plotter-found", (e) => addPlotter(e.payload));
+      unlistenLost  = await listen<string>("plotter-lost",  (e) => removePlotter(e.payload));
       await invoke("start_plotter_discovery");
     })().catch(console.error);
+
+    return () => {
+      unlistenFound?.();
+      unlistenLost?.();
+    };
   }, []);
 
   return (

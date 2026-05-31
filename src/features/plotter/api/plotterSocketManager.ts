@@ -8,11 +8,13 @@ export {
 };
 
 /** Derives the WebSocket URL from the HTTP base URL.
- *  http://192.168.1.42      → ws://192.168.1.42:81
- *  http://plotter.local     → ws://plotter.local:81
+ *  http://192.168.1.42       → ws://192.168.1.42:81
+ *  http://192.168.1.42:8080  → ws://192.168.1.42:81
+ *  http://plotter.local      → ws://plotter.local:81
  */
 function wsUrlFromHttp(httpUrl: string): string {
-  return httpUrl.replace(/^http:\/\//i, "ws://") + ":81";
+  const { hostname } = new URL(httpUrl);
+  return `ws://${hostname}:81`;
 }
 
 // ─── Internal WebSocket manager ───────────────────────────────────────────────

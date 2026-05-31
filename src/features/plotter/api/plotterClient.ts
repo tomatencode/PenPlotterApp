@@ -1,4 +1,5 @@
-import { fetch } from "@tauri-apps/plugin-http";
+import { fetch as _fetch } from "@tauri-apps/plugin-http";
+import { PlotterApiError } from "./plotterTypes";
 import type {
   FirmwareVersion,
   JobStatus,
@@ -35,10 +36,24 @@ export type {
 
 // Internal helpers
 
+const REQUEST_TIMEOUT_MS = 5_000;
+
+/** Wraps the Tauri fetch with a per-request timeout. */
+function fetch(
+  input: string | URL,
+  init?: Parameters<typeof _fetch>[1],
+): ReturnType<typeof _fetch> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return _fetch(input as string, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(id),
+  );
+}
+
 async function checkResponse(res: Response): Promise<Response> {
   if (!res.ok) {
     const body = await res.text().catch(() => res.statusText);
-    throw new (await import("./plotterTypes")).PlotterApiError(res.status, body);
+    throw new PlotterApiError(res.status, body);
   }
   return res;
 }
