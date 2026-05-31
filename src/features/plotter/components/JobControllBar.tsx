@@ -23,6 +23,7 @@ export default function JobControlBar({ wsState, onPause, onResume, onAbort }: P
   const pct = Math.round(wsState!.jobProgress * 100);
   const currentLine = wsState!.jobLine;
   const totalLines = wsState!.jobTotalLines;
+  const jobRemainingTime = wsState!.jobRemainingSeconds;
   const isPaused = motionState === "paused";
 
   return (
@@ -63,6 +64,29 @@ export default function JobControlBar({ wsState, onPause, onResume, onAbort }: P
         {" / "}
         <span>{totalLines.toLocaleString()}</span>
         <span className="ml-1 text-slate-700">lines</span>
+      </span>
+
+      {/* remaining time */}
+      <span className="text-xs font-mono tabular-nums text-slate-500 shrink-0">
+        <span className="text-slate-700 mr-1">~</span>
+        {jobRemainingTime >= 3600 && (
+          <>
+            <span className="text-slate-400">{Math.floor(jobRemainingTime / 3600).toLocaleString()}</span>
+            <span className="ml-0.5 mr-1 text-slate-700">h</span>
+          </>
+        )}
+        {jobRemainingTime >= 60 && (
+          <>
+            <span className="text-slate-400">{Math.floor((jobRemainingTime % 3600) / 60).toLocaleString()}</span>
+            <span className="ml-0.5 mr-1 text-slate-700">m</span>
+          </>
+        )}
+        <span className="text-slate-400">
+          {jobRemainingTime >= 60
+            ? String(jobRemainingTime % 60).padStart(2, "0")
+            : jobRemainingTime % 60}
+        </span>
+        <span className="ml-0.5 text-slate-700">s</span>
       </span>
 
       <div className="h-3.5 w-px bg-slate-700/80 shrink-0" />
