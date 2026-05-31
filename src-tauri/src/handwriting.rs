@@ -184,7 +184,6 @@ fn run_inference(
     let xplen_t = Tensor::<i32>::from_array(([num_samples], vec![1i32; num_samples]))
         .map_err(|e| format!("x_prime_len tensor: {e}"))?;
 
-    eprintln!("[handwriting] Running inference: {} line(s) bias={}", num_samples, bias);
     let mut session = model.lock().map_err(|e| format!("Lock poisoned: {e}"))?;
     let outputs = session
         .run(ort::inputs![
@@ -198,13 +197,11 @@ fn run_inference(
             "x_prime_len:0"   => xplen_t,
         ])
         .map_err(|e| format!("Inference failed: {e}"))?;
-    eprintln!("[handwriting] Inference OK, reading output...");
 
     // Output: cond/Merge:0  shape [num_samples, max_steps, 3]
     let (shape, data) = outputs[0]
         .try_extract_tensor::<f32>()
         .map_err(|e| format!("Failed to read output tensor: {e}"))?;
-    eprintln!("[handwriting] Output shape={:?} data_len={}", &shape[..], data.len());
 
     let steps_per_sample = shape[1] as usize;
 
@@ -230,11 +227,9 @@ fn run_inference(
         all_raw.extend(line_raw);
     }
     if all_raw.is_empty() {
-        eprintln!("[handwriting] All lines produced empty output");
         return Ok(vec![]);
     }
     let all_strokes = normalise_strokes(all_raw);
-    eprintln!("[handwriting] Produced {} total strokes across {} line(s)", all_strokes.len(), num_samples);
     Ok(all_strokes)
 }
 
