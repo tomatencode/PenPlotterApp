@@ -92,6 +92,19 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
               (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, mdnsName: "" } } : p)
             );
           });
+
+        client.getMotionState()
+          .then((state) => {
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state } } : p)
+            );
+          })
+          .catch(() => {
+            allInfoFetched = false;
+            setPlotters((prev) => prev.map(
+              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
+            );
+          });
         
         // Only fetch iteration if we haven't successfully fetched it before - the hardware doesn't change
         if (plotter.displayInfo.iteration === 0) {
@@ -116,19 +129,6 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
           );
           continue;
         }
-
-        client.getMotionState()
-          .then((state) => {
-            setPlotters((prev) => prev.map(
-              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state } } : p)
-            );
-          })
-          .catch(() => {
-            allInfoFetched = false;
-            setPlotters((prev) => prev.map(
-              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
-            );
-          });
       }
     }, 2000);
     return () => clearInterval(id);
