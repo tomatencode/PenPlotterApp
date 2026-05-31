@@ -157,7 +157,7 @@ export class PlotterClient {
     return res.json() as Promise<UploadResult>;
   }
 
-  // get metadata about a stored file, including line count and size in bytes.
+  // get metadata about a stored file, including line count, size in bytes, and estimated time in seconds.
   async getFileInfo(filename: string): Promise<FileInfo> {
     const url = new URL(`${this.baseUrl}/fileInfo`);
     url.searchParams.set("file", filename);

@@ -17,6 +17,13 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatTime(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return `${mins}m ${secs}s`;
+}
+
 export default function PlotterFileList({
   files,
   uiState,
@@ -86,6 +93,14 @@ export default function PlotterFileList({
                           {info === "loading" && <span className="text-slate-600">—</span>}
                           {info === "error" && <span className="text-red-500">error</span>}
                           {info && info !== "loading" && info !== "error" && formatSize(info.sizeBytes)}
+                        </p>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] text-slate-600 mb-0.5">Time</p>
+                        <p className="text-xs font-mono text-slate-300">
+                          {info === "loading" && <span className="text-slate-600">—</span>}
+                          {info === "error" && <span className="text-red-500">error</span>}
+                          {info && info !== "loading" && info !== "error" && formatTime(info.timeSeconds)}
                         </p>
                       </div>
                     </div>

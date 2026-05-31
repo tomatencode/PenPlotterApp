@@ -37,6 +37,7 @@ export interface JobStatus {
 
 export interface FileInfo {
   lines: number;
+  timeSeconds: number;
   sizeBytes: number;
 }
 
