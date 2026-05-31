@@ -87,6 +87,7 @@ export interface WsStateMessage {
   jobProgress: number;
   jobLine: number;
   jobTotalLines: number;
+  jobRemainingSeconds: number;
 }
 
 // ─── Errors ───────────────────────────────────────────────────────────────────
