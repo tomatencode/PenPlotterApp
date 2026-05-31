@@ -147,7 +147,7 @@ export default function PlotterScreen() {
 
         {/* ── Right: file list / Settings ── */}
 
-        <aside className="w-52 shrink-0 flex flex-col border-l border-slate-700/60 bg-[#0d1017] overflow-hidden">
+        <aside className="w-56 shrink-0 flex flex-col border-l border-slate-700/60 bg-[#0d1017] overflow-hidden">
           <div className="shrink-0 flex border-b border-slate-700/60">
             {(["files", "settings"] as const).map(tab => (
               <button
