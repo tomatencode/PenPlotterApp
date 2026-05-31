@@ -1,4 +1,4 @@
-import { PlotterStroke } from "./plotterMove";
+import { PlotterStroke } from "../plotterMove";
 
 export const HANDWRITING_DEFAULT_STROKES: PlotterStroke[] = [
 {
