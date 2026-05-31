@@ -77,6 +77,7 @@ export default function HomeScreen() {
 
   async function handleOpenRecent(path: string) {
     setError(null);
+    await invoke("push_recent_file", { filePath: path }); // Refresh recent files order
     if (path.endsWith(".pnplttr")) {
       try {
         navigate("/document", { state: { path } });
