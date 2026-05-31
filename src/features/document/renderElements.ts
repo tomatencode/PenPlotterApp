@@ -9,7 +9,6 @@
 import type { Element, PlttrFont } from "./types";
 import type { PlotterMove, PlotterStroke } from "./plotterMove";
 import { textElementToStrokes } from "./text/textToStrokes";
-import { HANDWRITING_DEFAULT_STROKES } from "./text/handwritingDefaultStrokes";
 import { handwritingToStrokes } from "./text/handwritingToStrokes";
 
 export function elementsToPlotterStrokes(
