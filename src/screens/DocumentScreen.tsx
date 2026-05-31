@@ -18,11 +18,7 @@ import PropertiesPanel from "../features/document/components/PropertiesPanel";
 import DocumentStatusBar from "../features/document/components/DocumentStatusBar";
 import GcodePopup from "../features/document/components/GcodePopup";
 
-export default function DocumentScreen() {
-  return <DocumentScreenContent />;
-}
-
-function DocumentScreenContent() {
+export default function DocumentScreenContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { path } = (location.state as { path: string | null }) ?? { path: null };
