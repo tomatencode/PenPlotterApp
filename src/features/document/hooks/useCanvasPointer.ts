@@ -4,6 +4,7 @@ import { newId, workspaceBounds } from "../utils";
 import { Ghost } from "../canvas/Ghost";
 import { type Viewport, viewportToDoc } from "../canvas/viewport";
 import { elementsInMarquee } from "../canvas/marqueeHitTest";
+import { SHAPE_TOOLS, isShapeTool } from "../canvas/shapeTools";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,18 +38,6 @@ function clampToWorkspace(x: number, y: number, page: PageSettings): [number, nu
     Math.max(ws.x, Math.min(ws.x + ws.w, x)),
     Math.max(ws.y, Math.min(ws.y + ws.h, y)),
   ];
-}
-
-/** Maximum radius that keeps the full circle inside the workspace. */
-function clampedCircleRadius(sx: number, sy: number, mx: number, my: number, page: PageSettings): number {
-  const ws = workspaceBounds(page);
-  return Math.min(
-    Math.hypot(mx - sx, my - sy),
-    sx - ws.x,
-    ws.x + ws.w - sx,
-    sy - ws.y,
-    ws.y + ws.h - sy,
-  );
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -208,20 +197,8 @@ export function useCanvasPointer({
 
     const { docX: sx, docY: sy } = shapeStart.current;
     const [mx, my] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
-    switch (activeTool) {
-      case "line":
-        setGhost({ type: "Line", x1: sx, y1: sy, x2: mx, y2: my });
-        break;
-      case "rect":
-      case "text":
-      case "handwriting": {
-        const x = Math.min(sx, mx), y = Math.min(sy, my);
-        setGhost({ type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) });
-        break;
-      }
-      case "circle":
-        setGhost({ type: "Circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) });
-        break;
+    if (isShapeTool(activeTool)) {
+      setGhost(SHAPE_TOOLS[activeTool].makeGhost(sx, sy, mx, my, page));
     }
   }, [activeTool, viewport, page, onViewportChange, onMoveElement, onDeformElement]);
 
@@ -273,34 +250,8 @@ export function useCanvasPointer({
 
     if (Math.hypot(mx - sx, my - sy) < 0.5) return;
 
-    const id = newId();
-    let el: Element;
-    switch (activeTool) {
-      case "line":
-        el = { id, type: "Line", x1: sx, y1: sy, x2: mx, y2: my };
-        break;
-      case "rect": {
-        const x = Math.min(sx, mx), y = Math.min(sy, my);
-        el = { id, type: "Rect", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy) };
-        break;
-      }
-      case "text": {
-        const x = Math.min(sx, mx), y = Math.min(sy, my);
-        el = { id, type: "Text", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
-               text: "Text", fontName: "Rowmans", size: 10 };
-        break;
-      }
-      case "handwriting": {
-        const x = Math.min(sx, mx), y = Math.min(sy, my);
-        el = { id, type: "Handwriting", x, y, w: Math.abs(mx - sx), h: Math.abs(my - sy),
-               text: "text...", style: 5, strokes: [] };
-        break;
-      }
-      case "circle":
-        el = { id, type: "Circle", cx: sx, cy: sy, r: clampedCircleRadius(sx, sy, mx, my, page) };
-        break;
-      default: return;
-    }
+    if (!isShapeTool(activeTool)) return;
+    const el = SHAPE_TOOLS[activeTool].makeElement(newId(), sx, sy, mx, my, page);
     onAddElement(activeLayerId, el);
   }, [activeTool, activeLayerId, viewport, page, layers, onAddElement, onSelectElements]);
 
