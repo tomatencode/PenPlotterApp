@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex, OnceLock};
 
+#[cfg(not(debug_assertions))]
 use tauri::Manager;
 use ort::session::Session;
 use ort::value::Tensor;
@@ -81,7 +82,7 @@ impl HandwritingState {
 
 // ── Model loading ─────────────────────────────────────────────────────────────
 
-fn load_model(app: &tauri::AppHandle) -> Result<Arc<HandwritingModel>, String> {
+fn load_model(#[cfg_attr(debug_assertions, allow(unused_variables))] app: &tauri::AppHandle) -> Result<Arc<HandwritingModel>, String> {
     // In dev builds the binary lives in target/debug/ and bundle resources
     // haven't been copied there yet, so fall back to the source tree.
     #[cfg(debug_assertions)]
