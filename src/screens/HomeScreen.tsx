@@ -23,13 +23,6 @@ export default function HomeScreen() {
     invoke<string[]>("get_recent_files").then(setRecentFiles).catch(console.error);
   }
 
-  function handleRemoveRecent(path: string) {
-    invoke("remove_recent_file", { filePath: path })
-      .then(() => setRecentFiles((files) => files.filter((f) => f !== path)))
-      .catch(console.error);
-    refreshRecents();
-  }
-
   useEffect(() => { refreshRecents(); }, []);
   useEffect(() => { getVersion().then(setVersion); }, []);
   useEffect(() => { if (showNameInput) nameInputRef.current?.focus(); }, [showNameInput]);
@@ -95,6 +88,25 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleDelete(path: string) {
+    setError(null);
+    try {
+      await invoke("delete_file", { filePath: path });
+      handleRemoveRecent(path);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      refreshRecents();
+    }
+  }
+
+  function handleRemoveRecent(path: string) {
+    invoke("remove_recent_file", { filePath: path })
+      .then(() => setRecentFiles((files) => files.filter((f) => f !== path)))
+      .catch(console.error);
+    refreshRecents();
+  }
+
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex overflow-hidden">
 
@@ -133,7 +145,7 @@ export default function HomeScreen() {
         <p className="px-6 py-4 text-xs text-slate-800">V {version}</p>
       </aside>
 
-      <RecentFilesList files={recentFiles} onOpen={handleOpenRecent} onRemoveRecent={handleRemoveRecent} />
+      <RecentFilesList files={recentFiles} onOpen={handleOpenRecent} onDelete={handleDelete} onRemoveRecent={handleRemoveRecent} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ interface ContextMenu {
 interface Props {
   files: string[];
   onOpen: (path: string) => void;
+  onDelete: (path: string) => void;
   onRemoveRecent: (path: string) => void;
 }
 
@@ -57,7 +58,7 @@ const TYPE_STYLES = {
   },
 };
 
-export default function RecentFilesList({ files, onOpen, onRemoveRecent }: Props) {
+export default function RecentFilesList({ files, onOpen, onDelete, onRemoveRecent }: Props) {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
 
   function handleContextMenu(e: React.MouseEvent, filePath: string) {
@@ -135,6 +136,26 @@ export default function RecentFilesList({ files, onOpen, onRemoveRecent }: Props
             </svg>
             Reveal in File Explorer
           </button>
+
+          <button
+            onClick={() => {
+              if (contextMenu) {
+                onDelete(contextMenu.filePath);
+                setContextMenu(null);
+              }
+            }}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors text-left"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+              <path d="M3 5h10" />
+              <path d="M6 5V3h4v2" />
+              <path d="M4 5l1 9h6l1-9" />
+              <line x1="7" y1="8" x2="7" y2="12" />
+              <line x1="9" y1="8" x2="9" y2="12" />
+            </svg>
+            Delete File
+          </button>
+
           <button
             onClick={() => {
               if (contextMenu) {

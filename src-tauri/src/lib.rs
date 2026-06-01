@@ -19,6 +19,7 @@ pub fn run() {
             file_actions::get_gcode_dir,
             file_actions::save_file,
             file_actions::open_file,
+            file_actions::delete_file,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
             handwriting::generate_handwriting,

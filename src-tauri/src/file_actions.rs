@@ -95,3 +95,8 @@ pub fn open_file(path: String) -> Result<String, String> {
 pub fn save_file(path: String, content: String) -> Result<(), String> {
     fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn delete_file(file_path: String) -> Result<(), String> {
+    fs::remove_file(&file_path).map_err(|e| e.to_string())
+}
