@@ -31,7 +31,9 @@ export default function GcodePopup({
 	const [gcodeDir, setGcodeDir] = useState<string | null>(null);
 	const [isBusy, setIsBusy] = useState(false);
 	const [status, setStatusText] = useState<string>("");
-	const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const [conversionProgress, setConversionProgress] = useState<number>(0);
+	const [isUploading, setIsUploading] = useState(false);
 	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
 	const { plotters } = usePlotterDiscovery();
 
@@ -51,7 +53,9 @@ export default function GcodePopup({
 
 	useEffect(() => {
 		if (!isOpen) return;
-		setUploadProgress(null);
+		setUploadProgress(0);
+		setConversionProgress(0);
+		setIsUploading(false);
 		setStatusText("");
 		setShowPlotterDropdown(false);
 		void handleGenerateGcode();
@@ -78,7 +82,9 @@ export default function GcodePopup({
 
 	function handleGenerateGcode() {
 		setIsBusy(true);
-		setStatusText("Generating GCode...");
+		setConversionProgress(0);
+		setIsUploading(false);
+		setStatusText("Generating GCode…");
 		setGcode("");
 		setShowPlotterDropdown(false);
 
@@ -87,11 +93,17 @@ export default function GcodePopup({
 			{ type: "module" },
 		);
 
-		worker.onmessage = (e: MessageEvent<{ type: string; gcode?: string; message?: string }>) => {
+		worker.onmessage = (e: MessageEvent<{ type: string; gcode?: string; message?: string; pct?: number; status?: string }>) => {
+			if (e.data.type === "progress") {
+				if (e.data.pct != null) setConversionProgress(e.data.pct);
+				if (e.data.status != null) setStatusText(e.data.status);
+				return;
+			}
 			worker.terminate();
 			if (e.data.type === "success" && e.data.gcode != null) {
 				const result = e.data.gcode;
 				setGcode(result);
+				setConversionProgress(100);
 				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
 			} else {
 				console.error("GCode conversion failed:", e.data.message);
@@ -143,6 +155,7 @@ export default function GcodePopup({
 	}
 
 	async function handleUpload(startAfterUpload: boolean) {
+		setIsUploading(true);
 		setUploadProgress(0);
 		let simPct = 0;
 		const intervalId = window.setInterval(() => {
@@ -166,7 +179,7 @@ export default function GcodePopup({
 				await client.uploadFile(fileName, gcode);
 				if (startAfterUpload) {
 					clearInterval(intervalId);
-					setUploadProgress(null);
+					setUploadProgress(100);
 
 					await client.startJob(fileName);
 
@@ -176,7 +189,7 @@ export default function GcodePopup({
 					navigate("/plotter", { state: { plotter: selectedPlotter } });
 				} else {
 					clearInterval(intervalId);
-					setUploadProgress(null);
+					setUploadProgress(100);
 					setStatusText("Upload complete.");
 				}
 			} catch (e) {
@@ -188,9 +201,8 @@ export default function GcodePopup({
 
 	if (!isOpen) return null;
 
-	const isUploading = uploadProgress !== null;
 	const progressPhase = isUploading ? "Upload" : "Conversion";
-	const progressPercent = isUploading ? uploadProgress : gcode ? 100 : isBusy ? 45 : 0;
+	const progressPercent = isUploading ? uploadProgress : conversionProgress;
 
 	return (
 		<div className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 p-4" onClick={onClose}>
