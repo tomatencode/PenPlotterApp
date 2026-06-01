@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "Pen Plotter Interfacer",
-        "width": 900,
-        "height": 650,
+        "width": 1200,
+        "height": 800,
         "transparent": false,
         "decorations": false,
         "backgroundColor": "#0a0c10"
