@@ -64,25 +64,22 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
       const { minX, maxX, minY, maxY } = drawingBbox(el);
       const origW = maxX - minX;
       const origH = maxY - minY;
-      const corners: Record<string, { fx: number; fy: number }> = {
-        tl: { fx: maxX, fy: maxY },
-        tr: { fx: minX, fy: maxY },
-        bl: { fx: maxX, fy: minY },
-        br: { fx: minX, fy: minY },
+      // Each handle has its own original position (hx/hy) and the opposite
+      // fixed corner (fx/fy). Using a signed linear remap means dragging past
+      // the fixed corner produces a natural mirror rather than clamping at zero.
+      const handles: Record<string, { hx: number; hy: number; fx: number; fy: number }> = {
+        tl: { hx: minX, hy: minY, fx: maxX, fy: maxY },
+        tr: { hx: maxX, hy: minY, fx: minX, fy: maxY },
+        bl: { hx: minX, hy: maxY, fx: maxX, fy: minY },
+        br: { hx: maxX, hy: maxY, fx: minX, fy: minY },
       };
-      const fixed = corners[handleId];
-      if (!fixed) return el;
-      const newMinX = Math.min(x, fixed.fx);
-      const newMinY = Math.min(y, fixed.fy);
-      const newW = Math.abs(x - fixed.fx);
-      const newH = Math.abs(y - fixed.fy);
-      const scaleX = origW > 0 ? newW / origW : 1;
-      const scaleY = origH > 0 ? newH / origH : 1;
+      const h = handles[handleId];
+      if (!h) return el;
       return {
         ...el,
         points: el.points.map(([px, py]) => [
-          newMinX + (px - minX) * scaleX,
-          newMinY + (py - minY) * scaleY,
+          origW > 0 ? h.fx + (px - h.fx) / (h.hx - h.fx) * (x - h.fx) : x,
+          origH > 0 ? h.fy + (py - h.fy) / (h.hy - h.fy) * (y - h.fy) : y,
         ]),
       };
     }
