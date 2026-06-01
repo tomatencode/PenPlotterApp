@@ -167,21 +167,6 @@ export default function GcodePopup({
 		});
 	}
 
-	async function handleStream() {
-		await withBusy(async () => {
-			if (!selectedPlotter) {
-				setStatusText("Select a plotter first.");
-				return;
-			}
-			if (!gcode.trim()) {
-				setStatusText("No GCode to stream.");
-				return;
-			}
-
-			// not implemented yet
-		});
-	}
-
 	if (!isOpen) return null;
 
 	const progressPercent = gcode ? 100 : isBusy ? 45 : 0;
@@ -356,17 +341,6 @@ export default function GcodePopup({
 									<polygon points="4,2 13,8 4,14" fill="currentColor" stroke="none" />
 								</svg>
 								Upload & Start
-							</button>
-
-							<button
-								onClick={handleStream}
-								disabled={isBusy || !gcode.trim() || !selectedPlotter}
-								className="flex items-center gap-2 px-4 py-1.5 bg-green-700/80 hover:bg-green-600/80 border border-green-600/60 hover:border-green-500 rounded-lg text-sm font-semibold text-green-100 transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-sm shadow-green-900/30"
-							>
-								<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
-									<path d="M3 8h4M9 4l4 4-4 4M9 8h4" />
-								</svg>
-								Stream Live
 							</button>
 						</div>
 

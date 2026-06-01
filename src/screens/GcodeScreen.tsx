@@ -119,10 +119,6 @@ export default function GcodeScreen() {
     });
   }
 
-  async function handleStream() {
-    setStatusText("Streaming is not yet implemented.");
-  }
-
   // Ctrl/Cmd+S to save
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -161,7 +157,6 @@ export default function GcodeScreen() {
           onSelectPlotter={setSelectedPlotterUrl}
           onUpload={() => handleUpload(false)}
           onUploadAndStart={() => handleUpload(true)}
-          onStream={handleStream}
         />
       </div>
 
