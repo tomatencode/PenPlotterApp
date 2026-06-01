@@ -31,6 +31,7 @@ export default function GcodePopup({
 	const [gcodeDir, setGcodeDir] = useState<string | null>(null);
 	const [isBusy, setIsBusy] = useState(false);
 	const [status, setStatusText] = useState<string>("");
+	const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
 	const { plotters } = usePlotterDiscovery();
 
@@ -139,6 +140,13 @@ export default function GcodePopup({
 	}
 
 	async function handleUpload(startAfterUpload: boolean) {
+		setUploadProgress(0);
+		let simPct = 0;
+		const intervalId = window.setInterval(() => {
+			simPct = simPct + (90 - simPct) * 0.08;
+			setUploadProgress(Math.round(simPct));
+		}, 100);
+
 		await withBusy(async () => {
 			if (!selectedPlotter) {
 				setStatusText("Select a plotter first.");
@@ -165,11 +173,16 @@ export default function GcodePopup({
 				setStatusText(`Upload failed: ${String(e)}`);
 			}
 		});
+
+		clearInterval(intervalId);
+		setUploadProgress(null);
 	}
 
 	if (!isOpen) return null;
 
-	const progressPercent = gcode ? 100 : isBusy ? 45 : 0;
+	const isUploading = uploadProgress !== null;
+	const progressPhase = isUploading ? "Upload" : "Conversion";
+	const progressPercent = isUploading ? uploadProgress : gcode ? 100 : isBusy ? 45 : 0;
 
 	return (
 		<div className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 p-4" onClick={onClose}>
@@ -194,7 +207,7 @@ export default function GcodePopup({
 				{/* Progress bar */}
 				<div className="px-4 pt-3 pb-2 border-b border-slate-700/60 shrink-0">
 					<div className="flex items-center justify-between mb-1.5">
-						<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Conversion</p>
+						<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{progressPhase}</p>
 						<p className="text-xs text-slate-600 tabular-nums">{progressPercent}%</p>
 					</div>
 					<div className="w-full h-1.5 rounded-full bg-[#0a0c10] overflow-hidden border border-slate-700/60">
