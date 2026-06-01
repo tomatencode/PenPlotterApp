@@ -214,7 +214,7 @@ export default function GcodePopup({
 				<header className="flex items-center justify-between border-b border-slate-700/60 px-4 py-2 shrink-0">
 					<div className="flex items-center gap-3">
 						<span className="text-sm font-semibold text-gray-200">Export to GCode</span>
-						<span className="text-xs text-slate-600 hidden md:block">Preview, save, upload, or stream directly to a plotter.</span>
+						<span className="text-xs text-slate-600 hidden md:block">Preview and upload to a plotter, or save to a file.</span>
 					</div>
 					<button
 						onClick={onClose}
