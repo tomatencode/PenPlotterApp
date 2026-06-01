@@ -51,6 +51,9 @@ export default function GcodePopup({
 
 	useEffect(() => {
 		if (!isOpen) return;
+		setUploadProgress(null);
+		setStatusText("");
+		setShowPlotterDropdown(false);
 		void handleGenerateGcode();
 		// Regenerate on open or whenever the document changed.
 	}, [isOpen, doc]);
@@ -162,10 +165,18 @@ export default function GcodePopup({
 				const client = new PlotterClient(selectedPlotter.url);
 				await client.uploadFile(fileName, gcode);
 				if (startAfterUpload) {
+					clearInterval(intervalId);
+					setUploadProgress(null);
+
 					await client.startJob(fileName);
-					setStatusText("Upload complete. Job started.");
+
+					setStatusText(`Upload complete. Jumping to plotter page...`);
+					await new Promise((r) => setTimeout(r, 1000));
+
 					navigate("/plotter", { state: { plotter: selectedPlotter } });
 				} else {
+					clearInterval(intervalId);
+					setUploadProgress(null);
 					setStatusText("Upload complete.");
 				}
 			} catch (e) {
@@ -173,9 +184,6 @@ export default function GcodePopup({
 				setStatusText(`Upload failed: ${String(e)}`);
 			}
 		});
-
-		clearInterval(intervalId);
-		setUploadProgress(null);
 	}
 
 	if (!isOpen) return null;
