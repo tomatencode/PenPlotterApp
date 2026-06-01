@@ -87,7 +87,7 @@ export default function DocumentScreenContent() {
   const { addLayer, deleteLayer, moveLayer, setLayerPen, renameLayer, updatePage } =
     useLayerActions(doc.layers, activeLayerId, setActiveLayerId, dispatch);
 
-  useDocumentKeyboard({ dispatch, layers: doc.layers, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
+  useDocumentKeyboard({ dispatch, layers: doc.layers, activeLayerId, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
 
   const fonts = useMemo(
     () => new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]),
