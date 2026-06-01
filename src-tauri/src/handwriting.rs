@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex, OnceLock};
 
+use tauri::Manager;
 use ort::session::Session;
 use ort::value::Tensor;
 use serde::{Deserialize, Serialize};
@@ -80,7 +81,7 @@ impl HandwritingState {
 
 // ── Model loading ─────────────────────────────────────────────────────────────
 
-fn load_model(#[allow(unused_variables)] app: &tauri::AppHandle) -> Result<Arc<HandwritingModel>, String> {
+fn load_model(app: &tauri::AppHandle) -> Result<Arc<HandwritingModel>, String> {
     // In dev builds the binary lives in target/debug/ and bundle resources
     // haven't been copied there yet, so fall back to the source tree.
     #[cfg(debug_assertions)]
@@ -88,6 +89,14 @@ fn load_model(#[allow(unused_variables)] app: &tauri::AppHandle) -> Result<Arc<H
         env!("CARGO_MANIFEST_DIR"),
         "/resources/handwriting.onnx"
     ));
+
+    #[cfg(not(debug_assertions))]
+    let model_path = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Failed to get resource dir: {e}"))?
+        .join("resources")
+        .join("handwriting.onnx");
 
     if !model_path.exists() {
         return Err(format!(
