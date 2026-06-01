@@ -7,11 +7,28 @@ export interface Handle {
   y: number;
 }
 
+function drawingBbox(el: Extract<Element, { type: "Drawing" }>) {
+  const xs = el.points.map(([x]) => x);
+  const ys = el.points.map(([, y]) => y);
+  return {
+    minX: Math.min(...xs), maxX: Math.max(...xs),
+    minY: Math.min(...ys), maxY: Math.max(...ys),
+  };
+}
+
 /** Returns the handle control points for a selected element. */
 export function getHandles(el: Element): Handle[] {
   switch (el.type) {
-    case "Drawing":
-      return []
+    case "Drawing": {
+      if (el.points.length === 0) return [];
+      const { minX, maxX, minY, maxY } = drawingBbox(el);
+      return [
+        { id: "tl", x: minX, y: minY },
+        { id: "tr", x: maxX, y: minY },
+        { id: "bl", x: minX, y: maxY },
+        { id: "br", x: maxX, y: maxY },
+      ];
+    }
     case "Line":
       return [
         { id: "p1", x: el.x1, y: el.y1 },
@@ -42,8 +59,33 @@ export function getHandles(el: Element): Handle[] {
 
 export function applyHandleDrag(el: Element, handleId: string, x: number, y: number, page: PageSettings): Element {
   switch (el.type) {
-    case "Drawing":
-      return el;
+    case "Drawing": {
+      if (el.points.length === 0) return el;
+      const { minX, maxX, minY, maxY } = drawingBbox(el);
+      const origW = maxX - minX;
+      const origH = maxY - minY;
+      const corners: Record<string, { fx: number; fy: number }> = {
+        tl: { fx: maxX, fy: maxY },
+        tr: { fx: minX, fy: maxY },
+        bl: { fx: maxX, fy: minY },
+        br: { fx: minX, fy: minY },
+      };
+      const fixed = corners[handleId];
+      if (!fixed) return el;
+      const newMinX = Math.min(x, fixed.fx);
+      const newMinY = Math.min(y, fixed.fy);
+      const newW = Math.abs(x - fixed.fx);
+      const newH = Math.abs(y - fixed.fy);
+      const scaleX = origW > 0 ? newW / origW : 1;
+      const scaleY = origH > 0 ? newH / origH : 1;
+      return {
+        ...el,
+        points: el.points.map(([px, py]) => [
+          newMinX + (px - minX) * scaleX,
+          newMinY + (py - minY) * scaleY,
+        ]),
+      };
+    }
     case "Line":
       if (handleId === "p1") return { ...el, x1: x, y1: y };
       if (handleId === "p2") return { ...el, x2: x, y2: y };
