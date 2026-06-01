@@ -39,8 +39,8 @@ export const DEFAULT_DOCUMENT = {
   },
   layers: [
     {
-      id: "layer1",
-      name: "Layer 1",
+      id: "pen1",
+      name: "Pen 1",
       pen: DEFAULT_PEN,
       elements: [],
     },
