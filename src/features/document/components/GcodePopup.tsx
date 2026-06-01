@@ -366,13 +366,6 @@ export default function GcodePopup({
 								Upload & Start
 							</button>
 						</div>
-
-						{/* Hint */}
-						<div className="px-4 pb-4 mt-auto">
-							<p className="text-xs text-slate-600 leading-relaxed">
-								Upload & Start begins plotting immediately. Stream Live sends commands line by line.
-							</p>
-						</div>
 					</div>
 				</div>
 			</section>
