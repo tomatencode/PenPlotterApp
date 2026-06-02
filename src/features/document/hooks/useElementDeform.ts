@@ -4,7 +4,6 @@ import { applyHandleDrag } from "../canvas/DeformHandles";
 import type { DocAction } from "../docState";
 
 type DeformSnap = {
-  layerId: string;
   element: Element; // original element at drag-start
 };
 
@@ -16,10 +15,9 @@ export function useElementDeform(
   const snapRef = useRef<DeformSnap | null>(null);
 
   const onDeformStart = useCallback((elementId: string) => {
-    const layer = doc.layers.find(l => l.elements.some(el => el.id === elementId));
-    if (!layer) return;
-    const element = layer.elements.find(el => el.id === elementId)!;
-    snapRef.current = { layerId: layer.id, element };
+    const element = doc.elements.find(el => el.id === elementId);
+    if (!element) return;
+    snapRef.current = { element };
     recordHistory();
   }, [doc, recordHistory]);
 
@@ -29,7 +27,7 @@ export function useElementDeform(
     const snap = snapRef.current;
     if (!snap || snap.element.id !== elementId) return;
     const updated = applyHandleDrag(snap.element, handleId, x, y, doc.page);
-    dispatch({ type: "UPDATE_ELEMENT", layerId: snap.layerId, element: updated });
+    dispatch({ type: "UPDATE_ELEMENT", element: updated });
   }, [doc, dispatch]);
 
   return { onDeformStart, onDeformElement };

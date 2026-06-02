@@ -18,26 +18,28 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
   let penPos: [number, number] = home;
   let gcode = "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
 
-  const layerCount = doc.layers.length;
-  // Layer work takes 0–90 %, compression takes the last 10 %
-  const layerShare = layerCount > 0 ? 90 / layerCount : 0;
+  const penCount = doc.pens.length;
+  // Pen group work takes 0–90 %, compression takes the last 10 %
+  const penShare = penCount > 0 ? 90 / penCount : 0;
 
-  for (let i = 0; i < layerCount; i++) {
-    const layer = doc.layers[i];
-    const layerBase = i * layerShare;
+  for (let penIdx = 0; penIdx < penCount; penIdx++) {
+    const pen = doc.pens[penIdx];
+    const penElements = doc.elements.filter((e) => e.pen === penIdx);
+    if (penElements.length === 0) continue;
 
-    gcode += `; Layer: ${layer.name}\n`;
-    // TODO: add pen switching GCode commands here, using layer.pen.color / layer.pen.width
+    const penBase = penIdx * penShare;
+    gcode += `; Pen ${penIdx + 1} (${pen.color})\n`;
+    // TODO: add pen switching GCode commands here, using pen.color / pen.width
 
-    onProgress?.(Math.round(layerBase + layerShare * 0.05), `Layer ${i + 1}/${layerCount}: rendering elements…`);
-    const strokes = elementsToPlotterStrokes(layer.elements, fonts);
+    onProgress?.(Math.round(penBase + penShare * 0.05), `Pen ${penIdx + 1}/${penCount}: rendering elements…`);
+    const strokes = elementsToPlotterStrokes(penElements, fonts);
 
-    onProgress?.(Math.round(layerBase + layerShare * 0.8), `Layer ${i + 1}/${layerCount}: optimizing stroke order…`);
+    onProgress?.(Math.round(penBase + penShare * 0.8), `Pen ${penIdx + 1}/${penCount}: optimizing stroke order…`);
     const optimized = optimizeStrokes(strokes, home);
 
     penPos = accumulateStats(stats, optimized, penPos);
 
-    onProgress?.(Math.round(layerBase + layerShare * 0.9), `Layer ${i + 1}/${layerCount}: writing GCode…`);
+    onProgress?.(Math.round(penBase + penShare * 0.9), `Pen ${penIdx + 1}/${penCount}: writing GCode…`);
     gcode += "M5\n"; // ensure pen up before moving to first stroke
     for (const stroke of optimized) {
       gcode += strokeToGcode(stroke, conv);

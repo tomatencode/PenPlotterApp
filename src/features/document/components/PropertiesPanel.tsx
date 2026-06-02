@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Element, Layer, PlttrFont } from "../types";
+import type { Element, PlttrFont } from "../types";
 import type { PlotterStroke } from "../plotterMove";
 
 interface Props {
-  layers: Layer[];
+  elements: Element[];
   fonts: Map<string, PlttrFont>;
   selectedIds: string[] | null;
-  onUpdateElement: (layerId: string, el: Element) => void;
-  onDeleteElement: (layerId: string, elementId: string) => void;
+  onUpdateElement: (el: Element) => void;
+  onDeleteElement: (elementId: string) => void;
 }
 
 function NumField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
@@ -25,34 +25,29 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
   );
 }
 
-export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateElement, onDeleteElement }: Props) {
+export default function PropertiesPanel({ elements, fonts, selectedIds, onUpdateElement, onDeleteElement }: Props) {
   const [generating, setGenerating] = useState(false);
 
-  // Find the selected element and which layer it belongs to
-  let found: { layerId: string; el: Element } | null = null;
-  
+  // Find the selected element
+  let found: Element | null = null;
   if (selectedIds && selectedIds.length === 1) {
-    const selectedId = selectedIds[0];
-    for (const layer of layers) {
-      const el = layer.elements.find((e) => e.id === selectedId);
-      if (el) { found = { layerId: layer.id, el }; break; }
-    }
+    found = elements.find((e) => e.id === selectedIds[0]) ?? null;
   }
 
   function update(patch: Partial<Element>) {
     if (!found) return;
-    onUpdateElement(found.layerId, { ...found.el, ...patch } as Element);
+    onUpdateElement({ ...found, ...patch } as Element);
   }
 
   return (
     <div className="px-4 pt-3 pb-4 shrink-0">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-          {found ? found.el.type : "Selection"}
+          {found ? found.type : "Selection"}
         </p>
         {found && (
           <button
-            onClick={() => onDeleteElement(found!.layerId, found!.el.id)}
+            onClick={() => onDeleteElement(found!.id)}
             title="Delete element"
             className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-red-400 transition-colors"
           >
@@ -71,8 +66,13 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
         )
       ) : (
         <div className="flex flex-col gap-2">
-          {found.el.type === "Line" && (() => {
-            const el = found.el;
+
+          
+          <NumField label="Z" value={found.z} onChange={(v) => update({ z: Math.max(v, 0) })} />
+          <div className="h-px bg-slate-800 mx-1 shrink-0" />
+
+          {found.type === "Line" && (() => {
+            const el = found;
             return <>
               <NumField label="X1 (mm)" value={el.x1} onChange={(v) => update({ x1: v })} />
               <NumField label="Y1 (mm)" value={el.y1} onChange={(v) => update({ y1: v })} />
@@ -87,8 +87,8 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
             </>;
           })()}
 
-          {found.el.type === "Rect" && (() => {
-            const el = found.el;
+          {found.type === "Rect" && (() => {
+            const el = found;
             return <>
               <NumField label="X (mm)"      value={el.x} onChange={(v) => update({ x: v })} />
               <NumField label="Y (mm)"      value={el.y} onChange={(v) => update({ y: v })} />
@@ -97,8 +97,8 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
             </>;
           })()}
 
-          {found.el.type === "Circle" && (() => {
-            const el = found.el;
+          {found.type === "Circle" && (() => {
+            const el = found;
             return <>
               <NumField label="CX (mm)"     value={el.cx} onChange={(v) => update({ cx: v })} />
               <NumField label="CY (mm)"     value={el.cy} onChange={(v) => update({ cy: v })} />
@@ -106,8 +106,8 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
             </>;
           })()}
 
-          {found.el.type === "Text" && (() => {
-            const el = found.el;
+          {found.type === "Text" && (() => {
+            const el = found;
             return <>
               <div className="flex flex-col gap-1 min-w-0">
                 <span className="text-xs text-slate-600">Content</span>
@@ -138,8 +138,8 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
             </>;
           })()}
 
-          {found.el.type === "Handwriting" && (() => {
-            const el = found.el;
+          {found.type === "Handwriting" && (() => {
+            const el = found;
             async function generate() {
               setGenerating(true);
               try {
@@ -148,7 +148,7 @@ export default function PropertiesPanel({ layers, fonts, selectedIds, onUpdateEl
                   style: el.style,
                 });
                 console.log("[handwriting] Received strokes:", strokes);
-                onUpdateElement(found!.layerId, { ...el, strokes });
+                onUpdateElement({ ...el, strokes });
               } catch (e) {
                 console.error("Handwriting generation failed:", e);
                 alert("Handwriting generation failed: " + String(e));

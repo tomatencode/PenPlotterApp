@@ -1,4 +1,4 @@
-import type { Element, Layer } from "../types";
+import type { Element } from "../types";
 import { elementBounds } from "../utils";
 
 // ── Geometry primitives ───────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ function elementCrossesRect(el: Element, rx: number, ry: number, rw: number, rh:
  * mode "crossing"  (left-drag):  any stroke of the element must intersect the rect.
  */
 export function elementsInMarquee(
-  layers: Layer[],
+  elements: Element[],
   selX: number,
   selY: number,
   selW: number,
@@ -107,16 +107,14 @@ export function elementsInMarquee(
   mode: "enclosed" | "crossing",
 ): string[] {
   const ids: string[] = [];
-  for (const layer of layers) {
-    for (const el of layer.elements) {
-      if (mode === "enclosed") {
-        const b = elementBounds(el);
-        if (b.minX >= selX && b.minY >= selY && b.maxX <= selX + selW && b.maxY <= selY + selH)
-          ids.push(el.id);
-      } else {
-        if (elementCrossesRect(el, selX, selY, selW, selH))
-          ids.push(el.id);
-      }
+  for (const el of elements) {
+    if (mode === "enclosed") {
+      const b = elementBounds(el);
+      if (b.minX >= selX && b.minY >= selY && b.maxX <= selX + selW && b.maxY <= selY + selH)
+        ids.push(el.id);
+    } else {
+      if (elementCrossesRect(el, selX, selY, selW, selH))
+        ids.push(el.id);
     }
   }
   return ids;

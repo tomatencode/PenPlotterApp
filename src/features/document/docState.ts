@@ -1,5 +1,4 @@
-import type { Layer, Element, Pen, PageSettings, PnplttrDocument } from "./types";
-import { newId } from "./utils";
+import type { Element, Pen, PageSettings, PnplttrDocument } from "./types";
 import { DEFAULT_DOCUMENT } from "./constants";
 
 export type HistoryAction =
@@ -11,15 +10,12 @@ export type HistoryAction =
 
 export type DocAction =
   | { type: "LOAD"; doc: PnplttrDocument }
-  | { type: "ADD_ELEMENT"; layerId: string; element: Element }
-  | { type: "DELETE_ELEMENT"; layerId: string; elementId: string }
-  | { type: "UPDATE_ELEMENT"; layerId: string; element: Element }
-  | { type: "ADD_LAYER"; layer: Layer }
-  | { type: "DELETE_LAYER"; layerId: string }
-  | { type: "MOVE_LAYER"; layerId: string; direction: -1 | 1 }
-  | { type: "SET_LAYER_PEN"; layerId: string; pen: Pen }
-  | { type: "RENAME_LAYER"; layerId: string; name: string }
-  | { type: "SET_LAYERS"; layers: Layer[] }
+  | { type: "ADD_ELEMENT"; element: Element }
+  | { type: "DELETE_ELEMENT"; elementId: string }
+  | { type: "UPDATE_ELEMENT"; element: Element }
+  | { type: "ADD_PEN"; pen: Pen }
+  | { type: "DELETE_PEN"; penIndex: number }
+  | { type: "SET_PEN"; penIndex: number; pen: Pen }
   | { type: "UPDATE_PAGE"; page: PageSettings };
 
 export interface HistoryState {
@@ -64,60 +60,25 @@ export function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocu
     case "LOAD":
       return action.doc;
     case "ADD_ELEMENT":
-      return {
-        ...doc,
-        layers: doc.layers.map((l) =>
-          l.id === action.layerId
-            ? { ...l, elements: [...l.elements, action.element] }
-            : l,
-        ),
-      };
+      return { ...doc, elements: [...doc.elements, action.element] };
     case "DELETE_ELEMENT":
-      return {
-        ...doc,
-        layers: doc.layers.map((l) =>
-          l.id === action.layerId
-            ? { ...l, elements: l.elements.filter((e) => e.id !== action.elementId) }
-            : l,
-        ),
-      };
+      return { ...doc, elements: doc.elements.filter((e) => e.id !== action.elementId) };
     case "UPDATE_ELEMENT":
-      return {
-        ...doc,
-        layers: doc.layers.map((l) =>
-          l.id === action.layerId
-            ? { ...l, elements: l.elements.map((e) => (e.id === action.element.id ? action.element : e)) }
-            : l,
-        ),
-      };
-    case "ADD_LAYER":
-      return { ...doc, layers: [...doc.layers, action.layer] };
-    case "DELETE_LAYER": {
-      if (doc.layers.length === 1) return doc;
-      return { ...doc, layers: doc.layers.filter((l) => l.id !== action.layerId) };
+      return { ...doc, elements: doc.elements.map((e) => e.id === action.element.id ? action.element : e) };
+    case "ADD_PEN":
+      return { ...doc, pens: [...doc.pens, action.pen] };
+    case "DELETE_PEN": {
+      if (doc.pens.length === 1) return doc;
+      const newPens = doc.pens.filter((_, i) => i !== action.penIndex);
+      const newElements = doc.elements.map((el) => {
+        if (el.pen === action.penIndex) return { ...el, pen: 0 };
+        if (el.pen > action.penIndex) return { ...el, pen: el.pen - 1 };
+        return el;
+      });
+      return { ...doc, pens: newPens, elements: newElements };
     }
-    case "MOVE_LAYER": {
-      const idx = doc.layers.findIndex((l) => l.id === action.layerId);
-      const target = idx + action.direction;
-      if (target < 0 || target >= doc.layers.length) return doc;
-      const next = [...doc.layers];
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return { ...doc, layers: next };
-    }
-    case "RENAME_LAYER":
-      return {
-        ...doc,
-        layers: doc.layers.map((l) =>
-          l.id === action.layerId ? { ...l, name: action.name || l.name } : l,
-        ),
-      };
-    case "SET_LAYER_PEN":
-      return {
-        ...doc,
-        layers: doc.layers.map((l) => (l.id === action.layerId ? { ...l, pen: action.pen } : l)),
-      };
-    case "SET_LAYERS":
-      return { ...doc, layers: action.layers };
+    case "SET_PEN":
+      return { ...doc, pens: doc.pens.map((p, i) => i === action.penIndex ? action.pen : p) };
     case "UPDATE_PAGE":
       return { ...doc, page: action.page };
     default:
@@ -128,9 +89,8 @@ export function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocu
 export function initialDoc(json: string): PnplttrDocument {
   try {
     const doc = JSON.parse(json) as PnplttrDocument;
-    if (doc.layers && doc.layers.length > 0) {
-      // Assign UI ids to layers (not stored in file)
-      return { ...doc, layers: doc.layers.map((l) => ({ ...l, id: newId() })) };
+    if (doc.pens && doc.pens.length > 0) {
+      return doc;
     }
   } catch {
     // Fall back to default document on error

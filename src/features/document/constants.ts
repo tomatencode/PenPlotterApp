@@ -1,6 +1,6 @@
 import type { Pen } from "./types";
 
-export const DEFAULT_PEN: Pen = { color: "#19191a", width: 1.2 };
+export const DEFAULT_PEN: Pen = { name: "Pen", color: "#19191a", width: 1.2 };
 
 export interface PagePreset {
   label: string;
@@ -29,7 +29,7 @@ export const WORKSPACE_PRESETS: WorkspacePreset[] = [
 export const DEFAULT_DOCUMENT = {
   meta: {
     created: new Date().toISOString(),
-    doctype_version: 1,
+    doctype_version: 2,
   },
   page: {
     page_width: 210,
@@ -37,12 +37,6 @@ export const DEFAULT_DOCUMENT = {
     workspace_width: 185,
     workspace_height: 265,
   },
-  layers: [
-    {
-      id: "pen1",
-      name: "Pen 1",
-      pen: DEFAULT_PEN,
-      elements: [],
-    },
-  ],
+  pens: [DEFAULT_PEN],
+  elements: [],
 };

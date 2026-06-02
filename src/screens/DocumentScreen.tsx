@@ -5,14 +5,14 @@ import type { Element, Tool } from "../features/document/types";
 import { initialDoc, docToJson, historyReducer, initialHistoryState } from "../features/document/docState";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";
-import { useLayerActions } from "../features/document/hooks/useLayerActions";
+import { usePenActions } from "../features/document/hooks/usePenActions";
 import { useDocumentKeyboard } from "../features/document/hooks/useDocumentKeyboard";
 import { DEFAULT_FONTS } from "../features/document/text/defaultFonts";
 import DocumentToolbar from "../features/document/components/DocumentToolbar";
 import ToolPalette from "../features/document/components/ToolPalette";
 import CanvasArea from "../features/document/components/CanvasArea";
 import type { Viewport } from "../features/document/canvas/viewport";
-import LayersPanel from "../features/document/components/LayersPanel";
+import PensPanel from "../features/document/components/PensPanel";
 import PagePanel from "../features/document/components/PagePanel";
 import PropertiesPanel from "../features/document/components/PropertiesPanel";
 import DocumentStatusBar from "../features/document/components/DocumentStatusBar";
@@ -33,13 +33,13 @@ export default function DocumentScreenContent() {
       .then((json) => {
         const loaded = initialDoc(json);
         dispatch({ type: "LOAD", doc: loaded });
-        setActiveLayerId(loaded.layers[0].id);
+        setActivePenIndex(0);
         // Inject any custom fonts embedded in the document into the registry
       })
       .catch(console.error);
   }, [path]);
 
-  const [activeLayerId, setActiveLayerId] = useState<string>(doc.layers[0].id);
+  const [activePenIndex, setActivePenIndex] = useState<number>(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeTool, setActiveTool] = useState<Tool>("select");
   
@@ -79,15 +79,15 @@ export default function DocumentScreenContent() {
   const { onMoveStart, onMoveElement } = useElementDrag(doc, dispatch, () => dispatch({ type: "SNAPSHOT" }));
   const { onDeformStart, onDeformElement } = useElementDeform(doc, dispatch, () => dispatch({ type: "SNAPSHOT" }));
 
-  const handleAddElement = useCallback((layerId: string, el: Element) => {
+  const handleAddElement = useCallback((el: Element) => {
     dispatch({ type: "SNAPSHOT" });
-    dispatch({ type: "ADD_ELEMENT", layerId, element: el });
+    dispatch({ type: "ADD_ELEMENT", element: el });
   }, [dispatch]);
 
-  const { addLayer, deleteLayer, moveLayer, setLayerPen, renameLayer, updatePage } =
-    useLayerActions(doc.layers, activeLayerId, setActiveLayerId, dispatch);
+  const { addPen, deletePen, setPen, updatePage } =
+    usePenActions(doc.pens.length, activePenIndex, setActivePenIndex, dispatch);
 
-  useDocumentKeyboard({ dispatch, layers: doc.layers, activeLayerId, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
+  useDocumentKeyboard({ dispatch, elements: doc.elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
 
   const fonts = useMemo(
     () => new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]),
@@ -95,7 +95,7 @@ export default function DocumentScreenContent() {
   );
 
   const fileName = path ? path.split(/[\\/]/).pop() ?? "Untitled" : "Untitled";
-  const totalElements = doc.layers.reduce((n, l) => n + l.elements.length, 0);
+  const totalElements = doc.elements.length;
 
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
@@ -119,7 +119,7 @@ export default function DocumentScreenContent() {
         <CanvasArea
           doc={doc}
           fonts={fonts}
-          activeLayerId={activeLayerId}
+          activePenIndex={activePenIndex}
           activeTool={activeTool}
           selectedIds={selectedIds}
           viewport={viewport}
@@ -140,30 +140,28 @@ export default function DocumentScreenContent() {
 
           <div className="h-px bg-slate-800 mx-3 shrink-0" />
 
-          <LayersPanel
-            layers={doc.layers}
-            activeLayerId={activeLayerId}
-            onSetActiveLayerId={setActiveLayerId}
-            onAddLayer={addLayer}
-            onDeleteLayer={deleteLayer}
-            onMoveLayer={moveLayer}
-            onSetLayerPen={setLayerPen}
-            onRenameLayer={renameLayer}
+          <PensPanel
+            pens={doc.pens}
+            activePenIndex={activePenIndex}
+            onSetActivePenIndex={setActivePenIndex}
+            onAddPen={addPen}
+            onDeletePen={deletePen}
+            onSetPen={setPen}
           />
 
           <div className="h-px bg-slate-800 mx-3 shrink-0" />
 
           <PropertiesPanel
-            layers={doc.layers}
+            elements={doc.elements}
             fonts={fonts}
             selectedIds={selectedIds}
-            onUpdateElement={(layerId, el) => {
+            onUpdateElement={(el) => {
               dispatch({ type: "SNAPSHOT" });
-              dispatch({ type: "UPDATE_ELEMENT", layerId, element: el });
+              dispatch({ type: "UPDATE_ELEMENT", element: el });
             }}
-            onDeleteElement={(layerId, elementId) => {
+            onDeleteElement={(elementId) => {
               dispatch({ type: "SNAPSHOT" });
-              dispatch({ type: "DELETE_ELEMENT", layerId, elementId });
+              dispatch({ type: "DELETE_ELEMENT", elementId });
               setSelectedIds((ids) => ids.filter((id) => id !== elementId));
             }}
           />

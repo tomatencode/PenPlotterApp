@@ -1,5 +1,5 @@
 import { useEffect, useRef, type Dispatch } from "react";
-import type { Element, Layer, Tool } from "../types";
+import type { Element, Tool } from "../types";
 import type { HistoryAction } from "../docState";
 import { newId } from "../utils";
 
@@ -22,8 +22,8 @@ function offsetElement(el: Element): Element {
 
 interface Options {
   dispatch: Dispatch<HistoryAction>;
-  layers: Layer[];
-  activeLayerId: string;
+  elements: Element[];
+  activePenIndex: number;
   selectedIds: string[];
   setSelectedIds: (ids: string[]) => void;
   setActiveTool: (tool: Tool) => void;
@@ -32,8 +32,8 @@ interface Options {
 
 export function useDocumentKeyboard({
   dispatch,
-  layers,
-  activeLayerId,
+  elements,
+  activePenIndex,
   selectedIds,
   setSelectedIds,
   setActiveTool,
@@ -42,20 +42,20 @@ export function useDocumentKeyboard({
   // Keep a ref to the latest values so the event listener never needs to be
   // re-registered. Without this, adding/removing a selection would tear down
   // and re-attach the listener on every pointer event.
-  const latest = useRef({ layers, activeLayerId, selectedIds, setSelectedIds, setActiveTool, onSave });
-  useEffect(() => { latest.current = { layers, activeLayerId, selectedIds, setSelectedIds, setActiveTool, onSave }; });
+  const latest = useRef({ elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave });
+  useEffect(() => { latest.current = { elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave }; });
 
   const clipboard = useRef<Element[]>([]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      const { layers, activeLayerId, selectedIds, setSelectedIds, setActiveTool, onSave } = latest.current;
+      const { elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave } = latest.current;
 
       if ((e.ctrlKey || e.metaKey) && e.key === "c" && selectedIds.length > 0) {
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         e.preventDefault();
         const selected = new Set(selectedIds);
-        clipboard.current = layers.flatMap((l) => l.elements.filter((el) => selected.has(el.id)));
+        clipboard.current = elements.filter((el) => selected.has(el.id));
         return;
       }
 
@@ -65,7 +65,7 @@ export function useDocumentKeyboard({
         const pasted = clipboard.current.map(offsetElement);
         dispatch({ type: "SNAPSHOT" });
         for (const el of pasted) {
-          dispatch({ type: "ADD_ELEMENT", layerId: activeLayerId, element: el });
+          dispatch({ type: "ADD_ELEMENT", element: { ...el, pen: activePenIndex } });
         }
         setSelectedIds(pasted.map((el) => el.id));
         // Shift clipboard so subsequent pastes cascade
@@ -96,11 +96,9 @@ export function useDocumentKeyboard({
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
         dispatch({ type: "SNAPSHOT" });
         const toDelete = new Set(selectedIds);
-        for (const layer of layers) {
-          for (const el of layer.elements) {
-            if (toDelete.has(el.id)) {
-              dispatch({ type: "DELETE_ELEMENT", layerId: layer.id, elementId: el.id });
-            }
+        for (const el of elements) {
+          if (toDelete.has(el.id)) {
+            dispatch({ type: "DELETE_ELEMENT", elementId: el.id });
           }
         }
         setSelectedIds([]);

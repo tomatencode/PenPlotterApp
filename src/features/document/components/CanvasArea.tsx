@@ -10,11 +10,11 @@ import { getHints } from "../canvas/SelectionHints";
 interface Props {
   doc: PnplttrDocument;
   fonts: Map<string, PlttrFont>;
-  activeLayerId: string;
+  activePenIndex: number;
   activeTool: Tool;
   selectedIds: string[];
   viewport: Viewport;
-  onAddElement: (layerId: string, el: Element) => void;
+  onAddElement: (el: Element) => void;
   onSelectElements: (ids: string[]) => void;
   onMoveElement: (totalDx: number, totalDy: number) => void;
   onMoveStart: (elementIds: string[]) => void;
@@ -26,7 +26,7 @@ interface Props {
 export default function CanvasArea({
   doc,
   fonts,
-  activeLayerId,
+  activePenIndex,
   activeTool,
   selectedIds,
   viewport,
@@ -42,16 +42,16 @@ export default function CanvasArea({
   const [ghost, setGhost] = useState<Ghost | null>(null);
   const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, marquee } =
     useCanvasPointer({
-      svgRef, viewport, activeTool, activeLayerId,
-      layers: doc.layers, selectedIds,
-      ghost, setGhost, page: doc.page,
+      svgRef, viewport, activeTool, activePenIndex,
+      elements: doc.elements, nextZ: doc.elements.length,
+      selectedIds, ghost, setGhost, page: doc.page,
       onAddElement, onSelectElements, onMoveElement, onMoveStart,
       onDeformStart, onDeformElement, onViewportChange,
     });
 
   // For single-element operations (deform handles) we need the actual element
   const singleSelectedElement = selectedIds.length === 1
-    ? doc.layers.flatMap(l => l.elements).find(el => el.id === selectedIds[0]) ?? null
+    ? doc.elements.find(el => el.id === selectedIds[0]) ?? null
     : null;
 
   const selectedSet = new Set(selectedIds);
@@ -84,25 +84,25 @@ export default function CanvasArea({
           {/* Paper */}
           <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height} fill="#e8eaf1" />
 
-          {/* Elements */}
-          {doc.layers.flatMap((layer) =>
-            layer.elements.flatMap((el) => {
+          {/* Elements — rendered sorted by z */}
+          {[...doc.elements].sort((a, b) => a.z - b.z).flatMap((el) => {
               const strokes = elementToStrokes(el, fonts);
               const isSelected = selectedSet.has(el.id);
+              const pen = doc.pens[el.pen] ?? doc.pens[0];
               let i = 0;
               return strokes.map((stroke) => {
                 const d = strokeToSvgPath(stroke);
                 return (
-                  <g key={`${layer.id}-${el.id}-${i++}`}>
-                    <path d={d} fill="none" stroke={isSelected ? "#4d90fe" : layer.pen.color}
-                      strokeWidth={layer.pen.width / viewport.zoom}
+                  <g key={`${el.id}-${i++}`}>
+                    <path d={d} fill="none" stroke={isSelected ? "#4d90fe" : pen.color}
+                      strokeWidth={pen.width / viewport.zoom}
                       strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"
                     />
 
                     {/* Invisible hit area for selection */}
                     {activeTool === "select" && (
                       <path d={d} fill="none" stroke="transparent"
-                        strokeWidth={(layer.pen.width + 8) / viewport.zoom}
+                        strokeWidth={(pen.width + 8) / viewport.zoom}
                         strokeLinecap="round" strokeLinejoin="round"
                         style={{ cursor: "pointer" }}
                         onPointerDown={(e) => { e.stopPropagation(); startElementDrag(e, el.id); }}
@@ -111,13 +111,12 @@ export default function CanvasArea({
                   </g>
                 );
               })
-            })
-          )}
+            })}
 
           {/* Selection hints for all selected elements; deform handles only for single selection */}
           {activeTool === "select" && selectedIds.length > 0 && (
             <>
-              {doc.layers.flatMap(l => l.elements).filter(el => selectedSet.has(el.id)).map(el => (
+              {doc.elements.filter(el => selectedSet.has(el.id)).map(el => (
                 <g key={`hint-${el.id}`}>
                   {getHints(el).map((hint, i) => (
                     <path key={i} d={strokeToSvgPath(hint)} fill="none" stroke="#60a5fa" opacity={0.5}

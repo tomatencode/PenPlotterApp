@@ -15,7 +15,6 @@ function translateElement(el: Element, dx: number, dy: number): Element {
 }
 
 type DragSnap = {
-  layerId: string;
   element: Element;
   bounds: ElementBounds;
 };
@@ -30,10 +29,9 @@ export function useElementDrag(
   /** Call once at the start of a drag with all element IDs that should move together. */
   const onMoveStart = useCallback((elementIds: string[]) => {
     snapsRef.current = elementIds.flatMap(elementId => {
-      const layer = doc.layers.find(l => l.elements.some(el => el.id === elementId));
-      if (!layer) return [];
-      const element = layer.elements.find(el => el.id === elementId)!;
-      return [{ layerId: layer.id, element, bounds: elementBounds(element) }];
+      const element = doc.elements.find(el => el.id === elementId);
+      if (!element) return [];
+      return [{ element, bounds: elementBounds(element) }];
     });
     if (snapsRef.current.length > 0) recordHistory();
   }, [doc, recordHistory]);
@@ -53,8 +51,8 @@ export function useElementDrag(
       clampedDx = Math.max(ws.x - b.minX, Math.min(ws.x + ws.w - b.maxX, clampedDx));
       clampedDy = Math.max(ws.y - b.minY, Math.min(ws.y + ws.h - b.maxY, clampedDy));
     }
-    for (const { layerId, element } of snaps) {
-      dispatch({ type: "UPDATE_ELEMENT", layerId, element: translateElement(element, clampedDx, clampedDy) });
+    for (const { element } of snaps) {
+      dispatch({ type: "UPDATE_ELEMENT", element: translateElement(element, clampedDx, clampedDy) });
     }
   }, [doc, dispatch]);
 

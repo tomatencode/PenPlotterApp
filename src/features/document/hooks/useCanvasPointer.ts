@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import type { Element, Layer, Tool, PageSettings } from "../types";
+import type { Element, Tool, PageSettings } from "../types";
 import { newId, workspaceBounds } from "../utils";
 import { Ghost } from "../canvas/Ghost";
 import { type Viewport, viewportToDoc } from "../canvas/viewport";
@@ -46,14 +46,16 @@ interface Options {
   svgRef: React.RefObject<SVGSVGElement | null>;
   viewport: Viewport;
   activeTool: Tool;
-  activeLayerId: string;
-  /** All layers, needed for marquee hit-testing. */
-  layers: Layer[];
+  activePenIndex: number;
+  /** All elements, needed for marquee hit-testing. */
+  elements: Element[];
+  /** The next z value to assign to new elements. */
+  nextZ: number;
   /** Currently selected element IDs, needed so element-click can extend vs. replace. */
   selectedIds: string[];
   ghost: Ghost | null;
   page: PageSettings;
-  onAddElement: (layerId: string, el: Element) => void;
+  onAddElement: (el: Element) => void;
   setGhost: (g: Ghost | null) => void;
   /** Replace the entire selection with a new set of IDs (pass [] to clear). */
   onSelectElements: (ids: string[]) => void;
@@ -68,8 +70,9 @@ export function useCanvasPointer({
   svgRef,
   viewport,
   activeTool,
-  activeLayerId,
-  layers,
+  activePenIndex,
+  elements,
+  nextZ,
   selectedIds,
   ghost,
   page,
@@ -219,7 +222,7 @@ export function useCanvasPointer({
         const h = Math.abs(curDocY - startDocY);
         if (w > 2 && h > 2) {
           const mode = curDocX >= startDocX ? "enclosed" : "crossing";
-          const hit = elementsInMarquee(layers, x, y, w, h, mode);
+          const hit = elementsInMarquee(elements, x, y, w, h, mode);
           if (additive) {
             // Union: add newly hit elements to the existing selection
             const merged = [...new Set([...selectedIdsRef.current, ...hit])];
@@ -236,7 +239,7 @@ export function useCanvasPointer({
     if (activeTool === "pen") {
       if (!ghostRef.current || ghostRef.current.type !== "Drawing" || ghostRef.current.points.length < 2) { setGhost(null); return; }
       const id = newId();
-      onAddElement(activeLayerId, { id, type: "Drawing", points: ghostRef.current.points });
+      onAddElement({ id, type: "Drawing", pen: activePenIndex, z: nextZ, points: ghostRef.current.points });
       setGhost(null);
       return;
     }
@@ -251,9 +254,9 @@ export function useCanvasPointer({
     if (Math.hypot(mx - sx, my - sy) < 0.5) return;
 
     if (!isShapeTool(activeTool)) return;
-    const el = SHAPE_TOOLS[activeTool].makeElement(newId(), sx, sy, mx, my, page);
-    onAddElement(activeLayerId, el);
-  }, [activeTool, activeLayerId, viewport, page, layers, onAddElement, onSelectElements]);
+    const el = SHAPE_TOOLS[activeTool].makeElement(newId(), sx, sy, mx, my, page, activePenIndex, nextZ);
+    onAddElement(el);
+  }, [activeTool, activePenIndex, nextZ, viewport, page, elements, onAddElement, onSelectElements]);
 
   const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
     const rect = svgRef.current!.getBoundingClientRect();
