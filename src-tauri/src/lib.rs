@@ -22,6 +22,7 @@ pub fn run() {
             file_actions::delete_file,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
+            plotter_discovery::forget_plotter,
             handwriting::generate_handwriting,
         ])
         .run(tauri::generate_context!())

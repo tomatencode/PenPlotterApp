@@ -143,12 +143,9 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
             const lastSeen = lastSeenRef.current.get(plotter.url) ?? Date.now();
             if (Date.now() - lastSeen > 10_000) {
               removePlotter(plotter.url);
-              // Restart mDNS discovery to flush the daemon's cache. This ensures
-              // the plotter is re-resolved when it powers back on and announces
-              // itself, even if the daemon still has the old entry cached.
-              invoke("stop_plotter_discovery")
-                .then(() => invoke("start_plotter_discovery"))
-                .catch(console.error);
+              // Flush the mDNS daemon's cache for this plotter so it is
+              // re-detected via a fresh ServiceResolved when it powers back on.
+              invoke("forget_plotter", { url: plotter.url }).catch(console.error);
             } else {
               setPlotters((prev) => prev.map(
                 (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
