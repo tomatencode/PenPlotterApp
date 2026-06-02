@@ -36,6 +36,8 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   // Internal clients — not exposed, never put in React state
   const clientsRef = useRef<Map<string, PlotterClient>>(new Map());
   const iterationFetchedRef = useRef<Set<string>>(new Set());
+  // Timestamp of the last successful poll response per URL.
+  const lastSeenRef = useRef<Map<string, number>>(new Map());
 
   function getClient(url: string): PlotterClient {
     if (!clientsRef.current.has(url)) {
@@ -45,6 +47,9 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   }
 
   function addPlotter(url: string) {
+    // Refresh before the early-return so that a plotter-found event for an
+    // already-known (but "connecting") plotter resets the timeout clock.
+    lastSeenRef.current.set(url, Date.now());
     if (plottersRef.current.some((p) => p.url === url)) return;
     getClient(url); // ensure client exists
     setPlotters((prev) => {
@@ -57,6 +62,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   function removePlotter(url: string) {
     clientsRef.current.delete(url);
     iterationFetchedRef.current.delete(url);
+    lastSeenRef.current.delete(url);
     setPlotters((prev) => prev.filter((p) => p.url !== url));
     console.log(`Plotter lost: ${url}`);
   }
@@ -127,12 +133,27 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
           proms.push(iterProm);
         }
 
-        // If any fetch failed, override state to "connecting" to indicate an issue.
+        // Track last-seen time and remove plotters unresponsive for more than 10 s.
+        // The plotter will re-appear naturally when mDNS fires plotter-found again.
         Promise.allSettled(proms).then((results) => {
+          if (results.some((r) => r.status === "fulfilled")) {
+            lastSeenRef.current.set(plotter.url, Date.now());
+          }
           if (results.some((r) => r.status === "rejected")) {
-            setPlotters((prev) => prev.map(
-              (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
-            );
+            const lastSeen = lastSeenRef.current.get(plotter.url) ?? Date.now();
+            if (Date.now() - lastSeen > 10_000) {
+              removePlotter(plotter.url);
+              // Restart mDNS discovery to flush the daemon's cache. This ensures
+              // the plotter is re-resolved when it powers back on and announces
+              // itself, even if the daemon still has the old entry cached.
+              invoke("stop_plotter_discovery")
+                .then(() => invoke("start_plotter_discovery"))
+                .catch(console.error);
+            } else {
+              setPlotters((prev) => prev.map(
+                (p) => p.url === plotter.url ? { ...p, displayInfo: { ...p.displayInfo, state: "connecting" } } : p)
+              );
+            }
           }
         });
       }
