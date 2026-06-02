@@ -121,22 +121,33 @@ fn load_model(#[cfg_attr(debug_assertions, allow(unused_variables))] app: &tauri
 /// Returns strokes in **normalised space**: all coordinates are in [0, 1].
 /// The TypeScript layer scales them into the element bounding box at render time.
 #[tauri::command]
-pub fn generate_handwriting(
+pub async fn generate_handwriting(
     app: tauri::AppHandle,
     text: String,
     style: u32,
     state: tauri::State<'_, HandwritingState>,
 ) -> Result<Vec<PlotterStroke>, String> {
-    let model_result = state.model.get_or_init(|| load_model(&app));
+    let model_arc = match state.model.get_or_init(|| load_model(&app)) {
+        Err(e) => return Err(e.clone()),
+        Ok(model) => Arc::clone(model),
+    };
 
-    match model_result {
-        Err(e) => Err(e.clone()),
-        Ok(model) => {
-            let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
-            if lines.is_empty() { return Ok(vec![]); }
-            run_inference(model, &lines, style)
-        }
+    let lines: Vec<String> = text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(String::from)
+        .collect();
+
+    if lines.is_empty() {
+        return Ok(vec![]);
     }
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let lines_ref: Vec<&str> = lines.iter().map(String::as_str).collect();
+        run_inference(&model_arc, &lines_ref, style)
+    })
+    .await
+    .map_err(|e| format!("Thread join error: {e}"))?
 }
 
 // ── Inference ─────────────────────────────────────────────────────────────────

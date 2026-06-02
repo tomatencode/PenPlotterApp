@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import type { Element, Pen, PlttrFont } from "../types";
-import type { PlotterStroke } from "../plotterMove";
+import { useHandwritingGeneration } from "../hooks/useHandwritingGeneration";
 
 interface Props {
   elements: Element[];
@@ -27,7 +26,7 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
 }
 
 export default function PropertiesPanel({ elements, fonts, pens, selectedIds, onUpdateElement, onDeleteElement }: Props) {
-  const [generating, setGenerating] = useState(false);
+  const { generating, generate: generateHandwriting } = useHandwritingGeneration();
   const [showPenDropdown, setShowPenDropdown] = useState(false);
 
   // Find the selected element
@@ -115,6 +114,7 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
           </div>
 
           <NumField label="Z" value={found.z} onChange={(v) => update({ z: Math.max(v, 0) })} />
+
           <div className="h-px bg-slate-800 mx-1 shrink-0" />
 
           {found.type === "Line" && (() => {
@@ -186,22 +186,6 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
 
           {found.type === "Handwriting" && (() => {
             const el = found;
-            async function generate() {
-              setGenerating(true);
-              try {
-                const strokes = await invoke<PlotterStroke[]>("generate_handwriting", {
-                  text: el.text,
-                  style: el.style,
-                });
-                console.log("[handwriting] Received strokes:", strokes);
-                onUpdateElement({ ...el, strokes });
-              } catch (e) {
-                console.error("Handwriting generation failed:", e);
-                alert("Handwriting generation failed: " + String(e));
-              } finally {
-                setGenerating(false);
-              }
-            }
             return <>
               <div className="flex flex-col gap-1 min-w-0">
                 <span className="text-xs text-slate-600">Content</span>
@@ -213,21 +197,32 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
                 />
               </div>
               <NumField label="Style (0–9)" value={el.style}
-                onChange={(v) => update({ style: Math.round(Math.max(0, Math.min(9, v))) })} />
+                onChange={(v) => update({ style: Math.round(Math.max(0, Math.min(9, v))) })}
+              />
+
+              <button
+                onClick={() => generateHandwriting(el.text, el.style, (strokes) => onUpdateElement({ ...el, strokes }))}
+                disabled={generating}
+                className="mt-1 w-full py-2 rounded-md text-xs font-semibold transition-colors
+                  bg-gradient-to-r from-violet-600/30 via-blue-600/25 to-violet-600/30
+                  border border-violet-500/40 text-violet-300
+                  hover:from-violet-600/50 hover:via-blue-600/40 hover:to-violet-600/50
+                  hover:border-violet-400/60 hover:text-violet-200
+                  disabled:opacity-40
+                  flex items-center justify-center gap-1.5"
+              >
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+                  <path d="M6 1l1.2 3.6L11 6 7.2 7.4 6 11 4.8 7.4 1 6l3.8-1.4z" fill="currentColor" stroke="none" />
+                </svg>
+                {generating ? "Generating…" : "Generate"}
+              </button>
+              
+              <div className="h-px bg-slate-800 mx-1 shrink-0" />
+
               <NumField label="X (mm)"      value={el.x} onChange={(v) => update({ x: v })} />
               <NumField label="Y (mm)"      value={el.y} onChange={(v) => update({ y: v })} />
               <NumField label="Width (mm)"  value={el.w} onChange={(v) => update({ w: Math.max(1, v) })} />
               <NumField label="Height (mm)" value={el.h} onChange={(v) => update({ h: Math.max(1, v) })} />
-              <button
-                onClick={generate}
-                disabled={generating}
-                className="mt-1 w-full py-1.5 rounded-md text-xs font-medium transition-colors
-                  bg-blue-600/20 border border-blue-500/40 text-blue-400
-                  hover:bg-blue-600/30 hover:border-blue-500/60
-                  disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Generate
-              </button>
             </>;
           })()}
         </div>
