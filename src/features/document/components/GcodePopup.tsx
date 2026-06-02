@@ -35,7 +35,6 @@ export default function GcodePopup({
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const [conversionProgress, setConversionProgress] = useState<number>(0);
 	const [isUploading, setIsUploading] = useState(false);
-	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
 	const { plotters } = usePlotterDiscovery();
 
 	const navigate = useNavigate();
@@ -86,7 +85,6 @@ export default function GcodePopup({
 		setIsUploading(false);
 		setStatusText("Generating GCode…");
 		setGcode("");
-		setShowPlotterDropdown(false);
 
 		const worker = new Worker(
 			new URL("../gcodeGeneration/gcodeWorker.ts", import.meta.url),

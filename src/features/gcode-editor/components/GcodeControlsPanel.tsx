@@ -29,8 +29,6 @@ export default function GcodeControlsPanel({
 	onUpload,
 	onUploadAndStart,
 }: Props) {
-	const [showPlotterDropdown, setShowPlotterDropdown] = useState(false);
-
 	const lines = gcode.split(/\r?\n/);
 	const hasGcode = gcode.trim().length > 0;
 
