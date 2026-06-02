@@ -3,6 +3,7 @@ import { elementsToPlotterStrokes } from "../renderElements";
 import { makeConverter, gcodeToDoc } from "./coordConverter";
 import { DEFAULT_FONTS } from "../text/defaultFonts";
 import { optimizeStrokes } from "./optimizeStrokes";
+import { optimizePenSwitches } from "./optimizePenSwitches";
 import { strokeToGcode } from "./strokeToGcode";
 import { compressGcode } from "./compressGcode";
 import { type JobStats, accumulateStats, statsHeader } from "./gcodeStats";
@@ -18,28 +19,30 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
   let penPos: [number, number] = home;
   let gcode = "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
 
-  const penCount = doc.pens.length;
-  // Pen group work takes 0–90 %, compression takes the last 10 %
-  const penShare = penCount > 0 ? 90 / penCount : 0;
+  onProgress?.(0, `Optimizing pen switches…`);
+  const batches = optimizePenSwitches(doc.elements);
+  const batchCount = batches.length;
 
-  for (let penIdx = 0; penIdx < penCount; penIdx++) {
+  // Batch work takes 0–90 %, compression takes the last 10 %
+  const batchShare = batchCount > 0 ? 90 / batchCount : 0;
+
+  for (let batchIdx = 0; batchIdx < batchCount; batchIdx++) {
+    const { penIdx, elements: penElements } = batches[batchIdx];
     const pen = doc.pens[penIdx];
-    const penElements = doc.elements.filter((e) => e.pen === penIdx);
-    if (penElements.length === 0) continue;
+    const batchBase = batchIdx * batchShare;
 
-    const penBase = penIdx * penShare;
-    gcode += `; Pen ${penIdx + 1} (${pen.color})\n`;
+    gcode += `; Pen: ${pen.name} (${pen.color}, ${pen.width}mm)\n`;
     // TODO: add pen switching GCode commands here, using pen.color / pen.width
 
-    onProgress?.(Math.round(penBase + penShare * 0.05), `Pen ${penIdx + 1}/${penCount}: rendering elements…`);
+    onProgress?.(Math.round(batchBase + batchShare * 0.05), `Pen: ${pen.name}, batch ${batchIdx + 1}/${batchCount}: rendering elements…`);
     const strokes = elementsToPlotterStrokes(penElements, fonts);
 
-    onProgress?.(Math.round(penBase + penShare * 0.8), `Pen ${penIdx + 1}/${penCount}: optimizing stroke order…`);
+    onProgress?.(Math.round(batchBase + batchShare * 0.8), `Pen: ${pen.name}, batch ${batchIdx + 1}/${batchCount}: optimizing stroke order…`);
     const optimized = optimizeStrokes(strokes, home);
 
     penPos = accumulateStats(stats, optimized, penPos);
 
-    onProgress?.(Math.round(penBase + penShare * 0.9), `Pen ${penIdx + 1}/${penCount}: writing GCode…`);
+    onProgress?.(Math.round(batchBase + batchShare * 0.9), `Pen: ${pen.name}, batch ${batchIdx + 1}/${batchCount}: writing GCode…`);
     gcode += "M5\n"; // ensure pen up before moving to first stroke
     for (const stroke of optimized) {
       gcode += strokeToGcode(stroke, conv);
