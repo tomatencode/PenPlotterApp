@@ -87,7 +87,7 @@ export default function DocumentScreenContent() {
   const { addPen, deletePen, setPen, updatePage } =
     usePenActions(doc.pens.length, activePenIndex, setActivePenIndex, dispatch);
 
-  useDocumentKeyboard({ dispatch, elements: doc.elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
+  useDocumentKeyboard({ dispatch, elements: doc.elements, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
 
   const fonts = useMemo(
     () => new Map([...DEFAULT_FONTS, ...Object.entries(doc.fonts ?? {})]),

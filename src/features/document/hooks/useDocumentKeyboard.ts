@@ -8,22 +8,21 @@ const PASTE_OFFSET = 10;
 function offsetElement(el: Element): Element {
   switch (el.type) {
     case "Drawing":
-      return { ...el, id: newId(), points: el.points.map(([x, y]) => [x + PASTE_OFFSET, y + PASTE_OFFSET]) };
+      return { ...el, id: newId(), pen: el.pen, points: el.points.map(([x, y]) => [x + PASTE_OFFSET, y + PASTE_OFFSET]) };
     case "Line":
-      return { ...el, id: newId(), x1: el.x1 + PASTE_OFFSET, y1: el.y1 + PASTE_OFFSET, x2: el.x2 + PASTE_OFFSET, y2: el.y2 + PASTE_OFFSET };
+      return { ...el, id: newId(), pen: el.pen, x1: el.x1 + PASTE_OFFSET, y1: el.y1 + PASTE_OFFSET, x2: el.x2 + PASTE_OFFSET, y2: el.y2 + PASTE_OFFSET };
     case "Rect":
     case "Text":
     case "Handwriting":
-      return { ...el, id: newId(), x: el.x + PASTE_OFFSET, y: el.y + PASTE_OFFSET };
+      return { ...el, id: newId(), pen: el.pen, x: el.x + PASTE_OFFSET, y: el.y + PASTE_OFFSET };
     case "Circle":
-      return { ...el, id: newId(), cx: el.cx + PASTE_OFFSET, cy: el.cy + PASTE_OFFSET };
+      return { ...el, id: newId(), pen: el.pen, cx: el.cx + PASTE_OFFSET, cy: el.cy + PASTE_OFFSET };
   }
 }
 
 interface Options {
   dispatch: Dispatch<HistoryAction>;
   elements: Element[];
-  activePenIndex: number;
   selectedIds: string[];
   setSelectedIds: (ids: string[]) => void;
   setActiveTool: (tool: Tool) => void;
@@ -33,7 +32,6 @@ interface Options {
 export function useDocumentKeyboard({
   dispatch,
   elements,
-  activePenIndex,
   selectedIds,
   setSelectedIds,
   setActiveTool,
@@ -42,14 +40,14 @@ export function useDocumentKeyboard({
   // Keep a ref to the latest values so the event listener never needs to be
   // re-registered. Without this, adding/removing a selection would tear down
   // and re-attach the listener on every pointer event.
-  const latest = useRef({ elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave });
-  useEffect(() => { latest.current = { elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave }; });
+  const latest = useRef({ elements, selectedIds, setSelectedIds, setActiveTool, onSave });
+  useEffect(() => { latest.current = { elements, selectedIds, setSelectedIds, setActiveTool, onSave }; });
 
   const clipboard = useRef<Element[]>([]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      const { elements, activePenIndex, selectedIds, setSelectedIds, setActiveTool, onSave } = latest.current;
+      const { elements, selectedIds, setSelectedIds, setActiveTool, onSave } = latest.current;
 
       if ((e.ctrlKey || e.metaKey) && e.key === "c" && selectedIds.length > 0) {
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
@@ -65,7 +63,7 @@ export function useDocumentKeyboard({
         const pasted = clipboard.current.map(offsetElement);
         dispatch({ type: "SNAPSHOT" });
         for (const el of pasted) {
-          dispatch({ type: "ADD_ELEMENT", element: { ...el, pen: activePenIndex } });
+          dispatch({ type: "ADD_ELEMENT", element: { ...el } });
         }
         setSelectedIds(pasted.map((el) => el.id));
         // Shift clipboard so subsequent pastes cascade
