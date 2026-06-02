@@ -83,7 +83,7 @@ export default function PensPanel({
                       type="text"
                       value={pen.name}
                       onChange={(e) => onSetPen(idx, { ...pen, name: e.target.value })}
-                      onBlur={(e) => { if (!e.target.value.trim()) onSetPen(idx, { ...pen, name: `Pen` }); }}
+                      onBlur={(e) => { if (!e.target.value.trim()) onSetPen(idx, { ...pen, name: `Pen ${idx + 1}` }); }}
                       className="w-full px-1 py-1 bg-transparent text-xs text-slate-300 outline-none focus:underline focus:underline-blue-500/50"
                     />
 

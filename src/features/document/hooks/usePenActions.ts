@@ -1,7 +1,6 @@
 import type { Dispatch } from "react";
 import type { Pen, PageSettings } from "../types";
 import type { HistoryAction } from "../docState";
-import { DEFAULT_PEN } from "../constants";
 
 export function usePenActions(
   penCount: number,
@@ -11,7 +10,7 @@ export function usePenActions(
 ) {
   function addPen() {
     dispatch({ type: "SNAPSHOT" });
-    dispatch({ type: "ADD_PEN", pen: { ...DEFAULT_PEN } });
+    dispatch({ type: "ADD_PEN", pen: { ...{ name: `Pen ${penCount + 1}`, color: "#19191a", width: 1.2 } } });
     setActivePenIndex(penCount); // new pen will be at this index
   }
 

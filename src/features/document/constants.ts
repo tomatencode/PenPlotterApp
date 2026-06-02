@@ -1,7 +1,3 @@
-import type { Pen } from "./types";
-
-export const DEFAULT_PEN: Pen = { name: "Pen", color: "#19191a", width: 1.2 };
-
 export interface PagePreset {
   label: string;
   width: number;  // mm
@@ -37,6 +33,8 @@ export const DEFAULT_DOCUMENT = {
     workspace_width: 185,
     workspace_height: 265,
   },
-  pens: [DEFAULT_PEN],
+  pens: [
+    { name: "Pen 1", color: "#19191a", width: 1.2 }
+  ],
   elements: [],
 };
