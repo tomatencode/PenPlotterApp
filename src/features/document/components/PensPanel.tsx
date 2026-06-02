@@ -73,19 +73,32 @@ export default function PensPanel({
                 <>
                   <div className="flex items-center gap-2">
                     {/* Pen color dot */}
-                    <div
-                      className="w-3 h-3 rounded-full shrink-0 border border-white/10"
-                      style={{ backgroundColor: pen.color }}
-                    />
+                    {!isActive && (
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0 border border-white/10"
+                        style={{ backgroundColor: pen.color }}
+                      />
+                    )}
 
-                    {/* Name */}
-                    <input
-                      type="text"
-                      value={pen.name}
-                      onChange={(e) => onSetPen(idx, { ...pen, name: e.target.value })}
-                      onBlur={(e) => { if (!e.target.value.trim()) onSetPen(idx, { ...pen, name: `Pen ${idx + 1}` }); }}
-                      className="w-full px-1 py-1 bg-transparent text-xs text-slate-300 outline-none focus:underline focus:underline-blue-500/50"
-                    />
+                    {/* Name — auto-width via ghost span */}
+                    <div className="relative min-w-0">
+                      {/* Invisible span that sizes the container to fit the text */}
+                      <span
+                        aria-hidden
+                        className="invisible text-xs px-1 py-1 whitespace-pre pointer-events-none"
+                      >
+                        {pen.name || "\u00a0"}
+                      </span>
+                      <input
+                        type="text"
+                        value={pen.name}
+                        onChange={(e) => onSetPen(idx, { ...pen, name: e.target.value })}
+                        onBlur={(e) => { if (!e.target.value.trim()) onSetPen(idx, { ...pen, name: `Pen ${idx + 1}` }); }}
+                        className="absolute inset-0 bg-transparent text-xs text-slate-300 outline-none focus:underline focus:underline-blue-500/50 px-1 py-1"
+                      />
+                    </div>
+
+                    <div className="flex-1" />
 
                     {/* delete — only visible on active / hover */}
                     <div
