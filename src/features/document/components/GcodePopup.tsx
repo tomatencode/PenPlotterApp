@@ -142,7 +142,9 @@ export default function GcodePopup({
 			try {
 				await invoke("save_file", { path: selectedPath, content: gcode });
 				await invoke("push_recent_file", { filePath: selectedPath });
-				setStatusText(`Saved GCode to ${selectedPath}`);
+				setStatusText(`Saved GCode to ${selectedPath}, opening file...`);
+
+				await new Promise((r) => setTimeout(r, 1000)); // Wait a moment for the user to read the status
 
 				navigate("/gcode", { state: { path: selectedPath } });
 			} catch (e) {
@@ -182,7 +184,7 @@ export default function GcodePopup({
 					await client.startJob(fileName);
 
 					setStatusText(`Upload complete. Jumping to plotter page...`);
-					await new Promise((r) => setTimeout(r, 1000));
+					await new Promise((r) => setTimeout(r, 1000)); // Wait a moment for the user to read the status
 
 					navigate("/plotter", { state: { plotter: selectedPlotter } });
 				} else {
