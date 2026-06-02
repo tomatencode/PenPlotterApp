@@ -22,7 +22,7 @@ export default function PlotterDetailsRow({ plotter, showChevron = false, classN
       <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
       <div className={`flex-1 min-w-0 ${className}`}>
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-gray-200 leading-tight">
+          <p className="text-sm font-medium text-gray-200 leading-tight truncate">
             {plotter.displayInfo.name === "" ? "?" : plotter.displayInfo.name}
           </p>
           <p className="text-xs text-slate-600 italic">

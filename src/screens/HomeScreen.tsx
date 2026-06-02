@@ -111,7 +111,7 @@ export default function HomeScreen() {
     <div className="h-full bg-[#0a0c10] text-gray-100 flex overflow-hidden">
 
       {/* ── Left sidebar ── */}
-      <aside className="w-75 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto">
+      <aside className="flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto overflow-x-hidden">
 
         {/* Branding */}
         <div className="px-6 pt-7 pb-5">
@@ -136,10 +136,12 @@ export default function HomeScreen() {
 
         <div className="h-px bg-slate-800 mx-4" />
 
-        <PlotterList
-          plotters={plotters}
-          onPlotterClick={(p) => navigate("/plotter", { state: { plotter: p } })}
-        />
+        <div className="w-0 min-w-full overflow-hidden">
+          <PlotterList
+            plotters={plotters}
+            onPlotterClick={(p) => navigate("/plotter", { state: { plotter: p } })}
+          />
+        </div>
 
         <div className="flex-1" />
         <p className="px-6 py-4 text-xs text-slate-800">V {version}</p>
