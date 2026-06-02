@@ -1,6 +1,6 @@
-import { useState } from "react";
 import type { Element, Pen, PlttrFont } from "../types";
 import { useHandwritingGeneration } from "../hooks/useHandwritingGeneration";
+import { InlineDropdown } from "../../../shared/components/InlineDropdown";
 
 interface Props {
   elements: Element[];
@@ -27,7 +27,6 @@ function NumField({ label, value, onChange }: { label: string; value: number; on
 
 export default function PropertiesPanel({ elements, fonts, pens, selectedIds, onUpdateElement, onDeleteElement }: Props) {
   const { generating, generate: generateHandwriting } = useHandwritingGeneration();
-  const [showPenDropdown, setShowPenDropdown] = useState(false);
 
   // Find the selected element
   let found: Element | null = null;
@@ -71,46 +70,32 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
           {/* Pen */}
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs text-slate-600 w-16 shrink-0">Pen</span>
-            <div className={`flex-1 rounded-lg border bg-[#0a0c10] overflow-hidden transition-colors ${showPenDropdown ? "border-blue-500/40" : "border-slate-700/60"}`}>
-              {/* Trigger */}
-              <button
-                onClick={() => setShowPenDropdown((v) => !v)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/40 transition-colors text-left"
-              >
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/10"
-                  style={{ backgroundColor: pens[found.pen]?.color ?? "#888" }}
-                />
-                <span className="text-xs text-slate-300 flex-1 truncate">{pens[found.pen]?.name ?? `Pen ${found.pen + 1}`}</span>
-                <svg
-                  viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  className={`w-3 h-3 text-slate-600 shrink-0 transition-transform ${showPenDropdown ? "rotate-90" : ""}`}
-                >
-                  <path d="M4 2l4 4-4 4" />
-                </svg>
-              </button>
-              {/* Dropdown items */}
-              {showPenDropdown && (
-                pens.length !== 1 && (
-                <div className="border-t border-slate-700/60">
-                  {pens.map((pen, i) => i !== found!.pen && (
-                    <button
-                      key={i}
-                      onClick={() => { update({ pen: i }); setShowPenDropdown(false); }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/40 border-b border-slate-700/30 last:border-b-0 text-left transition-colors"
-                    >
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/10"
-                        style={{ backgroundColor: pen.color }}
-                      />
-                      <span className="text-xs text-slate-300 truncate">{pen.name}</span>
-                    </button>
-                  ))}
-                </div>
-                )
+            <InlineDropdown
+              value={found.pen}
+              options={pens.map((_, i) => i)}
+              onChange={(v) => update({ pen: v })}
+              keyOf={(i) => i}
+              renderSelected={(i) => (
+                <>
+                  <div
+                    className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/10"
+                    style={{ backgroundColor: pens[i]?.color ?? "#888" }}
+                  />
+                  <span className="text-xs text-slate-300 flex-1 truncate">
+                    {pens[i]?.name ?? `Pen ${i + 1}`}
+                  </span>
+                </>
               )}
-            </div>
+              renderOption={(i) => (
+                <>
+                  <div
+                    className="w-2.5 h-2.5 rounded-full shrink-0 border border-white/10"
+                    style={{ backgroundColor: pens[i]?.color ?? "#888" }}
+                  />
+                  <span className="text-xs text-slate-300 truncate">{pens[i]?.name ?? `Pen ${i + 1}`}</span>
+                </>
+              )}
+            />
           </div>
 
           <NumField label="Z" value={found.z} onChange={(v) => update({ z: Math.max(v, 0) })} />
@@ -166,15 +151,18 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xs text-slate-600 w-16 shrink-0">Font</span>
-                <select
+                <InlineDropdown
                   value={el.fontName}
-                  onChange={(e) => update({ fontName: e.target.value })}
-                  className="bg-slate-800 w-full appearance-none border border-slate-700 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  {[...fonts.keys()].map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
+                  options={[...fonts.keys()]}
+                  onChange={(v) => update({ fontName: v })}
+                  keyOf={(n) => n}
+                  renderSelected={(n) => (
+                    <span className="text-xs text-slate-300 flex-1 truncate">{n}</span>
+                  )}
+                  renderOption={(n) => (
+                    <span className="text-xs text-slate-300 truncate">{n}</span>
+                  )}
+                />
               </div>
               <NumField label="Size (mm)"   value={el.size} onChange={(v) => update({ size: Math.max(0.5, v) })} />
               <NumField label="X (mm)"      value={el.x}    onChange={(v) => update({ x: v })} />

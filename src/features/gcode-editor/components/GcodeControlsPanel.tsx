@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import type { Plotter } from "../../plotter/discoveryContext";
+import { InlineDropdown } from "../../../shared/components/InlineDropdown";
 
 
 function formatBytes(bytes: number): string {
@@ -44,60 +45,20 @@ export default function GcodeControlsPanel({
 				</div>
 			</div>
 
-			{/* Plotter selector */}
+			{/* Plotter */}
 			<div className="px-4 pt-3 pb-4 border-b border-slate-700/60">
 				<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Plotter</p>
-
-				<div
-					className={`rounded-lg border bg-[#0a0c10] overflow-hidden transition-colors ${
-						showPlotterDropdown ? "border-blue-500/40" : "border-slate-700/60"
-					}`}
-				>
-					{selectedPlotter ? (
-						<button
-							onClick={() => setShowPlotterDropdown((v) => !v)}
-							disabled={isBusy || plotters.length === 0}
-							className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800/40 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<PlotterDetailsRow plotter={selectedPlotter} />
-							<svg
-								viewBox="0 0 12 12"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.5"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								className={`w-3 h-3 text-slate-600 shrink-0 transition-transform ${
-									showPlotterDropdown ? "rotate-90" : ""
-								}`}
-							>
-								<path d="M4 2l4 4-4 4" />
-							</svg>
-						</button>
-					) : (
-						<div className="px-3 py-2 text-xs text-slate-600 italic">No plotter available</div>
-					)}
-
-					{showPlotterDropdown &&
-						plotters.filter((p) => p.url !== selectedPlotter?.url).length > 0 && (
-							<div className="border-t border-slate-700/60">
-								{plotters
-									.filter((p) => p.url !== selectedPlotter?.url)
-									.map((plotter) => (
-										<button
-											key={plotter.url}
-											onClick={() => {
-												onSelectPlotter(plotter.url);
-												setShowPlotterDropdown(false);
-											}}
-											className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800/40 border-b border-slate-700/30 last:border-b-0 text-left transition-colors"
-										>
-											<PlotterDetailsRow plotter={plotter} />
-										</button>
-									))}
-							</div>
-						)}
-				</div>
+				
+				<InlineDropdown
+					value={selectedPlotter}
+					options={plotters}
+					onChange={(p) => onSelectPlotter(p.url)}
+					keyOf={(p) => p.url}
+					renderSelected={(p) => <PlotterDetailsRow plotter={p} />}
+					renderOption={(p) => <PlotterDetailsRow plotter={p} />}
+					disabled={isBusy || plotters.length === 0}
+					placeholder={<div className="px-3 py-2 text-xs text-slate-600 italic">No plotter available</div>}
+				/>
 			</div>
 
 			{/* Actions */}
