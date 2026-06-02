@@ -1,4 +1,3 @@
-import { useState } from "react";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import type { Plotter } from "../../plotter/discoveryContext";
 import { InlineDropdown } from "../../../shared/components/InlineDropdown";
