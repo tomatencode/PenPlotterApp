@@ -109,10 +109,13 @@ export default function PlotterFileList({
 
                     <div className="flex gap-1.5">
                       <button
-                        className="flex-1 px-2 py-1.5 rounded-md text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex-1 flex items-center gap-1.5 px-3 py-1.5 bg-blue-700/80 hover:bg-blue-600/80 border border-blue-600/60 hover:border-blue-500 rounded-lg text-xs font-semibold text-blue-100 transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-sm shadow-blue-900/30"
                         disabled={startingFile !== null || uiState !== "idle"}
                         onClick={() => onStartFile(filename)}
                       >
+                        <svg viewBox="0 0 16 16" fill="none" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
+                          <polygon points="4,2 13,8 4,14" fill="currentColor" stroke="none" />
+                        </svg>
                         {startingFile === filename ? "Starting…" : "Start Job"}
                       </button>
                       <button
