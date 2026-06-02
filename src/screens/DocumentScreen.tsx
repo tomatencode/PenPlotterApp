@@ -154,6 +154,7 @@ export default function DocumentScreenContent() {
           <PropertiesPanel
             elements={doc.elements}
             fonts={fonts}
+            pens={doc.pens}
             selectedIds={selectedIds}
             onUpdateElement={(el) => {
               dispatch({ type: "SNAPSHOT" });
