@@ -7,7 +7,7 @@ import { optimizeStrokes } from "./optimizeStrokes";
 import { optimizePenSwitches } from "./optimizePenSwitches";
 import { strokeToGcode } from "./strokeToGcode";
 import { compressGcode } from "./compressGcode";
-import { type JobStats, accumulateStats, statsHeader } from "./gcodeStats";
+import { generateStats, statsHeader } from "./gcodeStats";
 
 export type ProgressCallback = (pct: number, status: string) => void;
 
@@ -40,20 +40,14 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
 
   // ── Phase 2 (80–85 %): accumulate stats ──────────────────────────────────
   onProgress?.(80, "Computing stats…");
-  const stats: JobStats = {
-    travel_mm: 0,
-    draw_mm: 0,
-    pen_lifts: 0,
-    pen_switches: Math.max(0, processed.length - 1),
-  };
-  let penPos: [number, number] = home;
-  for (const { strokes } of processed) {
-    penPos = accumulateStats(stats, strokes, penPos);
-  }
+  const stats = generateStats(processed, home);
 
   // ── Phase 3 (85–95 %): emit GCode ────────────────────────────────────────
   onProgress?.(85, "Writing GCode…");
-  let gcode = "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
+
+  let gcode = statsHeader(stats);
+  gcode += "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
+
   for (const { penIdx, strokes } of processed) {
     const pen = doc.pens[penIdx];
     gcode += `; Pen: ${pen.name} (${pen.color}, ${pen.width}mm)\n`;
@@ -68,7 +62,7 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
 
   // ── Phase 4 (95–100 %): compress ─────────────────────────────────────────
   onProgress?.(95, "Compressing GCode…");
-  const result = compressGcode(statsHeader(stats) + gcode);
+  const result = compressGcode(gcode);
   onProgress?.(100, "Done.");
   return result;
 }

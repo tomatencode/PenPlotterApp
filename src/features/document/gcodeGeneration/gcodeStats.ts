@@ -57,3 +57,21 @@ export function statsHeader(stats: JobStats): string {
     `; STATS: travel_mm=${Math.round(stats.travel_mm)} draw_mm=${Math.round(stats.draw_mm)} pen_lifts=${stats.pen_lifts} pen_switches=${stats.pen_switches}\n\n`
   );
 }
+
+/** Computes stats across all batches, starting the pen at `home`. */
+export function generateStats(
+  batches: { strokes: PlotterStroke[] }[],
+  home: [number, number],
+): JobStats {
+  const stats: JobStats = {
+    travel_mm: 0,
+    draw_mm: 0,
+    pen_lifts: 0,
+    pen_switches: Math.max(0, batches.length - 1),
+  };
+  let penPos: [number, number] = home;
+  for (const { strokes } of batches) {
+    penPos = accumulateStats(stats, strokes, penPos);
+  }
+  return stats;
+}
