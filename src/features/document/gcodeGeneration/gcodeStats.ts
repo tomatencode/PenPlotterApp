@@ -4,6 +4,7 @@ export interface JobStats {
   travel_mm: number;
   draw_mm: number;
   pen_lifts: number;
+  pen_switches: number;
 }
 
 function dist(x1: number, y1: number, x2: number, y2: number): number {
@@ -53,6 +54,6 @@ export function accumulateStats(
 
 export function statsHeader(stats: JobStats): string {
   return (
-    `; STATS: travel_mm=${Math.round(stats.travel_mm)} draw_mm=${Math.round(stats.draw_mm)} pen_lifts=${stats.pen_lifts}\n\n`
+    `; STATS: travel_mm=${Math.round(stats.travel_mm)} draw_mm=${Math.round(stats.draw_mm)} pen_lifts=${stats.pen_lifts} pen_switches=${stats.pen_switches}\n\n`
   );
 }
