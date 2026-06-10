@@ -9,11 +9,17 @@ interface Props {
   xMm: number;
   yMm: number;
   penColor?: string;
+  onDragStart?: (e: React.MouseEvent<SVGGElement>) => void;
 }
 
-export default function PlotterHead({ xMm, yMm, penColor = "#94a3b8" }: Props) {
+export default function PlotterHead({ xMm, yMm, penColor = "#94a3b8", onDragStart }: Props) {
   return (
-    <g data-layer="head" transform={`translate(${xMm}, ${yMm})`}>
+    <g
+      data-layer="head"
+      transform={`translate(${xMm}, ${yMm})`}
+      onMouseDown={onDragStart}
+      style={onDragStart ? { cursor: "grab" } : undefined}
+    >
       {/* Carriage body */}
       <rect
         x={-HEAD_WIDTH_MM / 2} y={-X_AXIS_BEAM_HEIGHT_MM / 2 + X_AXIS_TO_PEN_MM}

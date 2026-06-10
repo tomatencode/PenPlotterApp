@@ -28,11 +28,17 @@ interface Props {
   activePenColor: string;
   // Provide to enable drag-to-move manual control; omit for view-only
   onPositionChange?: (pos: PlotterPosition) => void;
+  /**
+   * Called once when the user drags the head and releases the mouse.
+   * Position is in GCode coordinates (x from left, y from front/bottom of workspace).
+   */
+  onHeadDrop?: (pos: PlotterPosition) => void;
 }
 
-export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcode, currentLine, activePenColor, onPositionChange }: Props) {
+export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcode, currentLine, activePenColor, onPositionChange, onHeadDrop }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
+  const headDragging = useRef(false);
 
   const view_box_x = -BODY_BEAM_MARGIN_MM - BODY_BEAM_WIDTH_MM;
   const view_box_y = -BODY_BEAM_OVERSHOOT_TOP_MM;
@@ -70,12 +76,23 @@ export default function PlotterView({ position, workspaceWidthMm, workspaceHeigh
         e.preventDefault();
       }}
       onMouseMove={(e) => {
-        if (!dragging.current || !onPositionChange) return;
-        const pos = svgPoint(e.clientX, e.clientY);
-        if (pos) onPositionChange(pos);
+        if (dragging.current && onPositionChange) {
+          const pos = svgPoint(e.clientX, e.clientY);
+          if (pos) onPositionChange(pos);
+        }
       }}
-      onMouseUp={() => { dragging.current = false; }}
-      onMouseLeave={() => { dragging.current = false; }}
+      onMouseUp={(e) => {
+        if (headDragging.current && onHeadDrop) {
+          const pos = svgPoint(e.clientX, e.clientY);
+          if (pos) onHeadDrop({ x: pos.x, y: workspaceHeightMm - pos.y });
+        }
+        dragging.current = false;
+        headDragging.current = false;
+      }}
+      onMouseLeave={() => {
+        dragging.current = false;
+        headDragging.current = false;
+      }}
     >
       {/* Z-layer 0: Page boundary */}
       <PagePreview workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} gcode={gcode} currentLine={currentLine} />
@@ -87,7 +104,16 @@ export default function PlotterView({ position, workspaceWidthMm, workspaceHeigh
       <XAxisBeam yMm={workspaceHeightMm - position.y} workspaceWidthMm={workspaceWidthMm} />
 
       {/* Z-layer 3: Head — travels along the beam */}
-      <PlotterHead xMm={position.x} yMm={workspaceHeightMm - position.y} penColor={activePenColor} />
+      <PlotterHead
+        xMm={position.x}
+        yMm={workspaceHeightMm - position.y}
+        penColor={activePenColor}
+        onDragStart={onHeadDrop ? (e) => {
+          headDragging.current = true;
+          e.stopPropagation();
+          e.preventDefault();
+        } : undefined}
+      />
     </svg>
   ); 
 }

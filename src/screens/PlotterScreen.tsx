@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ScreenHeader from "../shared/components/ScreenHeader";
 import PlotterView from "../features/plotter/components/graphic/PlotterView";
+import type { PlotterPosition } from "../features/plotter/components/graphic/dimensions";
 import PlotterStatusCard from "../features/plotter/components/PlotterStatusCard";
 import PlotterDetailsPanel from "../features/plotter/components/PlotterDetailsPanel";
 import PlotterSettingsPanel from "../features/plotter/components/PlotterSettingsPanel";
@@ -139,6 +140,15 @@ export default function PlotterScreen() {
     }
   }
 
+  async function handleHeadDrop(pos: PlotterPosition) {
+    if (wsState?.jobActive) return;
+    try {
+      await client.executeGCode(`G0 X${pos.x.toFixed(2)} Y${pos.y.toFixed(2)}`);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
       <ScreenHeader
@@ -168,6 +178,7 @@ export default function PlotterScreen() {
                 gcode={preview?.gcode}
                 currentLine={previewCurrentLine}
                 activePenColor="#383737"
+                onHeadDrop={wsState?.jobActive ? undefined : handleHeadDrop}
               />
             ) : 
               <p className="text-sm text-slate-600 italic">Fetching Plotter Dimensions…</p>
