@@ -35,7 +35,7 @@ export default function PlotterScreen() {
 
   const client = useMemo(() => new PlotterClient(plotter.url), [plotter.url]);
 
-  const [openedSideTab, setOpenedSideTab] = useState<"files" | "settings">("files");
+  const [openedSideTab, setOpenedSideTab] = useState<"details" | "settings">("details");
 
   const [info, setInfo] = useState<PlotterInfo | null>(null);
   const [wsState, setWsState] = useState<WsStateMessage | null>(null);
@@ -163,7 +163,26 @@ export default function PlotterScreen() {
 
         {/* ── Left info panel ── */}
         <aside className="w-56 shrink-0 flex flex-col border-r border-slate-700/60 bg-[#0d1017] overflow-y-auto">
-          <PlotterDetailsPanel info={info} />
+          <PlotterFileList
+              files={files}
+              uiState={uiState}
+              startingFile={startingFile}
+              onStartFile={handleStartFile}
+              onDeleteFile={handleDeleteFile}
+              onFetchFileInfo={filename => client.getFileInfo(filename)}
+              onFocusFile={filename => {
+                if (filename === null) {
+                  setPreview(undefined);
+                } else if (!wsState?.jobActive) {
+                  client.downloadJob(filename)
+                    .then(gcode => setPreview({ gcode, filename }))
+                    .catch(e => {
+                      console.error(e);
+                      setPreview(undefined);
+                    });
+                }
+              }}
+            />
         </aside>
 
         {/* ── Center: plotter graphic ── */}
@@ -190,7 +209,7 @@ export default function PlotterScreen() {
 
         <aside className="w-56 shrink-0 flex flex-col border-l border-slate-700/60 bg-[#0d1017] overflow-hidden">
           <div className="shrink-0 flex border-b border-slate-700/60">
-            {(["files", "settings"] as const).map(tab => (
+            {(["details", "settings"] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setOpenedSideTab(tab)}
@@ -200,34 +219,15 @@ export default function PlotterScreen() {
                     : "text-slate-600 hover:text-slate-400"
                 }`}
               >
-                {tab === "files" ? "Files" : "Settings"}
+                {tab === "details" ? "Details" : "Settings"}
               </button>
             ))}
           </div>
 
-          {openedSideTab === "settings" ? (
-            <PlotterSettingsPanel settings={settings} onChangeSetting={handleChangeSetting} />
+          {openedSideTab === "details" ? (
+            <PlotterDetailsPanel info={info} />
           ) : (
-            <PlotterFileList
-              files={files}
-              uiState={uiState}
-              startingFile={startingFile}
-              onStartFile={handleStartFile}
-              onDeleteFile={handleDeleteFile}
-              onFetchFileInfo={filename => client.getFileInfo(filename)}
-              onFocusFile={filename => {
-                if (filename === null) {
-                  setPreview(undefined);
-                } else if (!wsState?.jobActive) {
-                  client.downloadJob(filename)
-                    .then(gcode => setPreview({ gcode, filename }))
-                    .catch(e => {
-                      console.error(e);
-                      setPreview(undefined);
-                    });
-                }
-              }}
-            />
+            <PlotterSettingsPanel settings={settings} onChangeSetting={handleChangeSetting} />
           )}
         </aside>
       </div>
