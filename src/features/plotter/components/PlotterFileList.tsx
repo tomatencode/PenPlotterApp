@@ -9,6 +9,7 @@ interface Props {
   onStartFile: (filename: string) => void;
   onDeleteFile: (filename: string) => void;
   onFetchFileInfo: (filename: string) => Promise<FileInfo>;
+  onFocusFile: (filename: string | null) => void;
 }
 
 function formatSize(bytes: number): string {
@@ -31,6 +32,7 @@ export default function PlotterFileList({
   onStartFile,
   onDeleteFile,
   onFetchFileInfo,
+  onFocusFile,
 }: Props) {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [fileInfoCache, setFileInfoCache] = useState<Record<string, FileInfo | "loading" | "error">>({});
@@ -38,9 +40,11 @@ export default function PlotterFileList({
   function handleToggle(filename: string) {
     if (expandedFile === filename) {
       setExpandedFile(null);
+      onFocusFile(null);
       return;
     }
     setExpandedFile(filename);
+    onFocusFile(filename);
     if (!fileInfoCache[filename]) {
       setFileInfoCache(prev => ({ ...prev, [filename]: "loading" }));
       onFetchFileInfo(filename)

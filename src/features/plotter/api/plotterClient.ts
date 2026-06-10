@@ -187,6 +187,14 @@ export class PlotterClient {
     await checkResponse(await fetch(url.toString(), { method: "DELETE" }));
   }
 
+  // Download the raw gcode content of a stored file.
+  async downloadJob(filename: string): Promise<string> {
+    const url = new URL(`${this.baseUrl}/downloadJob`);
+    url.searchParams.set("file", filename);
+    const res = await checkResponse(await fetch(url.toString()));
+    return res.text();
+  }
+
   // Job Control
 
   // Start printing a file already stored on the device.

@@ -43,6 +43,7 @@ export default function PlotterScreen() {
 
   const uiState: UiState = wsState ? wsState.motionState : "connecting";
   const headPosition = wsState ? { x: wsState.x, y: wsState.y } : { x: 0, y: 0 };
+  const [gcodePreview, setPreviewGcode] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     return client.subscribe(setWsState);
@@ -137,6 +138,7 @@ export default function PlotterScreen() {
                 position={headPosition}
                 workspaceWidthMm={info.workspaceX}
                 workspaceHeightMm={info.workspaceY}
+                gcodePreview={gcodePreview}
                 activePenColor="#383737"
               />
             ) : 
@@ -174,6 +176,18 @@ export default function PlotterScreen() {
               onStartFile={handleStartFile}
               onDeleteFile={handleDeleteFile}
               onFetchFileInfo={filename => client.getFileInfo(filename)}
+              onFocusFile={filename => {
+                if (filename === null) {
+                  setPreviewGcode(undefined);
+                } else {
+                  client.downloadJob(filename)
+                    .then(gcode => setPreviewGcode(gcode))
+                    .catch(e => {
+                      console.error(e);
+                      setPreviewGcode(undefined);
+                    });
+                }
+              }}
             />
           )}
         </aside>

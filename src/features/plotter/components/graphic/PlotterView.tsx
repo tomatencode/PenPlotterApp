@@ -17,17 +17,19 @@ import {
 import PlotterBody from "./PlotterBody";
 import XAxisBeam from "./XAxisBeam";
 import PlotterHead from "./PlotterHead";
+import PagePreview from "./PagePreview";
 
 interface Props {
   position: PlotterPosition;
   workspaceWidthMm: number;
   workspaceHeightMm: number;
+  gcodePreview?: string;
   activePenColor: string;
   // Provide to enable drag-to-move manual control; omit for view-only
   onPositionChange?: (pos: PlotterPosition) => void;
 }
 
-export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, activePenColor, onPositionChange }: Props) {
+export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcodePreview, activePenColor, onPositionChange }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
@@ -74,13 +76,16 @@ export default function PlotterView({ position, workspaceWidthMm, workspaceHeigh
       onMouseUp={() => { dragging.current = false; }}
       onMouseLeave={() => { dragging.current = false; }}
     >
-      {/* Z-layer 0: Static body (chassis + Y rails) */}
+      {/* Z-layer 0: Page boundary */}
+      <PagePreview workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} gcode={gcodePreview} />
+
+      {/* Z-layer 1: Static body (chassis + Y rails) */}
       <PlotterBody workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} />
 
-      {/* Z-layer 1: X-axis beam — travels along Y */}
+      {/* Z-layer 2: X-axis beam — travels along Y */}
       <XAxisBeam yMm={workspaceHeightMm - position.y} workspaceWidthMm={workspaceWidthMm} />
 
-      {/* Z-layer 2: Head — travels along the beam */}
+      {/* Z-layer 3: Head — travels along the beam */}
       <PlotterHead xMm={position.x} yMm={workspaceHeightMm - position.y} penColor={activePenColor} />
     </svg>
   ); 

@@ -16,13 +16,6 @@ export default function PlotterBody({ workspaceWidthMm, workspaceHeightMm }: Pro
   const wsH = workspaceHeightMm;
   return (
     <g data-layer="body">
-      {/* Workspace boundary (dashed) */}
-      <rect
-        x={0} y={0}
-        width={wsW} height={wsH}
-        fill="#0a0c10" stroke="#1e293b" strokeWidth={1} strokeDasharray="4 3"
-      />
-
       {/* Left Y-axis rail */}
       <rect x={-BODY_BEAM_MARGIN_MM} y={-BODY_BEAM_OVERSHOOT_TOP_MM} width={BODY_BEAM_WIDTH_MM} height={wsH + BODY_BEAM_OVERSHOOT_TOP_MM + BODY_FRONT_MARGIN_MM + BODY_FRONT_HEIGHT_MM / 2} fill="#1e293b" rx={2} />
 
