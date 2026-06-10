@@ -160,7 +160,7 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
       <rect
         x={0} y={0}
         width={wsW} height={wsH}
-        fill="#b6bbc6" stroke="#1e293b" strokeWidth={1} strokeDasharray="4 3"
+        fill="#b6bbc6" stroke="#eea03b" strokeWidth={1} strokeDasharray="4 3"
       />
       {layers.map((layer, i) => {
         // Split strokes into drawn (M5 already past) vs. pending.
