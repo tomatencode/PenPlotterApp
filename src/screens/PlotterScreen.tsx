@@ -49,6 +49,19 @@ export default function PlotterScreen() {
     return client.subscribe(setWsState);
   }, [client]);
 
+  // if job is running set gcode preview to current job
+  useEffect(() => {
+    if (wsState?.jobFile && !gcodePreview) {
+      client.downloadJob(wsState.jobFile)
+        .then(setPreviewGcode)
+        .catch(e => {
+          console.error(e);
+          setPreviewGcode(undefined);
+        });
+    }
+  }, [wsState?.jobFile, gcodePreview, client]);
+
+
   useEffect(() => {
     Promise.all([
 
