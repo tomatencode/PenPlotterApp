@@ -69,7 +69,7 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
     const rawLine = lines[lineIdx];
 
     // "; Pen: name (color, widthmm)" — parse before stripping comments
-    const penMatch = rawLine.match(/;\s*Pen:\s+\S+\s+\(([^,]+),\s*([\d.]+)mm\)/);
+    const penMatch = rawLine.match(/;\s*Pen:\s+.+\s+\(([^,]+),\s*([\d.]+)mm\)/);
     if (penMatch) {
       curColor = penMatch[1].trim();
       curWidth = parseFloat(penMatch[2]);
