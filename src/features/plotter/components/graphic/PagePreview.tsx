@@ -3,7 +3,14 @@ import { useMemo } from "react";
 interface Props {
   workspaceWidthMm: number;
   workspaceHeightMm: number;
+  /** Raw GCode string to preview. */
   gcode?: string;
+  /**
+   * Current GCode line being executed (0-based index matching the firmware's jobLine).
+   * - `undefined` — pure preview, no active job; all strokes shown as pending (dashed).
+   * - `N`         — strokes whose M5 is before line N are drawn solid; the rest are dashed.
+   * - `Infinity`  — job completed; all strokes shown as drawn (solid).
+   */
   currentLine?: number;
 }
 
@@ -164,6 +171,7 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
       />
       {layers.map((layer, i) => {
         // Split strokes into drawn (M5 already past) vs. pending.
+        // currentLine=undefined → all pending; currentLine=Infinity → all drawn.
         const drawn   = currentLine !== undefined
           ? layer.strokes.filter(s => s.endLine < currentLine).map(s => s.d).join(" ")
           : "";

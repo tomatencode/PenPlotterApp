@@ -12,6 +12,7 @@ import type { SettingKey, PlotterSettings, WsStateMessage } from "../features/pl
 import type { UiState } from "../features/plotter/components/PlotterStatusCard";
 import type { PlotterInfo } from "../features/plotter/components/PlotterDetailsPanel";
 
+
 export default function PlotterScreen() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -43,23 +44,36 @@ export default function PlotterScreen() {
 
   const uiState: UiState = wsState ? wsState.motionState : "connecting";
   const headPosition = wsState ? { x: wsState.x, y: wsState.y } : { x: 0, y: 0 };
-  const [gcodePreview, setPreviewGcode] = useState<string | undefined>(undefined);
+  /** Downloaded GCode content together with the filename it belongs to. */
+  const [preview, setPreview] = useState<{ gcode: string; filename: string } | undefined>();
+
+  /**
+   * Derive the current progress line from live wsState rather than baking it
+   * into stored state (which would go stale between WebSocket pushes).
+   *  undefined  → pure file preview, show everything as pending (dashed)
+   *  N          → job in progress, split drawn/pending at line N
+   *  Infinity   → job completed for this file, show everything as drawn
+   */
+  const previewCurrentLine: number | undefined = (() => {
+    if (!preview || !wsState) return undefined;
+    if (wsState.jobFile !== preview.filename) return undefined;
+    if (wsState.jobActive) return wsState.jobLine;
+    if (wsState.jobLine > 0) return Infinity; // same file, job just finished
+    return undefined;
+  })();
 
   useEffect(() => {
     return client.subscribe(setWsState);
   }, [client]);
 
-  // if job is running set gcode preview to current job
+  // Auto-load preview when the plotter starts (or switches) a job.
   useEffect(() => {
-    if (wsState?.jobFile && !gcodePreview) {
+    if (wsState?.jobFile) {
       client.downloadJob(wsState.jobFile)
-        .then(setPreviewGcode)
-        .catch(e => {
-          console.error(e);
-          setPreviewGcode(undefined);
-        });
+        .then(gcode => setPreview({ gcode, filename: wsState.jobFile }))
+        .catch(console.error);
     }
-  }, [wsState?.jobFile, gcodePreview, client]);
+  }, [wsState?.jobFile, client]);
 
 
   useEffect(() => {
@@ -151,8 +165,8 @@ export default function PlotterScreen() {
                 position={headPosition}
                 workspaceWidthMm={info.workspaceX}
                 workspaceHeightMm={info.workspaceY}
-                gcodePreview={gcodePreview}
-                currentLine={wsState?.jobLine}
+                gcode={preview?.gcode}
+                currentLine={previewCurrentLine}
                 activePenColor="#383737"
               />
             ) : 
@@ -192,13 +206,13 @@ export default function PlotterScreen() {
               onFetchFileInfo={filename => client.getFileInfo(filename)}
               onFocusFile={filename => {
                 if (filename === null) {
-                  setPreviewGcode(undefined);
-                } else {
+                  setPreview(undefined);
+                } else if (!wsState?.jobActive) {
                   client.downloadJob(filename)
-                    .then(gcode => setPreviewGcode(gcode))
+                    .then(gcode => setPreview({ gcode, filename }))
                     .catch(e => {
                       console.error(e);
-                      setPreviewGcode(undefined);
+                      setPreview(undefined);
                     });
                 }
               }}
