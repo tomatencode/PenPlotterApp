@@ -4,21 +4,31 @@ interface Props {
   workspaceWidthMm: number;
   workspaceHeightMm: number;
   gcode?: string;
+  currentLine?: number;
+}
+
+interface Stroke {
+  /** 0-based index of the M5 line that closes this stroke. */
+  endLine: number;
+  d: string;
 }
 
 interface PenLayer {
   color: string;
   width: number;
-  d: string;
+  strokes: Stroke[];
 }
 
 /** Parse GCode into SVG path data, one layer per pen.
  *
  *  Coordinate mapping: GCode uses Y-up (origin at front-left of workspace),
  *  SVG uses Y-down. Conversion: svgY = wsH - gcodeY, svgX = gcodeX.
+ *
+ *  Each stroke records the GCode line number of its closing M5 so the render
+ *  can split drawn vs. pending paths using the live jobLine counter.
  */
 function parseGcode(gcode: string, wsH: number): PenLayer[] {
-  const byColor = new Map<string, { width: number; parts: string[] }>();
+  const byColor = new Map<string, { width: number; strokes: Stroke[] }>();
 
   let curX = 0;
   let curY = 0;
@@ -30,25 +40,27 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
   const sy = (y: number) => (wsH - y).toFixed(3);
   const sx = (x: number) => x.toFixed(3);
 
-  // Find a gcode word token by letter prefix, return its numeric value.
   const param = (parts: string[], prefix: string): number | null => {
     const up = prefix.toUpperCase();
     const tok = parts.find(t => t.toUpperCase().startsWith(up));
     return tok != null ? parseFloat(tok.slice(prefix.length)) : null;
   };
 
-  const flushPath = () => {
+  const flushPath = (lineIdx: number) => {
     if (!penDown || !pathD) return;
     let entry = byColor.get(curColor);
     if (!entry) {
-      entry = { width: curWidth, parts: [] };
+      entry = { width: curWidth, strokes: [] };
       byColor.set(curColor, entry);
     }
-    entry.parts.push(pathD);
+    entry.strokes.push({ endLine: lineIdx, d: pathD });
     pathD = "";
   };
 
-  for (const rawLine of gcode.split("\n")) {
+  const lines = gcode.split("\n");
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const rawLine = lines[lineIdx];
+
     // "; Pen: name (color, widthmm)" — parse before stripping comments
     const penMatch = rawLine.match(/;\s*Pen:\s+\S+\s+\(([^,]+),\s*([\d.]+)mm\)/);
     if (penMatch) {
@@ -70,7 +82,7 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
       penDown = true;
       pathD = `M${sx(curX)} ${sy(curY)}`;
     } else if (cmd === "M5") {
-      flushPath();
+      flushPath(lineIdx);
       penDown = false;
     } else if (cmd === "G1") {
       const nx = param(parts, "X") ?? curX;
@@ -84,9 +96,8 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
       const iRel = param(parts, "I") ?? 0;
       const jRel = param(parts, "J") ?? 0;
       if (penDown) {
-        // Centre in gcode space; convert everything to SVG (Y-down) space.
-        const svgFx = curX,      svgFy = wsH - curY;
-        const svgEx = ex,        svgEy = wsH - ey;
+        const svgFx = curX,        svgFy = wsH - curY;
+        const svgEx = ex,          svgEy = wsH - ey;
         const svgCx = curX + iRel, svgCy = wsH - (curY + jRel);
         const r = Math.hypot(svgFx - svgCx, svgFy - svgCy);
         // G2 = CW in gcode (Y-up) → CCW in SVG (Y-down) → sweep=0
@@ -103,7 +114,6 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
       curX = ex;
       curY = ey;
     } else if (cmd === "G5.1") {
-      // Quad bezier: G5.1 X{ex} Y{ey} CX{cx} CY{cy}  (absolute gcode coords)
       const ex = param(parts, "X")  ?? curX;
       const ey = param(parts, "Y")  ?? curY;
       const cx = param(parts, "CX") ?? 0;
@@ -112,7 +122,6 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
       curX = ex;
       curY = ey;
     } else if (cmd === "G5") {
-      // Cubic bezier: G5 X{ex} Y{ey} CX1{c1x} CY1{c1y} CX2{c2x} CY2{c2y}
       const ex  = param(parts, "X")   ?? curX;
       const ey  = param(parts, "Y")   ?? curY;
       const c1x = param(parts, "CX1") ?? 0;
@@ -127,16 +136,16 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
     }
   }
 
-  flushPath(); // safety flush in case file ends without M5
+  flushPath(lines.length); // safety flush in case file ends without M5
 
-  return Array.from(byColor.entries()).map(([color, { width, parts }]) => ({
+  return Array.from(byColor.entries()).map(([color, { width, strokes }]) => ({
     color,
     width,
-    d: parts.join(" "),
+    strokes,
   }));
 }
 
-export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode }: Props) {
+export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode, currentLine }: Props) {
   const wsW = workspaceWidthMm;
   const wsH = workspaceHeightMm;
 
@@ -153,19 +162,34 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
         width={wsW} height={wsH}
         fill="#b6bbc6" stroke="#1e293b" strokeWidth={1} strokeDasharray="4 3"
       />
-      {/* GCode preview — one <path> per pen layer */}
-      {layers.map((layer, i) => (
-        <path
-          key={i}
-          d={layer.d}
-          stroke={layer.color}
-          strokeWidth={layer.width}
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.9}
-        />
-      ))}
+      {layers.map((layer, i) => {
+        // Split strokes into drawn (M5 already past) vs. pending.
+        const drawn   = currentLine !== undefined
+          ? layer.strokes.filter(s => s.endLine < currentLine).map(s => s.d).join(" ")
+          : "";
+        const pending = currentLine !== undefined
+          ? layer.strokes.filter(s => s.endLine >= currentLine).map(s => s.d).join(" ")
+          : layer.strokes.map(s => s.d).join(" ");
+
+        const sharedProps = {
+          stroke: layer.color,
+          strokeWidth: layer.width,
+          fill: "none",
+          strokeLinecap: "round" as const,
+          strokeLinejoin: "round" as const,
+        };
+
+        return (
+          <g key={i}>
+            {drawn && (
+              <path {...sharedProps} d={drawn} opacity={1} />
+            )}
+            {pending && (
+              <path {...sharedProps} d={pending} opacity={0.7} strokeDasharray="2 3" />
+            )}
+          </g>
+        );
+      })}
     </g>
   );
 }

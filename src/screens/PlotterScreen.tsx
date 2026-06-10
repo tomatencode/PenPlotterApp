@@ -139,6 +139,7 @@ export default function PlotterScreen() {
                 workspaceWidthMm={info.workspaceX}
                 workspaceHeightMm={info.workspaceY}
                 gcodePreview={gcodePreview}
+                currentLine={wsState?.jobLine}
                 activePenColor="#383737"
               />
             ) : 

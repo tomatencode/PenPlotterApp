@@ -24,12 +24,13 @@ interface Props {
   workspaceWidthMm: number;
   workspaceHeightMm: number;
   gcodePreview?: string;
+  currentLine?: number;
   activePenColor: string;
   // Provide to enable drag-to-move manual control; omit for view-only
   onPositionChange?: (pos: PlotterPosition) => void;
 }
 
-export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcodePreview, activePenColor, onPositionChange }: Props) {
+export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcodePreview, currentLine, activePenColor, onPositionChange }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
 
@@ -77,7 +78,7 @@ export default function PlotterView({ position, workspaceWidthMm, workspaceHeigh
       onMouseLeave={() => { dragging.current = false; }}
     >
       {/* Z-layer 0: Page boundary */}
-      <PagePreview workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} gcode={gcodePreview} />
+      <PagePreview workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} gcode={gcodePreview} currentLine={currentLine} />
 
       {/* Z-layer 1: Static body (chassis + Y rails) */}
       <PlotterBody workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} />
