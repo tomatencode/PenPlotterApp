@@ -18,8 +18,7 @@ export interface WorkspacePreset {
 
 export const WORKSPACE_PRESETS: WorkspacePreset[] = [
   { label: "V1  185 × 265", width: 185, height: 265 },
-  { label: "V2  200 × 280", width: 200, height: 280 },
-  { label: "V3  Full A4",   width: 210, height: 297 },
+  { label: "V2  200 × 285", width: 200, height: 285 },
 ];
 
 export const DEFAULT_DOCUMENT = {
@@ -30,8 +29,8 @@ export const DEFAULT_DOCUMENT = {
   page: {
     page_width: 210,
     page_height: 297,
-    workspace_width: 185,
-    workspace_height: 265,
+    workspace_width: 200,
+    workspace_height: 285,
   },
   pens: [
     { name: "Pen 1", color: "#19191a", width: 1.2 }
