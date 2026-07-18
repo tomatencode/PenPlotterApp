@@ -3,14 +3,12 @@ import type { Plotter } from "../../features/plotter/discoveryContext";
 
 interface Props {
   plotter: Plotter;
-  /** Show a right-pointing chevron at the end. */
-  showChevron?: boolean;
   /** Extra classes applied to the wrapping element (e.g. hover styles). */
   className?: string;
 }
 
 /** Read-only display of a single plotter's details — dot, name, version, URL, state label. */
-export default function PlotterDetailsRow({ plotter, showChevron = false, className = "" }: Props) {
+export default function PlotterDetailsRow({ plotter, className = "" }: Props) {
   const style = STATE_STYLES[plotter.displayInfo.state];
   const url =
     "http://" +
@@ -32,19 +30,6 @@ export default function PlotterDetailsRow({ plotter, showChevron = false, classN
         <p className="text-xs text-slate-600 truncate">{url}</p>
       </div>
       <span className={`text-xs font-medium shrink-0 ${style.text}`}>{style.label}</span>
-      {showChevron && (
-        <svg
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-3 h-3 text-slate-700 group-hover:text-slate-500 transition-colors shrink-0"
-        >
-          <path d="M4 2l4 4-4 4" />
-        </svg>
-      )}
     </>
   );
 }
