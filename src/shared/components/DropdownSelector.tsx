@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 interface Props<T> {
@@ -17,9 +17,11 @@ interface Props<T> {
   disabled?: boolean;
   /** Shown in the trigger when value is null. */
   placeholder?: ReactNode;
+  /** Render the options list inline (expanding, pushing content down) instead of as a floating overlay. */
+  inline?: boolean;
 }
 
-export function InlineDropdown<T>({
+export function DropdownSelector<T>({
   value,
   options,
   onChange,
@@ -29,23 +31,35 @@ export function InlineDropdown<T>({
   isEqual = (a, b) => a === b,
   disabled,
   placeholder,
+  inline,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   const others = value !== null
     ? options.filter((o) => !isEqual(o, value))
     : [...options];
 
+  useEffect(() => {
+    if (inline || !open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [inline, open]);
+
   return (
     <div
-      className="flex-1 rounded-lg border bg-[#0a0c10] overflow-hidden transition-colors border-slate-700/60"
+      ref={ref}
+      className={`flex-1 border bg-[#0a0c10] transition-colors border-slate-700/60${!inline ? " relative" + (open ? " rounded-t-lg rounded-b-none" : " rounded-lg") : " rounded-lg overflow-hidden"}`}
     >
       {/* Trigger */}
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
-        className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/40 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/40 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed${inline ? "" : open ? " rounded-t-lg" : " rounded-lg"}`}
       >
-        {value !== null ? renderSelected(value) : placeholder}
+        {value !== null ? renderSelected(value) : placeholder ?? <span className="text-xs text-slate-600 italic">No value</span>}
         {options.length > 0 && (
           <svg
             viewBox="0 0 12 12"
@@ -63,7 +77,10 @@ export function InlineDropdown<T>({
 
       {/* Options */}
       {open && others.length > 0 && (
-        <div className="border-t border-slate-700/60">
+        <div className={!inline
+          ? "absolute left-[-1px] right-[-1px] top-full z-50 rounded-b-lg border border-slate-700/60 bg-[#0a0c10] overflow-hidden"
+          : "border-t border-slate-700/60"
+        }>
           {others.map((opt) => (
             <button
               key={keyOf(opt)}
@@ -76,7 +93,10 @@ export function InlineDropdown<T>({
         </div>
       )}
       {open && others.length === 0 && (
-        <div className="border-t border-slate-700/60 px-2 py-1.5 text-xs text-slate-600 italic">
+        <div className={!inline
+          ? "absolute left-[-1px] right-[-1px] top-full z-50 rounded-b-lg border border-slate-700/60 bg-[#0a0c10] px-2 py-1.5 text-xs text-slate-600 italic"
+          : "border-t border-slate-700/60 px-2 py-1.5 text-xs text-slate-600 italic"
+        }>
           No other options available
         </div>
       )}

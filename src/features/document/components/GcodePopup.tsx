@@ -6,7 +6,7 @@ import { PlotterClient } from "../../plotter/api/plotterClient";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import { usePlotterDiscovery } from "../../plotter/discoveryContext";
 import { PnplttrDocument } from "../types";
-import { InlineDropdown } from "../../../shared/components/InlineDropdown";
+import { DropdownSelector } from "../../../shared/components/DropdownSelector";
 import { btnGreen, btnSlate } from "../../../shared/styles";
 
 interface Props {
@@ -293,7 +293,7 @@ export default function GcodePopup({
 						<div className="px-4 pt-3 pb-4 border-b border-slate-700/60">
 							<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Plotter</p>
 							
-							<InlineDropdown
+							<DropdownSelector
 								value={selectedPlotter}
 								options={plotters}
 								onChange={(p) => setSelectedPlotterUrl(p.url)}

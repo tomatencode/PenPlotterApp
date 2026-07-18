@@ -1,6 +1,6 @@
 import type { Element, Pen, PlttrFont } from "../types";
 import { useHandwritingGeneration } from "../hooks/useHandwritingGeneration";
-import { InlineDropdown } from "../../../shared/components/InlineDropdown";
+import { DropdownSelector } from "../../../shared/components/DropdownSelector";
 
 interface Props {
   elements: Element[];
@@ -70,7 +70,7 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
           {/* Pen */}
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs text-slate-600 w-16 shrink-0">Pen</span>
-            <InlineDropdown
+            <DropdownSelector
               value={found.pen}
               options={pens.map((_, i) => i)}
               onChange={(v) => update({ pen: v })}
@@ -151,7 +151,7 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xs text-slate-600 w-16 shrink-0">Font</span>
-                <InlineDropdown
+                <DropdownSelector
                   value={el.fontName}
                   options={[...fonts.keys()]}
                   onChange={(v) => update({ fontName: v })}
@@ -184,9 +184,17 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
                   className="w-full px-2 py-1 rounded-md bg-[#0a0c10] border border-slate-700/60 text-xs text-slate-300 outline-none focus:border-blue-500/50 resize-none"
                 />
               </div>
-              <NumField label="Style (0–9)" value={el.style}
-                onChange={(v) => update({ style: Math.round(Math.max(0, Math.min(9, v))) })}
-              />
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs text-slate-600 w-16 shrink-0">Style</span>
+                <DropdownSelector
+                  value={el.style}
+                  options={Array.from({ length: 10 }, (_, i) => i)}
+                  onChange={(v) => update({ style: v })}
+                  keyOf={(i) => i}
+                  renderSelected={(i) => <span className="text-xs text-slate-300 flex-1">{i}</span>}
+                  renderOption={(i) => <span className="text-xs text-slate-300">{i}</span>}
+                />
+              </div>
 
               <button
                 onClick={() => generateHandwriting(el.text, el.style, (strokes) => onUpdateElement({ ...el, strokes }))}

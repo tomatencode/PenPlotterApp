@@ -1,6 +1,6 @@
 import type { PageSettings } from "../types";
 import { PAGE_PRESETS, WORKSPACE_PRESETS } from "../constants";
-import { InlineDropdown } from "../../../shared/components/InlineDropdown";
+import { DropdownSelector } from "../../../shared/components/DropdownSelector";
 
 interface Props {
   page: PageSettings;
@@ -25,7 +25,7 @@ export default function PagePanel({ page, onUpdatePage }: Props) {
       {/* Page size */}
       <div className="flex flex-col gap-1">
         <label className="text-[11px] text-slate-400">Paper size</label>
-        <InlineDropdown
+        <DropdownSelector
           value={PAGE_PRESETS[pagePresetIndex] ?? null}
           options={PAGE_PRESETS}
           onChange={(p) => onUpdatePage({ ...page, page_width: p.width, page_height: p.height })}
@@ -47,7 +47,7 @@ export default function PagePanel({ page, onUpdatePage }: Props) {
       {/* Workspace size */}
       <div className="flex flex-col gap-1">
         <label className="text-[11px] text-slate-400">Plotter workspace</label>
-        <InlineDropdown
+        <DropdownSelector
           value={WORKSPACE_PRESETS[wsPresetIndex] ?? null}
           options={WORKSPACE_PRESETS}
           onChange={(p) => onUpdatePage({ ...page, workspace_width: p.width, workspace_height: p.height })}
