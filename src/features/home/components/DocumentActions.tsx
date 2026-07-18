@@ -35,7 +35,7 @@ export default function DocumentActions({
             className="w-full px-3 py-2 rounded-lg bg-[#0a0c10] border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40 outline-none text-sm text-gray-100 placeholder-slate-500"
           />
           <div className="flex gap-2">
-            <button type="submit" className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-lg font-semibold text-sm transition-colors">
+            <button type="submit" className="flex-1 px-3 py-2 bg-blue-700/80 hover:bg-blue-600/80 border border-blue-600/60 hover:border-blue-500 rounded-lg text-xs font-semibold text-blue-100 transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-sm shadow-blue-900/30">
               Create
             </button>
             <button type="button" onClick={() => { onToggleNameInput(false); onNameChange(""); }}
@@ -47,7 +47,7 @@ export default function DocumentActions({
       ) : (
         <>
           <button onClick={() => onToggleNameInput(true)}
-            className="flex items-center gap-2.5 w-full px-3 py-2.5 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-lg font-semibold text-sm transition-colors text-left">
+            className="flex items-center gap-2.5 w-full px-3 py-2.5 bg-blue-700/80 hover:bg-blue-600/80 border border-blue-600/60 hover:border-blue-500 rounded-lg text-xs font-semibold text-blue-100 transition-colors text-left">
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-3.5 h-3.5 shrink-0">
               <path d="M6 1v10M1 6h10" />
             </svg>
