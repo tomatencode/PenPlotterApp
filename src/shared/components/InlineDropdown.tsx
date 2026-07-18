@@ -37,9 +37,7 @@ export function InlineDropdown<T>({
 
   return (
     <div
-      className={`flex-1 rounded-lg border bg-[#0a0c10] overflow-hidden transition-colors ${
-        open ? "border-blue-500/40" : "border-slate-700/60"
-      }`}
+      className="flex-1 rounded-lg border bg-[#0a0c10] overflow-hidden transition-colors border-slate-700/60"
     >
       {/* Trigger */}
       <button
@@ -73,6 +71,11 @@ export function InlineDropdown<T>({
               {renderOption(opt)}
             </button>
           ))}
+        </div>
+      )}
+      {open && others.length === 0 && (
+        <div className="border-t border-slate-700/60 px-2 py-1.5 text-xs text-slate-600 italic">
+          No other options available
         </div>
       )}
     </div>
