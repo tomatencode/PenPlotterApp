@@ -1,4 +1,5 @@
 import type { WsStateMessage } from "../api/plotterTypes";
+import { btnRed, btnSlate, btnYellow } from "../../../shared/styles";
 
 interface Props {
   wsState: WsStateMessage | null;
@@ -96,7 +97,7 @@ export default function JobControlBar({ wsState, onPause, onResume, onAbort }: P
         {isPaused ? (
           <button
             onClick={onResume}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-700/80 hover:bg-yellow-600/80 border border-yellow-600/60 hover:border-yellow-500 rounded-lg text-xs font-semibold text-yellow-100 transition-colors shadow-sm shadow-yellow-900/30"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnYellow}`}
           >
             <ResumeIcon />
             Resume
@@ -104,7 +105,7 @@ export default function JobControlBar({ wsState, onPause, onResume, onAbort }: P
         ) : (
           <button
             onClick={onPause}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-xs font-semibold text-slate-200 transition-colors"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnSlate}`}
           >
             <PauseIcon />
             Pause
@@ -112,7 +113,7 @@ export default function JobControlBar({ wsState, onPause, onResume, onAbort }: P
         )}
         <button
           onClick={onAbort}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/60 hover:bg-red-800/60 border border-red-800/60 hover:border-red-700 rounded-lg text-xs font-semibold text-red-300 hover:text-red-200 transition-colors shadow-sm shadow-red-950/30"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnRed}`}
         >
           <StopIcon />
           Abort

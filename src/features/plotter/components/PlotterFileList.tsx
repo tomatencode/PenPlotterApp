@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { UiState } from "./PlotterStatusCard";
 import type { FileInfo } from "../api/plotterClient";
+import { btnBlue } from "../../../shared/styles";
 
 interface Props {
   files: string[];
@@ -113,7 +114,7 @@ export default function PlotterFileList({
 
                     <div className="flex gap-1.5">
                       <button
-                        className="flex-1 flex items-center gap-1.5 px-3 py-1.5 bg-blue-700/80 hover:bg-blue-600/80 border border-blue-600/60 hover:border-blue-500 rounded-lg text-xs font-semibold text-blue-100 transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-sm shadow-blue-900/30"
+                        className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnBlue}`}
                         disabled={startingFile !== null || uiState !== "idle"}
                         onClick={() => onStartFile(filename)}
                       >

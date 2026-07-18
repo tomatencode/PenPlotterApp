@@ -1,6 +1,7 @@
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import type { Plotter } from "../../plotter/discoveryContext";
 import { InlineDropdown } from "../../../shared/components/InlineDropdown";
+import { btnGreen, btnSlate } from "../../../shared/styles";
 
 
 function formatBytes(bytes: number): string {
@@ -54,7 +55,7 @@ export default function GcodeControlsPanel({
 					renderSelected={(p) => <PlotterDetailsRow plotter={p} />}
 					renderOption={(p) => <PlotterDetailsRow plotter={p} />}
 					disabled={isBusy || plotters.length === 0}
-					placeholder={<div className="px-3 py-2 text-xs text-slate-600 italic">No plotter available</div>}
+					placeholder={<div className="px-3 py-2 text-xs text-slate-600 italic">no plotters available</div>}
 				/>
 			</div>
 
@@ -65,7 +66,7 @@ export default function GcodeControlsPanel({
 				<button
 					onClick={onUpload}
 					disabled={isBusy || !hasGcode || !selectedPlotter}
-					className="flex items-center gap-2 px-4 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-sm font-semibold text-slate-200 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+					className={`flex items-center gap-2 px-4 py-1.5 text-sm ${btnSlate}`}
 				>
 					<svg
 						viewBox="0 0 16 16"
@@ -84,7 +85,7 @@ export default function GcodeControlsPanel({
 				<button
 					onClick={onUploadAndStart}
 					disabled={isBusy || !hasGcode || !selectedPlotter}
-					className="flex items-center gap-2 px-4 py-1.5 bg-green-700/80 hover:bg-green-600/80 border border-green-600/60 hover:border-green-500 rounded-lg text-sm font-semibold text-green-100 transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-sm shadow-green-900/30"
+					className={`flex items-center gap-2 px-4 py-1.5 text-sm ${btnGreen}`}
 				>
 					<svg
 						viewBox="0 0 16 16"

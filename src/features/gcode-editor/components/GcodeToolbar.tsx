@@ -1,3 +1,5 @@
+import { btnSlate } from "../../../shared/styles";
+
 interface Props {
 	fileName: string;
 	hasPath: boolean;
@@ -38,7 +40,7 @@ export default function GcodeToolbar({ fileName, hasPath, isBusy, onBack, onSave
 				<button
 					onClick={onSave}
 					disabled={isBusy}
-					className="px-3 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 rounded-lg text-xs font-semibold text-slate-200 transition-colors disabled:opacity-40"
+					className={`px-3 py-1.5 text-xs ${btnSlate}`}
 				>
 					Save
 				</button>
@@ -46,7 +48,7 @@ export default function GcodeToolbar({ fileName, hasPath, isBusy, onBack, onSave
 			<button
 				onClick={onSaveAs}
 				disabled={isBusy}
-				className="px-3 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 rounded-lg text-xs font-semibold text-slate-200 transition-colors disabled:opacity-40"
+				className={`px-3 py-1.5 text-xs ${btnSlate}`}
 			>
 				Save As…
 			</button>

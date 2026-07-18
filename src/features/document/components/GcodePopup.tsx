@@ -7,6 +7,7 @@ import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import { usePlotterDiscovery } from "../../plotter/discoveryContext";
 import { PnplttrDocument } from "../types";
 import { InlineDropdown } from "../../../shared/components/InlineDropdown";
+import { btnGreen, btnSlate } from "../../../shared/styles";
 
 interface Props {
 	isOpen: boolean;
@@ -218,7 +219,7 @@ export default function GcodePopup({
 					</div>
 					<button
 						onClick={onClose}
-						className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-sm font-semibold text-slate-200 transition-colors"
+						className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${btnSlate}`}
 					>
 						Close
 					</button>
@@ -300,7 +301,7 @@ export default function GcodePopup({
 								renderSelected={(p) => <PlotterDetailsRow plotter={p} />}
 								renderOption={(p) => <PlotterDetailsRow plotter={p} />}
 								disabled={isBusy || plotters.length === 0}
-								placeholder={<div className="px-3 py-2 text-xs text-slate-600 italic">No plotter available</div>}
+								placeholder={<div className="px-3 py-2 text-xs text-slate-600 italic">no plotters available</div>}
 							/>
 						</div>
 
@@ -311,7 +312,7 @@ export default function GcodePopup({
 							<button
 								onClick={handleSaveAs}
 								disabled={isBusy || !gcode.trim()}
-								className="flex items-center gap-2 px-4 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-sm font-semibold text-slate-200 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+							className={`flex items-center gap-2 px-4 py-1.5 text-sm ${btnSlate}`}
 							>
 								<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
 									<path d="M13 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h8l3 3v8a1 1 0 0 1-1 1z" />
@@ -324,7 +325,7 @@ export default function GcodePopup({
 							<button
 								onClick={() => handleUpload(false)}
 								disabled={isBusy || !gcode.trim() || !selectedPlotter}
-								className="flex items-center gap-2 px-4 py-1.5 bg-slate-700/60 hover:bg-slate-600/60 border border-slate-600/60 hover:border-slate-500 rounded-lg text-sm font-semibold text-slate-200 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+							className={`flex items-center gap-2 px-4 py-1.5 text-sm ${btnSlate}`}
 							>
 								<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
 									<path d="M3 8v5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8M8 1v8M5 4l3-3 3 3" />
@@ -335,7 +336,7 @@ export default function GcodePopup({
 							<button
 								onClick={() => handleUpload(true)}
 								disabled={isBusy || !gcode.trim() || !selectedPlotter}
-								className="flex items-center gap-2 px-4 py-1.5 bg-green-700/80 hover:bg-green-600/80 border border-green-600/60 hover:border-green-500 rounded-lg text-sm font-semibold text-green-100 transition-colors disabled:opacity-40 disabled:pointer-events-none shadow-sm shadow-green-900/30"
+							className={`flex items-center gap-2 px-4 py-1.5 text-sm ${btnGreen}`}
 							>
 								<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
 									<polygon points="4,2 13,8 4,14" fill="currentColor" stroke="none" />

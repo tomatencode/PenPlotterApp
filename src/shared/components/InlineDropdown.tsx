@@ -45,18 +45,24 @@ export function InlineDropdown<T>({
         disabled={disabled}
         className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/40 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {value !== null ? renderSelected(value) : placeholder}
-        <svg
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`w-3 h-3 text-slate-600 shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
-        >
-          <path d="M4 2l4 4-4 4" />
-        </svg>
+        {value !== null ? (
+          <>
+            {renderSelected(value)}
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`w-3 h-3 text-slate-600 shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
+            >
+              <path d="M4 2l4 4-4 4" />
+            </svg>
+          </>
+        ) : (
+          placeholder
+        )}
       </button>
 
       {/* Options */}
