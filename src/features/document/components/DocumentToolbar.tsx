@@ -19,12 +19,24 @@ export default function DocumentToolbar({ fileName, path, canUndo, onUndo, canRe
         onClick={onUndo}
         disabled={!canUndo}
         className={`flex shrink-0 items-center gap-2 px-4 py-1.5 text-sm ${btnSlate}`}
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+          <path d="M2 6h7a4 4 0 0 1 0 8H6" />
+          <polyline points="5 3 2 6 5 9" />
+        </svg>
+        Undo
       </button>
 
       <button
         onClick={onRedo}
         disabled={!canRedo}
         className={`flex shrink-0 items-center gap-2 px-4 py-1.5 text-sm ${btnSlate}`}
+      >
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+          <path d="M14 6H7a4 4 0 0 0 0 8h3" />
+          <polyline points="11 3 14 6 11 9" />
+        </svg>
+        Redo
       </button>
 
       <div className="w-px h-5 shrink-0 bg-slate-700/80 mx-1" />
