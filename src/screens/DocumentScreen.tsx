@@ -16,7 +16,7 @@ import PensPanel from "../features/document/components/PensPanel";
 import PagePanel from "../features/document/components/PagePanel";
 import PropertiesPanel from "../features/document/components/PropertiesPanel";
 import DocumentStatusBar from "../features/document/components/DocumentStatusBar";
-import GcodePopup from "../features/document/components/GcodePopup";
+import GcodePopup from "../features/document/components/gcodePopup/GcodePopup";
 
 export default function DocumentScreenContent() {
   const location = useLocation();
