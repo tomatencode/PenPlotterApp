@@ -33,7 +33,7 @@ export const DEFAULT_DOCUMENT = {
     workspace_height: 285,
   },
   pens: [
-    { name: "Pen 1", color: "#2b2b89", width: 0.7 }
+    { name: "Pen 1", color: "#2236b2", width: 0.6 }
   ],
   elements: [],
 };
