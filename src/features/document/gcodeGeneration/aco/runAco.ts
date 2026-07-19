@@ -57,6 +57,10 @@ export function runAco(strokes: PlotterStroke[], home: [number, number], params:
         }
     }
 
+    if (numResets < params.maxStagnationResets) {
+        console.log(`hit max time of ${params.maxTimeMs}ms, stopping.`);
+    }
+
     console.log(`Best tour cost: ${bestTour.cost.toFixed(2)}`);
 
     return tourToStrokes(bestTour, nodes, strokes);
