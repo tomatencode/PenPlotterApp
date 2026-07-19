@@ -130,8 +130,7 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
       return el;
     }
 
-    case "Text":
-    case "Handwriting": {
+    case "Text": {
       const br = { x: el.x + el.w, y: el.y + el.h };
       const corners: Record<string, { fx: number; fy: number }> = {
         tl: { fx: br.x,  fy: br.y  },
@@ -147,6 +146,35 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
         y: Math.min(y, fixed.fy),
         w: Math.abs(x - fixed.fx),
         h: Math.abs(y - fixed.fy),
+      };
+    }
+
+    case "Handwriting": {
+      const ratio = el.aspectRatio ?? (el.h > 0 ? el.w / el.h : 1);
+      const br = { x: el.x + el.w, y: el.y + el.h };
+      const corners: Record<string, { fx: number; fy: number }> = {
+        tl: { fx: br.x,  fy: br.y  },
+        tr: { fx: el.x,  fy: br.y  },
+        bl: { fx: br.x,  fy: el.y  },
+        br: { fx: el.x,  fy: el.y  },
+      };
+      const fixed = corners[handleId];
+      if (!fixed) return el;
+      const raw_w = Math.abs(x - fixed.fx);
+      const raw_h = Math.abs(y - fixed.fy);
+      // Lock to the snapshot aspect ratio; the dominant axis wins.
+      let eff_w: number, eff_h: number;
+      if (raw_w === 0 && raw_h === 0) return el;
+      else if (raw_h === 0 || raw_w / raw_h >= ratio) { eff_w = raw_w; eff_h = raw_w / ratio; }
+      else                                             { eff_h = raw_h; eff_w = raw_h * ratio; }
+      const cx = fixed.fx + (x >= fixed.fx ? 1 : -1) * eff_w;
+      const cy = fixed.fy + (y >= fixed.fy ? 1 : -1) * eff_h;
+      return {
+        ...el,
+        x: Math.min(cx, fixed.fx),
+        y: Math.min(cy, fixed.fy),
+        w: eff_w,
+        h: eff_h,
       };
     }
   }

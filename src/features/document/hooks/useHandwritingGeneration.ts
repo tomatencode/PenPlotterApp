@@ -2,12 +2,18 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { PlotterStroke } from "../plotterMove";
 
+interface HandwritingResult {
+  strokes: PlotterStroke[];
+  /** Natural width / height of the generated text. */
+  aspectRatio: number;
+}
+
 interface UseHandwritingGenerationResult {
   generating: boolean;
   generate: (
     text: string,
     style: number,
-    onSuccess: (strokes: PlotterStroke[]) => void,
+    onSuccess: (result: HandwritingResult) => void,
   ) => void;
 }
 
@@ -17,12 +23,12 @@ export function useHandwritingGeneration(): UseHandwritingGenerationResult {
   function generate(
     text: string,
     style: number,
-    onSuccess: (strokes: PlotterStroke[]) => void,
+    onSuccess: (result: HandwritingResult) => void,
   ) {
     setGenerating(true);
-    invoke<PlotterStroke[]>("generate_handwriting", { text, style })
-      .then((strokes) => {
-        onSuccess(strokes);
+    invoke<HandwritingResult>("generate_handwriting", { text, style })
+      .then((result) => {
+        onSuccess(result);
       })
       .catch((e) => {
         console.error("Handwriting generation failed:", e);

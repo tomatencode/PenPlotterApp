@@ -6,38 +6,36 @@ type HandwritingEl = Extract<Element, { type: "Handwriting" }>;
 
 export function handwritingToStrokes(handwritingEl: HandwritingEl): PlotterStroke[] {
     const strokes: PlotterStroke[] = [];
-    const plotterStrokes = handwritingEl.strokes.length > 0 ? handwritingEl.strokes : HANDWRITING_DEFAULT_STROKES;
+    const hasGenerated = handwritingEl.strokes.length > 0;
+    const plotterStrokes = hasGenerated ? handwritingEl.strokes : HANDWRITING_DEFAULT_STROKES;
 
-    // Strokes are stored in normalised [0,1] space; transform to document space.
-    let maxX = 0, maxY = 0;
-    for (const s of plotterStrokes) {
-        maxX = Math.max(maxX, s.start[0]);
-        maxY = Math.max(maxY, s.start[1]);
-        for (const m of s.moves) {
-        switch (m.type) {
-            case "Line":
-            maxX = Math.max(maxX, m.x1, m.x2);
-            maxY = Math.max(maxY, m.y1, m.y2);
-            break;
-            case "Arc":
-            maxX = Math.max(maxX, m.x1, m.cx, m.x2);
-            maxY = Math.max(maxY, m.y1, m.cy, m.y2);
-            break;
-            case "QuadBezier":
-            maxX = Math.max(maxX, m.x1, m.cx, m.x2);
-            maxY = Math.max(maxY, m.y1, m.cy, m.y2);
-            break;
-            case "CubicBezier":
-            maxX = Math.max(maxX, m.x1, m.cx1, m.cx2, m.x2);
-            maxY = Math.max(maxY, m.y1, m.cy1, m.cy2, m.y2);
-            break;
+    let tx: (nx: number) => number;
+    let ty: (ny: number) => number;
+
+    if (hasGenerated) {
+        // Generated strokes are independently normalised to [0, 1] × [0, 1].
+        tx = (nx) => handwritingEl.x + nx * handwritingEl.w;
+        ty = (ny) => handwritingEl.y + ny * handwritingEl.h;
+    } else {
+        // Default placeholder strokes use the old uniform-scale normalisation;
+        // recover the extent by scanning maxX / maxY so they fill the box correctly.
+        let maxX = 0, maxY = 0;
+        for (const s of plotterStrokes) {
+            maxX = Math.max(maxX, s.start[0]);
+            maxY = Math.max(maxY, s.start[1]);
+            for (const m of s.moves) {
+                switch (m.type) {
+                    case "Line":       maxX = Math.max(maxX, m.x1, m.x2);             maxY = Math.max(maxY, m.y1, m.y2);             break;
+                    case "Arc":        maxX = Math.max(maxX, m.x1, m.cx, m.x2);       maxY = Math.max(maxY, m.y1, m.cy, m.y2);       break;
+                    case "QuadBezier": maxX = Math.max(maxX, m.x1, m.cx, m.x2);       maxY = Math.max(maxY, m.y1, m.cy, m.y2);       break;
+                    case "CubicBezier":maxX = Math.max(maxX, m.x1, m.cx1, m.cx2, m.x2); maxY = Math.max(maxY, m.y1, m.cy1, m.cy2, m.y2); break;
+                }
+            }
         }
-        }
+        if (maxX === 0 || maxY === 0) return [];
+        tx = (nx) => handwritingEl.x + (nx / maxX) * handwritingEl.w;
+        ty = (ny) => handwritingEl.y + (ny / maxY) * handwritingEl.h;
     }
-    if (maxX === 0 || maxY === 0) return []; // avoid division by zero
-
-    const tx = (nx: number) => handwritingEl.x + nx/maxX * handwritingEl.w;
-    const ty = (ny: number) => handwritingEl.y + ny/maxY * handwritingEl.h;
     for (const s of plotterStrokes) {
         strokes.push({
         start: [tx(s.start[0]), ty(s.start[1])],

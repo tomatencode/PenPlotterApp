@@ -12,8 +12,9 @@ export type Element =
   | { id: string; type: "Rect";    pen: number; z: number; x: number;  y: number;  w: number;  h: number  }
   | { id: string; type: "Circle";  pen: number; z: number; cx: number; cy: number; r: number              }
   | { id: string; type: "Text";    pen: number; z: number; x: number;  y: number;  w: number;  h: number; text: string; fontName: string; size: number }
-  // Handwriting: strokes stored in normalised [0,1] space, transformed to doc space at render time.
-  | { id: string; type: "Handwriting"; pen: number; z: number; x: number; y: number; w: number; h: number; text: string; style: number; strokes: PlotterStroke[] };
+  // Handwriting: strokes stored in normalised [0,1]×[0,1] space, transformed to doc space at render time.
+  // aspectRatio is the natural width/height from the model; used to lock resize proportions.
+  | { id: string; type: "Handwriting"; pen: number; z: number; x: number; y: number; w: number; h: number; text: string; style: number; strokes: PlotterStroke[]; aspectRatio?: number };
 
 export interface PageSettings {
   page_width: number;

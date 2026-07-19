@@ -197,7 +197,7 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
               </div>
 
               <button
-                onClick={() => generateHandwriting(el.text, el.style, (strokes) => onUpdateElement({ ...el, strokes }))}
+                onClick={() => generateHandwriting(el.text, el.style, ({ strokes, aspectRatio }) => onUpdateElement({ ...el, strokes, aspectRatio, h: el.w / aspectRatio }))}
                 disabled={generating}
                 className="mt-1 w-full py-2 rounded-md text-xs font-semibold transition-colors
                   bg-gradient-to-r from-violet-600/30 via-blue-600/25 to-violet-600/30

@@ -118,15 +118,24 @@ fn load_model(#[cfg_attr(debug_assertions, allow(unused_variables))] app: &tauri
 
 /// Generate handwriting strokes for `text` using style index `style` (0–9).
 ///
-/// Returns strokes in **normalised space**: all coordinates are in [0, 1].
-/// The TypeScript layer scales them into the element bounding box at render time.
+/// Returns strokes in **normalised space**: coordinates are independently
+/// normalised to [0, 1] on each axis, plus the natural aspect ratio
+/// (width / height) so the TypeScript layer can restore undistorted dimensions.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HandwritingResult {
+    strokes: Vec<PlotterStroke>,
+    /// Natural width / height of the generated text (before any scaling).
+    aspect_ratio: f64,
+}
+
 #[tauri::command]
 pub async fn generate_handwriting(
     app: tauri::AppHandle,
     text: String,
     style: u32,
     state: tauri::State<'_, HandwritingState>,
-) -> Result<Vec<PlotterStroke>, String> {
+) -> Result<HandwritingResult, String> {
     let model_arc = match state.model.get_or_init(|| load_model(&app)) {
         Err(e) => return Err(e.clone()),
         Ok(model) => Arc::clone(model),
@@ -139,7 +148,7 @@ pub async fn generate_handwriting(
         .collect();
 
     if lines.is_empty() {
-        return Ok(vec![]);
+        return Ok(HandwritingResult { strokes: vec![], aspect_ratio: 1.0 });
     }
 
     tauri::async_runtime::spawn_blocking(move || {
@@ -156,7 +165,7 @@ fn run_inference(
     model: &Arc<HandwritingModel>,
     lines: &[&str],
     style: u32,
-) -> Result<Vec<PlotterStroke>, String> {
+) -> Result<HandwritingResult, String> {
     let encoded_lines: Vec<Vec<i32>> = lines
         .iter()
         .map(|l| l.chars().chain(std::iter::once(' ')).map(char_to_index).collect())
@@ -166,7 +175,7 @@ fn run_inference(
     // pads chars to a fixed width of 120 with zeros).
     let max_seq_len = encoded_lines.iter().map(|v| v.len()).max().unwrap_or(0) + 1;
     if max_seq_len == 1 {
-        return Ok(vec![]);
+        return Ok(HandwritingResult { strokes: vec![], aspect_ratio: 1.0 });
     }
     let num_samples = encoded_lines.len();
 
@@ -248,10 +257,10 @@ fn run_inference(
         all_raw.extend(line_raw);
     }
     if all_raw.is_empty() {
-        return Ok(vec![]);
+        return Ok(HandwritingResult { strokes: vec![], aspect_ratio: 1.0 });
     }
-    let all_strokes = normalise_strokes(all_raw);
-    Ok(all_strokes)
+    let (strokes, aspect_ratio) = normalise_strokes(all_raw);
+    Ok(HandwritingResult { strokes, aspect_ratio })
 }
 
 // ── Output post-processing ────────────────────────────────────────────────────
@@ -295,9 +304,11 @@ fn raw_strokes_from_steps(data: &[f32], steps: usize) -> Option<Vec<Vec<[f64; 2]
     if strokes.is_empty() { None } else { Some(strokes) }
 }
 
-/// Applies a single global normalisation to all raw strokes using a uniform scale
-/// derived from the combined bounding box, so relative sizes between lines are preserved.
-fn normalise_strokes(all_raw: Vec<Vec<[f64; 2]>>) -> Vec<PlotterStroke> {
+/// Applies independent per-axis normalisation so that x ∈ [0,1] and y ∈ [0,1]
+/// exactly, preserving no implicit aspect ratio in the coordinates themselves.
+/// Returns the strokes together with the natural aspect ratio (range_x / range_y)
+/// so callers can restore undistorted sizing.
+fn normalise_strokes(all_raw: Vec<Vec<[f64; 2]>>) -> (Vec<PlotterStroke>, f64) {
     let mut min_x = f64::MAX;
     let mut min_y = f64::MAX;
     let mut max_x = f64::MIN;
@@ -312,11 +323,12 @@ fn normalise_strokes(all_raw: Vec<Vec<[f64; 2]>>) -> Vec<PlotterStroke> {
     }
     let range_x = (max_x - min_x).max(1e-6);
     let range_y = (max_y - min_y).max(1e-6);
-    let scale   = range_x.max(range_y); // uniform — preserves aspect ratio across lines
-    let nx = |px: f64| (px - min_x) / scale;
-    let ny = |py: f64| (py - min_y) / scale; // y already oriented correctly
+    let aspect_ratio = range_x / range_y;
+    // Normalise each axis independently → coordinates land in [0, 1] × [0, 1].
+    let nx = |px: f64| (px - min_x) / range_x;
+    let ny = |py: f64| (py - min_y) / range_y;
 
-    all_raw
+    let strokes = all_raw
         .into_iter()
         .map(|pts| {
             let start = [nx(pts[0][0]), ny(pts[0][1])];
@@ -329,5 +341,6 @@ fn normalise_strokes(all_raw: Vec<Vec<[f64; 2]>>) -> Vec<PlotterStroke> {
                 .collect();
             PlotterStroke { start, moves }
         })
-        .collect()
+        .collect();
+    (strokes, aspect_ratio)
 }
