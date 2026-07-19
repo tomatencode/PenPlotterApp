@@ -33,7 +33,7 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
     const raw = elementsToPlotterStrokes(penElements, fonts);
 
     onProgress?.(Math.round(base + batchShare * 0.5), `Batch ${i + 1}/${batchCount}: running ACO to optimize stroke order…`);
-    const strokes = runAco(raw, home, {maxTimeMs: 7500, alpha: 1, beta: 3, rho: 0.1, candidateListSize: 30, minUniqueStrokesInDecision: 5, numAnts: 50, stagnationThreshold: 0.95, maxStagnationResets: 7});
+    const strokes = runAco(raw, home, {maxTimeMs: 15000, alpha: 1, beta: 4, rho: 0.12, candidateListSize: 30, minUniqueStrokesInDecision: 5, numAnts: 50, stagnationThreshold: 0.95, maxStagnationResets: 7});
 
     if (strokes.length > 0) processed.push({ penIdx, strokes });
   }
