@@ -5,6 +5,7 @@ import type { Element, Tool } from "../features/document/types";
 import { initialDoc, docToJson, historyReducer, initialHistoryState } from "../features/document/docState";
 import { useElementDrag } from "../features/document/hooks/useElementDrag";
 import { useElementDeform } from "../features/document/hooks/useElementDeform";
+import { useMultiDeform } from "../features/document/hooks/useMultiDeform";
 import { usePenActions } from "../features/document/hooks/usePenActions";
 import { useDocumentKeyboard } from "../features/document/hooks/useDocumentKeyboard";
 import { DEFAULT_FONTS } from "../features/document/text/defaultFonts";
@@ -78,6 +79,7 @@ export default function DocumentScreenContent() {
 
   const { onMoveStart, onMoveElement } = useElementDrag(doc, dispatch, () => dispatch({ type: "SNAPSHOT" }));
   const { onDeformStart, onDeformElement } = useElementDeform(doc, dispatch, () => dispatch({ type: "SNAPSHOT" }));
+  const { onMultiDeformStart, onMultiDeformElement } = useMultiDeform(doc, dispatch, () => dispatch({ type: "SNAPSHOT" }));
 
   const handleAddElement = useCallback((el: Element) => {
     dispatch({ type: "SNAPSHOT" });
@@ -129,6 +131,8 @@ export default function DocumentScreenContent() {
           onMoveStart={onMoveStart}
           onDeformStart={onDeformStart}
           onDeformElement={onDeformElement}
+          onMultiDeformStart={onMultiDeformStart}
+          onMultiDeformElement={onMultiDeformElement}
           onViewportChange={setViewport}
         />
 

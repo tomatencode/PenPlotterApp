@@ -63,6 +63,8 @@ interface Options {
   onMoveElement: (totalDx: number, totalDy: number) => void;
   onDeformStart: (elementId: string, handleId: string) => void;
   onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
+  onMultiDeformStart: (elementIds: string[]) => void;
+  onMultiDeformElement: (handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -83,11 +85,14 @@ export function useCanvasPointer({
   onMoveElement,
   onDeformStart,
   onDeformElement,
+  onMultiDeformStart,
+  onMultiDeformElement,
   onViewportChange,
 }: Options) {
-  const panRef        = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
-  const dragRef       = useRef<{ elementIds: string[]; grabDocX: number; grabDocY: number } | null>(null);
-  const handleDragRef = useRef<{ elementId: string; handleId: string } | null>(null);
+  const panRef             = useRef<{ vp: Viewport; px: number; py: number } | null>(null);
+  const dragRef            = useRef<{ elementIds: string[]; grabDocX: number; grabDocY: number } | null>(null);
+  const handleDragRef      = useRef<{ elementId: string; handleId: string } | null>(null);
+  const multiHandleDragRef = useRef<{ handleId: string } | null>(null);
   const shapeStart    = useRef<{ docX: number; docY: number } | null>(null);
   const marqueeStart  = useRef<{ docX: number; docY: number; additive: boolean } | null>(null);
   const ghostRef      = useRef<Ghost | null>(ghost);
@@ -155,10 +160,16 @@ export function useCanvasPointer({
     }
 
     if (activeTool === "select") {
-      // Deform handle drag
+      // Single-element deform handle drag
       if (handleDragRef.current) {
         const [x, y] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
         onDeformElement(handleDragRef.current.elementId, handleDragRef.current.handleId, x, y);
+        return;
+      }
+      // Multi-element bounding box handle drag
+      if (multiHandleDragRef.current) {
+        const [x, y] = clampToWorkspace(...getSvgPoint(e, svgRef, viewport), page);
+        onMultiDeformElement(multiHandleDragRef.current.handleId, x, y);
         return;
       }
       // Element drag (single or multi)
@@ -206,8 +217,9 @@ export function useCanvasPointer({
   }, [activeTool, viewport, page, onViewportChange, onMoveElement, onDeformElement]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    if (handleDragRef.current) { handleDragRef.current = null; return; }
-    if (dragRef.current)       { dragRef.current = null; return; }
+    if (handleDragRef.current)      { handleDragRef.current = null; return; }
+    if (multiHandleDragRef.current)  { multiHandleDragRef.current = null; return; }
+    if (dragRef.current)             { dragRef.current = null; return; }
     if (panRef.current)        { panRef.current = null; return; }
 
     if (activeTool === "select") {
@@ -314,5 +326,11 @@ export function useCanvasPointer({
     svgRef.current!.setPointerCapture(e.pointerId);
   }
 
-  return { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, marquee };
+  function startMultiHandleDrag(e: React.PointerEvent, elementIds: string[], handleId: string) {
+    onMultiDeformStart(elementIds);
+    multiHandleDragRef.current = { handleId };
+    svgRef.current!.setPointerCapture(e.pointerId);
+  }
+
+  return { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, startMultiHandleDrag, marquee };
 }

@@ -6,6 +6,7 @@ import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
 import { getHints } from "../canvas/SelectionHints";
+import { elementBounds } from "../utils";
 
 interface Props {
   doc: PnplttrDocument;
@@ -20,6 +21,8 @@ interface Props {
   onMoveStart: (elementIds: string[]) => void;
   onDeformStart: (elementId: string, handleId: string) => void;
   onDeformElement: (elementId: string, handleId: string, x: number, y: number) => void;
+  onMultiDeformStart: (elementIds: string[]) => void;
+  onMultiDeformElement: (handleId: string, x: number, y: number) => void;
   onViewportChange: (v: Viewport) => void;
 }
 
@@ -36,17 +39,19 @@ export default function CanvasArea({
   onMoveStart,
   onDeformStart,
   onDeformElement,
+  onMultiDeformStart,
+  onMultiDeformElement,
   onViewportChange,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [ghost, setGhost] = useState<Ghost | null>(null);
-  const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, marquee } =
+  const { onPointerDown, onPointerMove, onPointerUp, onWheel, startElementDrag, startHandleDrag, startMultiHandleDrag, marquee } =
     useCanvasPointer({
       svgRef, viewport, activeTool, activePenIndex,
       elements: doc.elements, nextZ: doc.elements.length,
       selectedIds, ghost, setGhost, page: doc.page,
       onAddElement, onSelectElements, onMoveElement, onMoveStart,
-      onDeformStart, onDeformElement, onViewportChange,
+      onDeformStart, onDeformElement, onMultiDeformStart, onMultiDeformElement, onViewportChange,
     });
 
   // For single-element operations (deform handles) we need the actual element
@@ -141,6 +146,43 @@ export default function CanvasArea({
                   onPointerDown={(e) => { e.stopPropagation(); startHandleDrag(e, singleSelectedElement.id, handle.id); }}
                 />
               ))}
+
+              {/* Multi-selection bounding box + corner handles */}
+              {selectedIds.length > 1 && (() => {
+                const selectedEls = doc.elements.filter(el => selectedSet.has(el.id));
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                for (const el of selectedEls) {
+                  const b = elementBounds(el);
+                  if (b.minX < minX) minX = b.minX; if (b.minY < minY) minY = b.minY;
+                  if (b.maxX > maxX) maxX = b.maxX; if (b.maxY > maxY) maxY = b.maxY;
+                }
+                if (!isFinite(minX)) return null;
+                const bboxHandles = [
+                  { id: "tl", x: minX, y: minY },
+                  { id: "tr", x: maxX, y: minY },
+                  { id: "bl", x: minX, y: maxY },
+                  { id: "br", x: maxX, y: maxY },
+                ];
+                return (
+                  <>
+                    <rect
+                      x={minX} y={minY} width={maxX - minX} height={maxY - minY}
+                      fill="none" stroke="#60a5fa" strokeWidth={1 / viewport.zoom}
+                      strokeDasharray={`${4 / viewport.zoom} ${4 / viewport.zoom}`}
+                      pointerEvents="none"
+                    />
+                    {bboxHandles.map(h => (
+                      <circle
+                        key={h.id} cx={h.x} cy={h.y}
+                        r={5 / viewport.zoom}
+                        fill="#2c3e49" stroke="#60a5fa" strokeWidth={1 / viewport.zoom}
+                        style={{ cursor: "crosshair" }}
+                        onPointerDown={(e) => { e.stopPropagation(); startMultiHandleDrag(e, selectedIds, h.id); }}
+                      />
+                    ))}
+                  </>
+                );
+              })()}
             </>
           )}
 
