@@ -3,7 +3,7 @@ import type { PlotterStroke } from "../plotterMove";
 import { elementsToPlotterStrokes } from "../renderElements";
 import { makeConverter, gcodeToDoc } from "./coordConverter";
 import { DEFAULT_FONTS } from "../text/defaultFonts";
-import { optimizeStrokes } from "./optimizeStrokes";
+import { runAco } from "./aco/runAco";
 import { optimizePenSwitches } from "./optimizePenSwitches";
 import { strokeToGcode } from "./strokeToGcode";
 import { compressGcode } from "./compressGcode";
@@ -32,8 +32,8 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
     onProgress?.(base, `Batch ${i + 1}/${batchCount}: rendering elements…`);
     const raw = elementsToPlotterStrokes(penElements, fonts);
 
-    onProgress?.(Math.round(base + batchShare * 0.5), `Batch ${i + 1}/${batchCount}: optimizing stroke order…`);
-    const strokes = optimizeStrokes(raw, home);
+    onProgress?.(Math.round(base + batchShare * 0.5), `Batch ${i + 1}/${batchCount}: running ACO to optimize stroke order…`);
+    const strokes = runAco(raw, home, {maxTimeMs: 8000, alpha: 1, beta: 2, rho: 0.1, candidateListSize: 30, minUniqueStrokesInDecision: 5, numAnts: 50, stagnationThreshold: 0.95, maxStagnationResets: 5});
 
     if (strokes.length > 0) processed.push({ penIdx, strokes });
   }

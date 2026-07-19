@@ -34,7 +34,7 @@ interface PenLayer {
  *  Each stroke records the GCode line number of its closing M5 so the render
  *  can split drawn vs. pending paths using the live jobLine counter.
  */
-function parseGcode(gcode: string, wsH: number): PenLayer[] {
+function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPaths: string[] } {
   const byColor = new Map<string, { width: number; strokes: Stroke[] }>();
 
   let curX = 0;
@@ -43,6 +43,8 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
   let curColor = "#888888";
   let curWidth = 0.3;
   let pathD = "";
+  let travelD = "";
+  const travelPaths: string[] = [];
 
   const sy = (y: number) => (wsH - y).toFixed(3);
   const sx = (x: number) => x.toFixed(3);
@@ -83,9 +85,16 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
     const cmd = parts[0].toUpperCase();
 
     if (cmd === "G0") {
-      curX = param(parts, "X") ?? curX;
-      curY = param(parts, "Y") ?? curY;
+      const nx = param(parts, "X") ?? curX;
+      const ny = param(parts, "Y") ?? curY;
+      if (!penDown) {
+        if (!travelD) travelD = `M${sx(curX)} ${sy(curY)}`;
+        travelD += ` L${sx(nx)} ${sy(ny)}`;
+      }
+      curX = nx;
+      curY = ny;
     } else if (cmd === "M3") {
+      if (travelD) { travelPaths.push(travelD); travelD = ""; }
       penDown = true;
       pathD = `M${sx(curX)} ${sy(curY)}`;
     } else if (cmd === "M5") {
@@ -144,20 +153,24 @@ function parseGcode(gcode: string, wsH: number): PenLayer[] {
   }
 
   flushPath(lines.length); // safety flush in case file ends without M5
+  if (travelD) travelPaths.push(travelD);
 
-  return Array.from(byColor.entries()).map(([color, { width, strokes }]) => ({
-    color,
-    width,
-    strokes,
-  }));
+  return {
+    layers: Array.from(byColor.entries()).map(([color, { width, strokes }]) => ({
+      color,
+      width,
+      strokes,
+    })),
+    travelPaths,
+  };
 }
 
 export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode, currentLine }: Props) {
   const wsW = workspaceWidthMm;
   const wsH = workspaceHeightMm;
 
-  const layers = useMemo(
-    () => (gcode ? parseGcode(gcode, wsH) : []),
+  const { layers, travelPaths } = useMemo(
+    () => (gcode ? parseGcode(gcode, wsH) : { layers: [], travelPaths: [] }),
     [gcode, wsH],
   );
 
@@ -169,6 +182,18 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
         width={wsW} height={wsH}
         fill="#b6bbc6" stroke="#eea03b" strokeWidth={1} strokeDasharray="4 3"
       />
+      {/* Pen-up travel moves (debug) */}
+      {travelPaths.length > 0 && (
+        <path
+          d={travelPaths.join(" ")}
+          stroke="#e07000"
+          strokeWidth={0.4}
+          fill="none"
+          opacity={0.45}
+          strokeDasharray="1.5 2.5"
+          strokeLinecap="round"
+        />
+      )}
       {layers.map((layer, i) => {
         // Split strokes into drawn (M5 already past) vs. pending.
         // currentLine=undefined → all pending; currentLine=Infinity → all drawn.
