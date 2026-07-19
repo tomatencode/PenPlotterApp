@@ -174,6 +174,22 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
     [gcode, wsH],
   );
 
+  // Memoize the drawn/pending path split — this is expensive for large files
+  // because it joins thousands of stroke strings. Without memoization it runs
+  // on every WebSocket push (every ~100 ms) even though layers haven't changed.
+  const splitLayers = useMemo(
+    () => layers.map(layer => {
+      const drawn   = currentLine !== undefined
+        ? layer.strokes.filter(s => s.endLine < currentLine).map(s => s.d).join(" ")
+        : "";
+      const pending = currentLine !== undefined
+        ? layer.strokes.filter(s => s.endLine >= currentLine).map(s => s.d).join(" ")
+        : layer.strokes.map(s => s.d).join(" ");
+      return { color: layer.color, width: layer.width, drawn, pending };
+    }),
+    [layers, currentLine],
+  );
+
   return (
     <g data-layer="body">
       {/* Workspace boundary (dashed) */}
@@ -194,16 +210,7 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
           strokeLinecap="round"
         />
       )}
-      {layers.map((layer, i) => {
-        // Split strokes into drawn (M5 already past) vs. pending.
-        // currentLine=undefined → all pending; currentLine=Infinity → all drawn.
-        const drawn   = currentLine !== undefined
-          ? layer.strokes.filter(s => s.endLine < currentLine).map(s => s.d).join(" ")
-          : "";
-        const pending = currentLine !== undefined
-          ? layer.strokes.filter(s => s.endLine >= currentLine).map(s => s.d).join(" ")
-          : layer.strokes.map(s => s.d).join(" ");
-
+      {splitLayers.map((layer, i) => {
         const sharedProps = {
           stroke: layer.color,
           strokeWidth: layer.width,
@@ -214,11 +221,11 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
 
         return (
           <g key={i}>
-            {drawn && (
-              <path {...sharedProps} d={drawn} opacity={1} />
+            {layer.drawn && (
+              <path {...sharedProps} d={layer.drawn} opacity={1} />
             )}
-            {pending && (
-              <path {...sharedProps} d={pending} opacity={0.7} strokeDasharray="2 3" />
+            {layer.pending && (
+              <path {...sharedProps} d={layer.pending} opacity={0.7} strokeDasharray="2 3" />
             )}
           </g>
         );

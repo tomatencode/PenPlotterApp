@@ -188,10 +188,12 @@ export class PlotterClient {
   }
 
   // Download the raw gcode content of a stored file.
+  // Uses the raw Tauri fetch without a timeout — large files over WiFi can
+  // take well over the default REQUEST_TIMEOUT_MS.
   async downloadJob(filename: string): Promise<string> {
     const url = new URL(`${this.baseUrl}/downloadJob`);
     url.searchParams.set("file", filename);
-    const res = await checkResponse(await fetch(url.toString()));
+    const res = await checkResponse(await _fetch(url.toString()));
     return res.text();
   }
 

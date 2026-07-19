@@ -200,7 +200,7 @@ export default function PlotterScreen() {
                 workspaceHeightMm={info.workspaceY}
                 gcode={preview?.gcode}
                 currentLine={previewCurrentLine}
-                activePenColor="#383737"
+                activePenColor="#2f69a2"
                 onHeadDrop={wsState?.jobActive ? undefined : handleHeadDrop}
               />
             ) : 
