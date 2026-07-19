@@ -131,6 +131,10 @@ export default function PlotterScreen() {
     try { await client.abortJob(); } catch (e) { console.error(e); }
   }
 
+  async function handleSendGcode(gcode: string) {
+    try { await client.executeGCode(gcode); } catch (e) { console.error(e); }
+  }
+
   async function handleChangeSetting(key: SettingKey, rawValue: string) {
     try {
       await client.setSetting(key, rawValue);
@@ -237,6 +241,7 @@ export default function PlotterScreen() {
         onPause={handlePause}
         onResume={handleResume}
         onAbort={handleAbort}
+        onSendGcode={handleSendGcode}
       />
     </div>
   );

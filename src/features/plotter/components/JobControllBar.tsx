@@ -1,21 +1,50 @@
 import type { WsStateMessage } from "../api/plotterTypes";
-import { btnRed, btnSlate, btnYellow } from "../../../shared/styles";
+import { btnBlue, btnRed, btnSlate, btnYellow } from "../../../shared/styles";
 
 interface Props {
   wsState: WsStateMessage | null;
   onPause: () => void;
   onResume: () => void;
   onAbort: () => void;
+  onSendGcode?: (gcode: string) => void;
 }
 
-export default function JobControlBar({ wsState, onPause, onResume, onAbort }: Props) {
+export default function JobControlBar({ wsState, onPause, onResume, onAbort, onSendGcode }: Props) {
   const active = wsState?.jobActive ?? false;
   const motionState = wsState?.motionState ?? "idle";
+  const connected = wsState !== null;
+  const penDown = wsState?.penDown ?? false;
 
   if (!active) {
     return (
-      <div className="shrink-0 h-12 border-t border-slate-700/60 bg-[#0d1017] flex items-center px-5">
-        <p className="text-xs text-slate-700 italic">No active job</p>
+      <div className="shrink-0 border-t border-slate-700/60 bg-[#0d1017] flex items-center justify-center gap-3 py-2.5 px-5">
+        <button
+          onClick={() => onSendGcode?.("G28")}
+          disabled={!connected || !onSendGcode}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnSlate}`}
+        >
+          <HomeIcon />
+          Home
+        </button>
+        {penDown ? (
+          <button
+            onClick={() => onSendGcode?.("M5")}
+            disabled={!connected || !onSendGcode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnBlue}`}
+          >
+            <PenUpIcon />
+            Pen Up
+          </button>
+        ) : (
+          <button
+            onClick={() => onSendGcode?.("M3")}
+            disabled={!connected || !onSendGcode}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${btnBlue}`}
+          >
+            <PenDownIcon />
+            Pen Down
+          </button>
+        )}
       </div>
     );
   }
@@ -120,6 +149,36 @@ export default function JobControlBar({ wsState, onPause, onResume, onAbort }: P
         </button>
       </div>
     </div>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1 5.5L5.5 1L10 5.5" />
+      <path d="M2.5 4.5V10H8.5V4.5" />
+      <path d="M4.25 10V7.5H6.75V10" />
+    </svg>
+  );
+}
+
+function PenUpIcon() {
+  return (
+    <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="5.5" width="4" height="4" rx="0.5" />
+      <line x1="5" y1="5" x2="5" y2="2" />
+      <path d="M3.5 3.5L5 1.5L6.5 3.5" />
+    </svg>
+  );
+}
+
+function PenDownIcon() {
+  return (
+    <svg width="10" height="11" viewBox="0 0 10 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="1.5" width="4" height="4" rx="0.5" />
+      <line x1="5" y1="6" x2="5" y2="9" />
+      <path d="M3.5 7.5L5 9.5L6.5 7.5" />
+    </svg>
   );
 }
 
