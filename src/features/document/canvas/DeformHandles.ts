@@ -167,8 +167,16 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
       if (raw_w === 0 && raw_h === 0) return el;
       else if (raw_h === 0 || raw_w / raw_h >= ratio) { eff_w = raw_w; eff_h = raw_w / ratio; }
       else                                             { eff_h = raw_h; eff_w = raw_h * ratio; }
-      const cx = fixed.fx + (x >= fixed.fx ? 1 : -1) * eff_w;
-      const cy = fixed.fy + (y >= fixed.fy ? 1 : -1) * eff_h;
+      // Clamp to workspace bounds while maintaining aspect ratio.
+      const ws = workspaceBounds(page);
+      const x_dir = x >= fixed.fx ? 1 : -1;
+      const y_dir = y >= fixed.fy ? 1 : -1;
+      const max_w = Math.max(0, x_dir > 0 ? ws.x + ws.w - fixed.fx : fixed.fx - ws.x);
+      const max_h = Math.max(0, y_dir > 0 ? ws.y + ws.h - fixed.fy : fixed.fy - ws.y);
+      eff_w = Math.min(eff_w, max_w, max_h * ratio);
+      eff_h = eff_w / ratio;
+      const cx = fixed.fx + x_dir * eff_w;
+      const cy = fixed.fy + y_dir * eff_h;
       return {
         ...el,
         x: Math.min(cx, fixed.fx),
