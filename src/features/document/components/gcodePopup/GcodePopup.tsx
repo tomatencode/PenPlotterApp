@@ -82,6 +82,7 @@ export default function GcodePopup({
 	}
 
 	function handleGenerateGcode() {
+		const startTime = Date.now();
 		setIsBusy(true);
 		setConversionProgress(0);
 		setIsUploading(false);
@@ -104,7 +105,7 @@ export default function GcodePopup({
 				const result = e.data.gcode;
 				setGcode(result);
 				setConversionProgress(100);
-				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines.`);
+				setStatusText(`Generated ${result.split(/\r?\n/).filter(Boolean).length} GCode lines – Took ${((Date.now() - startTime) / 1000).toFixed(1)}s.`);
 			} else {
 				console.error("GCode conversion failed:", e.data.message);
 				setStatusText(`GCode conversion failed: ${e.data.message ?? "unknown error"}`);
