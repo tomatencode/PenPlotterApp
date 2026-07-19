@@ -45,8 +45,13 @@ export default function PlotterFileList({
       return;
     }
     setExpandedFile(filename);
-    onFocusFile(filename);
-    if (!fileInfoCache[filename]) {
+
+    if (fileInfoCache[filename]) {
+      // Info already cached — start the preview download immediately.
+      onFocusFile(filename);
+    } else {
+      // Fetch info first so it doesn't race with the (potentially large) file
+      // download on the plotter's single-threaded HTTP server.
       setFileInfoCache(prev => ({ ...prev, [filename]: "loading" }));
       onFetchFileInfo(filename)
         .then(info => {
@@ -54,6 +59,9 @@ export default function PlotterFileList({
         })
         .catch(() => {
           setFileInfoCache(prev => ({ ...prev, [filename]: "error" }));
+        })
+        .finally(() => {
+          onFocusFile(filename);
         });
     }
   }
