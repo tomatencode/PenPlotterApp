@@ -30,10 +30,16 @@ export function usePenActions(
     dispatch({ type: "SET_PEN", penIndex: index, pen });
   }
 
+  function reorderPens(order: number[]) {
+    setActivePenIndex(order.indexOf(activePenIndex));
+    dispatch({ type: "SNAPSHOT" });
+    dispatch({ type: "REORDER_PENS", order });
+  }
+
   function updatePage(page: PageSettings) {
     dispatch({ type: "SNAPSHOT" });
     dispatch({ type: "UPDATE_PAGE", page });
   }
 
-  return { addPen, deletePen, setPen, updatePage };
+  return { addPen, deletePen, setPen, reorderPens, updatePage };
 }

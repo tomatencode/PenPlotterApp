@@ -51,8 +51,14 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
             title="Delete element"
             className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-red-400 transition-colors"
           >
-            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-2.5 h-2.5">
-              <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+              <g transform="translate(0, -0.5)">
+                <path d="M1.5 2.7h7" />
+                <path d="M4 1h2" />
+                <path d="M2.5 2.7l.5 5.8a1 1 0 0 0 1 .9h2a1 1 0 0 0 1-.9L7.5 2.7" />
+                <path d="M4 4.2v3.4" />
+                <path d="M6 4.2v3.4" />
+              </g>
             </svg>
           </button>
         )}

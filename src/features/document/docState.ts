@@ -16,6 +16,7 @@ export type DocAction =
   | { type: "ADD_PEN"; pen: Pen }
   | { type: "DELETE_PEN"; penIndex: number }
   | { type: "SET_PEN"; penIndex: number; pen: Pen }
+  | { type: "REORDER_PENS"; order: number[] }
   | { type: "UPDATE_PAGE"; page: PageSettings };
 
 export interface HistoryState {
@@ -79,6 +80,12 @@ export function docReducer(doc: PnplttrDocument, action: DocAction): PnplttrDocu
     }
     case "SET_PEN":
       return { ...doc, pens: doc.pens.map((p, i) => i === action.penIndex ? action.pen : p) };
+    case "REORDER_PENS": {
+      const newPens = action.order.map((oldIdx) => doc.pens[oldIdx]);
+      const oldToNew = new Map(action.order.map((oldIdx, newIdx) => [oldIdx, newIdx]));
+      const newElements = doc.elements.map((el) => ({ ...el, pen: oldToNew.get(el.pen) ?? el.pen }));
+      return { ...doc, pens: newPens, elements: newElements };
+    }
     case "UPDATE_PAGE":
       return { ...doc, page: action.page };
     default:

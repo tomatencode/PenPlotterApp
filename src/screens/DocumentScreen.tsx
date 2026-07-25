@@ -86,7 +86,7 @@ export default function DocumentScreenContent() {
     dispatch({ type: "ADD_ELEMENT", element: el });
   }, [dispatch]);
 
-  const { addPen, deletePen, setPen, updatePage } =
+  const { addPen, deletePen, setPen, reorderPens, updatePage } =
     usePenActions(doc.pens.length, activePenIndex, setActivePenIndex, dispatch);
 
   useDocumentKeyboard({ dispatch, elements: doc.elements, selectedIds, setSelectedIds, setActiveTool, onSave: handleSave });
@@ -151,6 +151,7 @@ export default function DocumentScreenContent() {
             onAddPen={addPen}
             onDeletePen={deletePen}
             onSetPen={setPen}
+            onReorderPens={reorderPens}
           />
 
           <div className="h-px bg-slate-800 mx-3 shrink-0" />

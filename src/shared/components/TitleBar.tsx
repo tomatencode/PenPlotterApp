@@ -7,10 +7,10 @@ export default function TitleBar() {
 
   useEffect(() => {
     const win = appWindow.current;
-    win.isMaximized().then(setIsMaximized);
+    win.isFullscreen().then(setIsMaximized);
     let cleanup: (() => void) | undefined;
     win.onResized(() => {
-      win.isMaximized().then(setIsMaximized);
+      win.isFullscreen().then(setIsMaximized);
     }).then((unlisten) => { cleanup = unlisten; });
     return () => { cleanup?.(); };
   }, []);
@@ -20,7 +20,9 @@ export default function TitleBar() {
   }
 
   async function handleMaximize() {
-    await appWindow.current.toggleMaximize();
+    const win = appWindow.current;
+    const fullscreen = await win.isFullscreen();
+    await win.setFullscreen(!fullscreen);
   }
 
   async function handleClose() {

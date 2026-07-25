@@ -189,8 +189,8 @@ export default function CanvasArea({
           {/* Ghost preview */}
           {ghostPaths.map((d, i) => (
             <path key={i} d={d} fill="none" stroke="#60a5fa" opacity={0.5}
-              strokeWidth={1} strokeLinecap="round" strokeLinejoin="round"
-              strokeDasharray={`${4} ${4}`}
+              strokeWidth={0.6} strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray={`${3} ${3}`}
             />
           ))}
 
@@ -217,8 +217,8 @@ export default function CanvasArea({
             width={Math.min(doc.page.workspace_width,  doc.page.page_width)}
             height={Math.min(doc.page.workspace_height, doc.page.page_height)}
             fill="none" stroke="#eea03b" strokeLinecap="round" strokeLinejoin="round"
-            strokeDasharray={`${4} ${4}`}
-            strokeWidth={0.5}
+            strokeDasharray={`${3} ${3}`}
+            strokeWidth={0.4}
           />
         </g>
       </svg>

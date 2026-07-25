@@ -92,6 +92,7 @@ export function useDocumentKeyboard({
 
       if (e.key === "Backspace" && selectedIds.length > 0) {
         if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+        e.preventDefault();
         dispatch({ type: "SNAPSHOT" });
         const toDelete = new Set(selectedIds);
         for (const el of elements) {

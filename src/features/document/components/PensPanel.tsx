@@ -10,6 +10,18 @@ interface Props {
   onAddPen: () => void;
   onDeletePen: (idx: number) => void;
   onSetPen: (idx: number, pen: Pen) => void;
+  onReorderPens: (order: number[]) => void;
+}
+
+// Drag state for reordering pen cards. `v0`/`overV` are visual (top-to-bottom)
+// slot positions, not pen array indices — the list renders pens reversed.
+interface DragState {
+  v0: number;
+  overV: number;
+  dy: number;
+  startY: number;
+  tops: number[];
+  heights: number[];
 }
 
 export default function PensPanel({
@@ -19,11 +31,56 @@ export default function PensPanel({
   onAddPen,
   onDeletePen,
   onSetPen,
+  onReorderPens,
 }: Props) {
   const [pickerOpenIdx, setPickerOpenIdx] = useState<number | null>(null);
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const pickerRef = useRef<HTMLDivElement>(null);
   const swatchRef = useRef<HTMLButtonElement>(null);
+
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const liRefs = useRef<Array<HTMLLIElement | null>>([]);
+
+  function handleDragStart(e: React.PointerEvent<HTMLButtonElement>, v0: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    const n = pens.length;
+    const tops: number[] = [];
+    const heights: number[] = [];
+    for (let v = 0; v < n; v++) {
+      const rect = liRefs.current[v]?.getBoundingClientRect();
+      tops.push(rect?.top ?? 0);
+      heights.push(rect?.height ?? 0);
+    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag({ v0, overV: v0, dy: 0, startY: e.clientY, tops, heights });
+  }
+
+  function handleDragMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!drag) return;
+    const dy = e.clientY - drag.startY;
+    const { tops, heights, v0 } = drag;
+    const n = tops.length;
+    const draggedMid = tops[v0] + heights[v0] / 2 + dy;
+    let overV = n - 1;
+    for (let v = 0; v < n; v++) {
+      if (draggedMid < tops[v] + heights[v]) { overV = v; break; }
+    }
+    setDrag({ ...drag, dy, overV });
+  }
+
+  function handleDragEnd() {
+    if (!drag) return;
+    const { v0, overV } = drag;
+    setDrag(null);
+    if (overV === v0) return;
+    const n = pens.length;
+    const visualOrder = Array.from({ length: n }, (_, v) => n - 1 - v);
+    const [moved] = visualOrder.splice(v0, 1);
+    visualOrder.splice(overV, 0, moved);
+    const order = Array.from({ length: n }, (_, k) => visualOrder[n - 1 - k]);
+    onReorderPens(order);
+  }
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -57,8 +114,24 @@ export default function PensPanel({
         {[...pens].reverse().map((pen, reversedIdx) => {
           const idx = pens.length - 1 - reversedIdx;
           const isActive = idx === activePenIndex;
+          const v = reversedIdx;
+
+          let liStyle: React.CSSProperties | undefined;
+          let isDragging = false;
+          if (drag) {
+            const { v0, overV, dy, heights } = drag;
+            if (v === v0) {
+              isDragging = true;
+              liStyle = { transform: `translateY(${dy}px)`, position: "relative", zIndex: 20 };
+            } else if (overV > v0 && v > v0 && v <= overV) {
+              liStyle = { transform: `translateY(${-heights[v0]}px)`, transition: "transform 150ms ease" };
+            } else if (overV < v0 && v >= overV && v < v0) {
+              liStyle = { transform: `translateY(${heights[v0]}px)`, transition: "transform 150ms ease" };
+            }
+          }
+
           return (
-            <li key={idx}>
+            <li key={idx} ref={(el) => { liRefs.current[v] = el; }} style={liStyle}>
               <div
                 role="button"
                 tabIndex={0}
@@ -68,10 +141,31 @@ export default function PensPanel({
                   ${isActive
                     ? "bg-[#0a0c10] border-gray-500/40 text-gray-200"
                     : "bg-transparent border-transparent hover:bg-[#0a0c10] hover:border-slate-700/50 text-slate-400"
-                  }`}
+                  }
+                  ${isDragging ? "shadow-lg shadow-black/50 border-slate-600/60" : ""}`}
               >
                 <>
                   <div className="flex items-center gap-2">
+                    {/* Drag handle — only when there's more than one pen to reorder */}
+                    {pens.length > 1 && (
+                      <button
+                        type="button"
+                        title="Drag to reorder"
+                        onPointerDown={(e) => handleDragStart(e, v)}
+                        onPointerMove={handleDragMove}
+                        onPointerUp={handleDragEnd}
+                        onPointerCancel={handleDragEnd}
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0 w-3 h-4 flex items-center justify-center text-slate-600 hover:text-slate-300 cursor-grab active:cursor-grabbing touch-none select-none"
+                      >
+                        <svg viewBox="0 0 10 12" fill="currentColor" className="w-2.5 h-4">
+                          <circle cx="2.5" cy="2" r="1.1" /><circle cx="7.5" cy="2" r="1.1" />
+                          <circle cx="2.5" cy="6" r="1.1" /><circle cx="7.5" cy="6" r="1.1" />
+                          <circle cx="2.5" cy="10" r="1.1" /><circle cx="7.5" cy="10" r="1.1" />
+                        </svg>
+                      </button>
+                    )}
+
                     {/* Pen color dot */}
                     {!isActive && (
                       <div
@@ -111,8 +205,14 @@ export default function PensPanel({
                         title="Delete pen"
                         className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-red-400 disabled:opacity-20 disabled:pointer-events-none transition-colors"
                       >
-                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-2.5 h-2.5">
-                          <line x1="1" y1="1" x2="9" y2="9" /><line x1="9" y1="1" x2="1" y2="9" />
+                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                          <g transform="translate(0, -0.5)">
+                            <path d="M1.5 2.7h7" />
+                            <path d="M4 1h2" />
+                            <path d="M2.5 2.7l.5 5.8a1 1 0 0 0 1 .9h2a1 1 0 0 0 1-.9L7.5 2.7" />
+                            <path d="M4 4.2v3.4" />
+                            <path d="M6 4.2v3.4" />
+                          </g>
                         </svg>
                       </button>
                     </div>
