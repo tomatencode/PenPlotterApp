@@ -1,35 +1,49 @@
-import { useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+import { virtualRange } from "../../../shared/virtual";
+import { useElementSize } from "../../../shared/hooks/useElementSize";
 
 interface Props {
 	gcode: string;
 	onChange: (value: string) => void;
 }
 
-export default function GcodeEditor({ gcode, onChange }: Props) {
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const lineNumbersRef = useRef<HTMLDivElement>(null);
+// The gutter mirrors the textarea's metrics exactly, so its rows line up:
+// `leading-6` gives a 24px line box and `p-3` adds 12px of top padding.
+const ROW_HEIGHT = 24;
+const PADDING_TOP = 12;
 
-	const lines = gcode.split(/\r?\n/);
+export default function GcodeEditor({ gcode, onChange }: Props) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const viewportHeight = useElementSize(containerRef);
+	const [scrollTop, setScrollTop] = useState(0);
+
+	// Only the count is needed — avoid keeping a copy of every line around.
+	const lineCount = useMemo(() => gcode.split(/\r?\n/).length, [gcode]);
+	const { start, end, offsetY } = virtualRange(lineCount, ROW_HEIGHT, scrollTop, viewportHeight);
+
+	// The gutter is not a scroll container, so the scrolled-away distance has to
+	// be subtracted by hand to keep its rows aligned with the textarea's.
+	const gutterTop = PADDING_TOP + offsetY - scrollTop;
 
 	function syncScroll() {
-		if (textareaRef.current && lineNumbersRef.current) {
-			lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-		}
+		setScrollTop(textareaRef.current?.scrollTop ?? 0);
 	}
 
 	return (
-		<div className="flex-1 flex overflow-hidden bg-[#0a0c10]">
-			{/* Line numbers */}
+		<div ref={containerRef} className="flex-1 flex overflow-hidden bg-[#0a0c10]">
+			{/* Line numbers — virtualised; only the visible range is rendered. */}
 			<div
-				ref={lineNumbersRef}
-				className="w-12 shrink-0 overflow-hidden text-right font-mono text-xs text-slate-700 select-none bg-[#0a0c10] border-r border-slate-800 pt-3 pb-3 pr-2"
+				className="w-12 shrink-0 relative overflow-hidden text-right font-mono text-xs text-slate-700 select-none bg-[#0a0c10] border-r border-slate-800"
 				aria-hidden="true"
 			>
-				{lines.map((_, i) => (
-					<div key={i} className="leading-6 px-1">
-						{i + 1}
-					</div>
-				))}
+				<div className="absolute left-0 right-0 pr-2" style={{ top: gutterTop }}>
+					{Array.from({ length: end - start }, (_, i) => (
+						<div key={start + i} className="leading-6 px-1">
+							{start + i + 1}
+						</div>
+					))}
+				</div>
 			</div>
 
 			{/* Editor */}

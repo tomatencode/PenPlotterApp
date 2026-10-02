@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import PlotterDetailsRow from "../../../shared/components/PlotterDetailsRow";
 import type { Plotter } from "../../plotter/discoveryContext";
 import { DropdownSelector } from "../../../shared/components/DropdownSelector";
@@ -29,7 +30,7 @@ export default function GcodeControlsPanel({
 	onUpload,
 	onUploadAndStart,
 }: Props) {
-	const lines = gcode.split(/\r?\n/);
+	const lineCount = useMemo(() => gcode.split(/\r?\n/).filter(Boolean).length, [gcode]);
 	const hasGcode = gcode.trim().length > 0;
 
 	return (
@@ -38,7 +39,7 @@ export default function GcodeControlsPanel({
 			<div className="px-4 pt-4 pb-3 border-b border-slate-700/60">
 				<p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">File</p>
 				<div className="flex gap-4 text-xs text-slate-500">
-					<span>{lines.filter(Boolean).length} lines</span>
+					<span>{lineCount} lines</span>
 					<span>{formatBytes(new Blob([gcode]).size)}</span>
 				</div>
 			</div>
