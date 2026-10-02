@@ -12,7 +12,7 @@ import GcodeControlsPanel from "../features/gcode-editor/components/GcodeControl
 export default function GcodeScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { plotters } = usePlotterDiscovery();
+  const { plotters, holdPoller } = usePlotterDiscovery();
   const { path } = (location.state as { path: string | null }) ?? { path: null };
 
   const [gcode, setGcode] = useState("");
@@ -102,6 +102,9 @@ export default function GcodeScreen() {
         setStatusText("No GCode to upload.");
         return;
       }
+      // Uploads are slow and monopolise the device; suspend status polling
+      // until the transfer (and any follow-up start) has finished.
+      const releasePoller = holdPoller(selectedPlotter.url);
       try {
         setStatusText(`Uploading to ${selectedPlotter.url}…`);
         const client = new PlotterClient(selectedPlotter.url);
@@ -115,6 +118,8 @@ export default function GcodeScreen() {
         }
       } catch (e) {
         setStatusText(`Upload failed: ${String(e)}`);
+      } finally {
+        releasePoller();
       }
     });
   }

@@ -37,7 +37,7 @@ export default function GcodePopup({
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const [conversionProgress, setConversionProgress] = useState<number>(0);
 	const [isUploading, setIsUploading] = useState(false);
-	const { plotters } = usePlotterDiscovery();
+	const { plotters, holdPoller } = usePlotterDiscovery();
 
 	const navigate = useNavigate();
 
@@ -176,6 +176,9 @@ export default function GcodePopup({
 				return;
 			}
 
+			// Uploads are slow and monopolise the device; suspend status polling
+			// until the transfer (and any follow-up start) has finished.
+			const releasePoller = holdPoller(selectedPlotter.url);
 			try {
 				setStatusText(`Uploading to ${selectedPlotter.url}...`);
 				const client = new PlotterClient(selectedPlotter.url);
@@ -198,6 +201,11 @@ export default function GcodePopup({
 			} catch (e) {
 				console.error("Upload failed:", e);
 				setStatusText(`Upload failed: ${String(e)}`);
+				// Don't leave the UI stuck on the "Upload" phase after a failure.
+				setIsUploading(false);
+			} finally {
+				clearInterval(intervalId);
+				releasePoller();
 			}
 		});
 	}

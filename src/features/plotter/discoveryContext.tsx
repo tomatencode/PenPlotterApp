@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { PlotterClient } from "./api/plotterClient";
@@ -20,9 +20,21 @@ export interface Plotter {
 
 interface PlotterDiscoveryContextValue {
   plotters: Plotter[];
+  /**
+   * Suspend the status poller for one plotter while a long request is in
+   * flight (e.g. a file upload). The device's HTTP server is single-purpose
+   * enough that concurrent status polls make a slow upload slower, and their
+   * timeouts make the plotter flap into the "connecting" state.
+   *
+   * @returns a release function — call it (ideally in a `finally`) when done.
+   */
+  holdPoller: (url: string) => () => void;
 }
 
-const PlotterDiscoveryContext = createContext<PlotterDiscoveryContextValue>({ plotters: [] });
+const PlotterDiscoveryContext = createContext<PlotterDiscoveryContextValue>({
+  plotters: [],
+  holdPoller: () => () => {},
+});
 
 export function usePlotterDiscovery() {
   return useContext(PlotterDiscoveryContext);
@@ -38,6 +50,19 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   const iterationFetchedRef = useRef<Set<string>>(new Set());
   // Timestamp of the last successful poll response per URL.
   const lastSeenRef = useRef<Map<string, number>>(new Map());
+  // URLs whose poller is currently suspended (see holdPoller).
+  const heldRef = useRef<Set<string>>(new Set());
+
+  const holdPoller = useCallback((url: string) => {
+    heldRef.current.add(url);
+    lastSeenRef.current.set(url, Date.now());
+    return () => {
+      heldRef.current.delete(url);
+      // Give a fresh grace window so the next poll isn't treated as "last seen
+      // ages ago" and can't trigger an immediate removal.
+      lastSeenRef.current.set(url, Date.now());
+    };
+  }, []);
 
   function getClient(url: string): PlotterClient {
     if (!clientsRef.current.has(url)) {
@@ -71,6 +96,14 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   useEffect(() => {
     const id = setInterval(() => {
       for (const plotter of plottersRef.current) {
+        // A long request (e.g. an upload) owns the device right now — polling
+        // concurrently would starve it and time out, flipping the state to
+        // "connecting". Keep the last-seen clock fresh meanwhile.
+        if (heldRef.current.has(plotter.url)) {
+          lastSeenRef.current.set(plotter.url, Date.now());
+          continue;
+        }
+
         const client = getClient(plotter.url);
         console.log(`Polling plotter: ${plotter.url}`);
 
@@ -178,7 +211,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   }, []);
 
   return (
-    <PlotterDiscoveryContext.Provider value={{ plotters }}>
+    <PlotterDiscoveryContext.Provider value={{ plotters, holdPoller }}>
       {children}
     </PlotterDiscoveryContext.Provider>
   );

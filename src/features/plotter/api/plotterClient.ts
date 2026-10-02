@@ -37,14 +37,21 @@ export type {
 // Internal helpers
 
 const REQUEST_TIMEOUT_MS = 5_000;
+// Uploads are a multipart POST of a whole GCode file to an embedded device over
+// WiFi, which routinely takes longer than the interactive timeout. Aborting it
+// mid-body produced a "Request canceled" error, so uploads get their own,
+// much more generous budget. The device accepts up to 10 MB, which at the
+// transfer rates observed takes minutes — hence 5 minutes here.
+const UPLOAD_TIMEOUT_MS = 300_000;
 
 /** Wraps the Tauri fetch with a per-request timeout. */
 function fetch(
   input: string | URL,
   init?: Parameters<typeof _fetch>[1],
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): ReturnType<typeof _fetch> {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const id = setTimeout(() => controller.abort(), timeoutMs);
   return _fetch(input as string, { ...init, signal: controller.signal }).finally(() =>
     clearTimeout(id),
   );
@@ -156,6 +163,10 @@ export class PlotterClient {
 
   /**
    * Upload a `.gcode` file (max 10 MB).
+   *
+   * Uses the long upload timeout — a 1 MB+ body to an embedded device over WiFi
+   * can take tens of seconds, far beyond the interactive request timeout.
+   *
    * @param filename  Alphanumeric + `-`, `_`, `.` only; must end in `.gcode`.
    * @param content   Raw gcode text or a `Blob`/`File` object.
   */
@@ -167,7 +178,7 @@ export class PlotterClient {
         : content;
     body.append("file", blob, filename);
     const res = await checkResponse(
-      await fetch(`${this.baseUrl}/upload`, { method: "POST", body }),
+      await fetch(`${this.baseUrl}/upload`, { method: "POST", body }, UPLOAD_TIMEOUT_MS),
     );
     return res.json() as Promise<UploadResult>;
   }
