@@ -5,6 +5,7 @@ export interface JobStats {
   draw_mm: number;
   pen_lifts: number;
   pen_switches: number;
+  executable_lines: number;
 }
 
 function dist(x1: number, y1: number, x2: number, y2: number): number {
@@ -38,12 +39,14 @@ export function accumulateStats(
   penPos: [number, number],
 ): [number, number] {
   let [px, py] = penPos;
+  stats.executable_lines = 3; // 3 fixed lines at the start and end of the job
   for (const stroke of strokes) {
     stats.travel_mm += dist(px, py, stroke.start[0], stroke.start[1]);
     px = stroke.start[0];
     py = stroke.start[1];
     for (const m of stroke.moves) {
       stats.draw_mm += moveLength(m);
+      stats.executable_lines++; // each move translates to an executable line
     }
     stats.pen_lifts++;
     const last = stroke.moves[stroke.moves.length - 1];
@@ -54,7 +57,7 @@ export function accumulateStats(
 
 export function statsHeader(stats: JobStats): string {
   return (
-    `; STATS: travel_mm=${Math.round(stats.travel_mm)} draw_mm=${Math.round(stats.draw_mm)} pen_lifts=${stats.pen_lifts} pen_switches=${stats.pen_switches}\n\n`
+    `; STATS: travel_mm=${Math.round(stats.travel_mm)} draw_mm=${Math.round(stats.draw_mm)} pen_lifts=${stats.pen_lifts} pen_switches=${stats.pen_switches} executable_lines=${stats.executable_lines}\n\n`
   );
 }
 
@@ -68,6 +71,7 @@ export function generateStats(
     draw_mm: 0,
     pen_lifts: 0,
     pen_switches: Math.max(0, batches.length - 1),
+    executable_lines: 0,
   };
   let penPos: [number, number] = home;
   for (const { strokes } of batches) {
