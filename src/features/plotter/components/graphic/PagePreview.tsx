@@ -3,6 +3,8 @@ import { memo, useMemo } from "react";
 interface Props {
   workspaceWidthMm: number;
   workspaceHeightMm: number;
+  /** Current plotter head position in GCode coordinates. */
+  headPosition?: { x: number; y: number };
   /** Raw GCode string to preview. */
   gcode?: string;
   /**
@@ -18,6 +20,21 @@ interface Stroke {
   /** 0-based index of the M5 line that closes this stroke. */
   endLine: number;
   d: string;
+  segments: PathSegment[];
+}
+
+interface SvgPoint {
+  x: number;
+  y: number;
+}
+
+interface PathSegment {
+  /** 0-based index of the GCode line that performs this move. */
+  endLine: number;
+  d: string;
+  start: SvgPoint;
+  end: SvgPoint;
+  linear: boolean;
 }
 
 interface PenLayer {
@@ -30,6 +47,8 @@ interface TravelPath {
   /** 0-based index of the G0 line that performs this pen-up move. */
   endLine: number;
   d: string;
+  start: SvgPoint;
+  end: SvgPoint;
 }
 
 // ── Bucketed stroke rendering ───────────────────────────────────────────────
@@ -49,6 +68,18 @@ interface Bucket {
 }
 
 const BUCKET_BYTES = 65_536;
+
+function partialLineD(start: SvgPoint, end: SvgPoint, head: SvgPoint): string {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const progress = lengthSquared === 0
+    ? 1
+    : Math.max(0, Math.min(1, ((head.x - start.x) * dx + (head.y - start.y) * dy) / lengthSquared));
+  const x = start.x + dx * progress;
+  const y = start.y + dy * progress;
+  return `M${start.x.toFixed(3)} ${start.y.toFixed(3)} L${x.toFixed(3)} ${y.toFixed(3)}`;
+}
 
 function bucketize(strokes: Stroke[]): Bucket[] {
   const buckets: Bucket[] = [];
@@ -93,6 +124,7 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
   let curColor = "#888888";
   let curWidth = 0.3;
   let pathD = "";
+  let pathSegments: PathSegment[] = [];
   const travelPaths: TravelPath[] = [];
 
   const sy = (y: number) => (wsH - y).toFixed(3);
@@ -111,8 +143,9 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
       entry = { width: curWidth, strokes: [] };
       byColor.set(curColor, entry);
     }
-    entry.strokes.push({ endLine: lineIdx, d: pathD });
+    entry.strokes.push({ endLine: lineIdx, d: pathD, segments: pathSegments });
     pathD = "";
+    pathSegments = [];
   };
 
   const lines = gcode.split("\n");
@@ -137,9 +170,13 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
       const nx = param(parts, "X") ?? curX;
       const ny = param(parts, "Y") ?? curY;
       if (!penDown) {
+        const start = { x: curX, y: wsH - curY };
+        const end = { x: nx, y: wsH - ny };
         travelPaths.push({
           endLine: lineIdx,
-          d: `M${sx(curX)} ${sy(curY)} L${sx(nx)} ${sy(ny)}`,
+          d: `M${sx(start.x)} ${sy(curY)} L${sx(end.x)} ${sy(ny)}`,
+          start,
+          end,
         });
       }
       curX = nx;
@@ -147,13 +184,19 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
     } else if (cmd === "M3") {
       penDown = true;
       pathD = `M${sx(curX)} ${sy(curY)}`;
+      pathSegments = [];
     } else if (cmd === "M5") {
       flushPath(lineIdx);
       penDown = false;
     } else if (cmd === "G1") {
       const nx = param(parts, "X") ?? curX;
       const ny = param(parts, "Y") ?? curY;
-      if (penDown) pathD += ` L${sx(nx)} ${sy(ny)}`;
+      if (penDown) {
+        const start = { x: curX, y: wsH - curY };
+        const end = { x: nx, y: wsH - ny };
+        pathD += ` L${sx(nx)} ${sy(ny)}`;
+        pathSegments.push({ endLine: lineIdx, d: `M${sx(start.x)} ${start.y.toFixed(3)} L${sx(end.x)} ${end.y.toFixed(3)}`, start, end, linear: true });
+      }
       curX = nx;
       curY = ny;
     } else if (cmd === "G2" || cmd === "G3") {
@@ -176,6 +219,11 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
           : ((endA   - startA) + 2 * Math.PI) % (2 * Math.PI);
         const large = span > Math.PI ? 1 : 0;
         pathD += ` A${r.toFixed(3)} ${r.toFixed(3)} 0 ${large} ${sweep} ${sx(ex)} ${sy(ey)}`;
+        pathSegments.push({
+          endLine: lineIdx,
+          d: `M${svgFx.toFixed(3)} ${svgFy.toFixed(3)} A${r.toFixed(3)} ${r.toFixed(3)} 0 ${large} ${sweep} ${svgEx.toFixed(3)} ${svgEy.toFixed(3)}`,
+          start: { x: svgFx, y: svgFy }, end: { x: svgEx, y: svgEy }, linear: false,
+        });
       }
       curX = ex;
       curY = ey;
@@ -184,7 +232,12 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
       const ey = param(parts, "Y")  ?? curY;
       const cx = param(parts, "CX") ?? 0;
       const cy = param(parts, "CY") ?? 0;
-      if (penDown) pathD += ` Q${sx(cx)} ${sy(cy)} ${sx(ex)} ${sy(ey)}`;
+      if (penDown) {
+        const start = { x: curX, y: wsH - curY };
+        const end = { x: ex, y: wsH - ey };
+        pathD += ` Q${sx(cx)} ${sy(cy)} ${sx(ex)} ${sy(ey)}`;
+        pathSegments.push({ endLine: lineIdx, d: `M${start.x.toFixed(3)} ${start.y.toFixed(3)} Q${sx(cx)} ${sy(cy)} ${end.x.toFixed(3)} ${end.y.toFixed(3)}`, start, end, linear: false });
+      }
       curX = ex;
       curY = ey;
     } else if (cmd === "G5") {
@@ -195,7 +248,10 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
       const c2x = param(parts, "CX2") ?? 0;
       const c2y = param(parts, "CY2") ?? 0;
       if (penDown) {
+        const start = { x: curX, y: wsH - curY };
+        const end = { x: ex, y: wsH - ey };
         pathD += ` C${sx(c1x)} ${sy(c1y)} ${sx(c2x)} ${sy(c2y)} ${sx(ex)} ${sy(ey)}`;
+        pathSegments.push({ endLine: lineIdx, d: `M${start.x.toFixed(3)} ${start.y.toFixed(3)} C${sx(c1x)} ${sy(c1y)} ${sx(c2x)} ${sy(c2y)} ${end.x.toFixed(3)} ${end.y.toFixed(3)}`, start, end, linear: false });
       }
       curX = ex;
       curY = ey;
@@ -214,7 +270,7 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
   };
 }
 
-export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode, currentLine }: Props) {
+export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, headPosition, gcode, currentLine }: Props) {
   const wsW = workspaceWidthMm;
   const wsH = workspaceHeightMm;
 
@@ -241,6 +297,10 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
       .join(" "),
     [travelPaths, currentLine],
   );
+  const headInSvg = headPosition && { x: headPosition.x, y: wsH - headPosition.y };
+  const activeTravel = currentLine !== undefined && currentLine !== Infinity
+    ? travelPaths.find((path) => path.endLine === currentLine)
+    : undefined;
 
   return (
     <g data-layer="body">
@@ -262,11 +322,22 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
           strokeLinecap="round"
         />
       )}
+      {activeTravel && headInSvg && (
+        <path
+          d={partialLineD(activeTravel.start, activeTravel.end, headInSvg)}
+          stroke="#e07000"
+          strokeWidth={0.4}
+          fill="none"
+          opacity={0.8}
+          strokeLinecap="round"
+        />
+      )}
       {bucketedLayers.map((layer, i) => (
         <LayerBuckets
           key={i}
           layer={layer}
           currentLine={currentLine}
+          headInSvg={headInSvg}
         />
       ))}
     </g>
@@ -275,11 +346,12 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
 interface LayerBucketsProps {
   layer: { color: string; width: number; buckets: Bucket[] };
   currentLine?: number;
+  headInSvg?: SvgPoint;
 }
 
 // One layer's drawn/pending split. Whole buckets keep stable paths while the
 // single in-progress bucket is split at the exact current GCode line.
-const LayerBuckets = memo(function LayerBuckets({ layer, currentLine }: LayerBucketsProps) {
+const LayerBuckets = memo(function LayerBuckets({ layer, currentLine, headInSvg }: LayerBucketsProps) {
   const sharedProps = {
     stroke: layer.color,
     strokeWidth: layer.width,
@@ -297,6 +369,14 @@ const LayerBuckets = memo(function LayerBuckets({ layer, currentLine }: LayerBuc
       </g>
     );
   }
+
+  const activeStroke = currentLine !== Infinity
+    ? layer.buckets.flatMap((bucket) => bucket.strokes).find((stroke) => stroke.endLine >= currentLine && stroke.segments.some((segment) => segment.endLine <= currentLine))
+    : undefined;
+  const activeSegmentsD = activeStroke
+    ? activeStroke.segments.filter((segment) => segment.endLine < currentLine).map((segment) => segment.d).join(" ")
+    : "";
+  const activeSegment = activeStroke?.segments.find((segment) => segment.endLine === currentLine);
 
   return (
     <g>
@@ -319,6 +399,10 @@ const LayerBuckets = memo(function LayerBuckets({ layer, currentLine }: LayerBuc
           </g>
         );
       })}
+      {activeSegmentsD && <path {...sharedProps} d={activeSegmentsD} opacity={1} />}
+      {activeSegment?.linear && headInSvg && (
+        <path {...sharedProps} d={partialLineD(activeSegment.start, activeSegment.end, headInSvg)} opacity={1} />
+      )}
     </g>
   );
 });

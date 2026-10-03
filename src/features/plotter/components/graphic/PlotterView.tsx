@@ -96,7 +96,13 @@ export default function PlotterView({ position, workspaceWidthMm, workspaceHeigh
       }}
     >
       {/* Z-layer 0: Page boundary */}
-      <PagePreview workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} gcode={gcode} currentLine={currentLine} />
+      <PagePreview
+        workspaceWidthMm={workspaceWidthMm}
+        workspaceHeightMm={workspaceHeightMm}
+        headPosition={position}
+        gcode={gcode}
+        currentLine={currentLine}
+      />
 
       {previewLoading && (
         <g transform={`translate(${workspaceWidthMm / 2}, ${workspaceHeightMm / 2})`} pointerEvents="none">
