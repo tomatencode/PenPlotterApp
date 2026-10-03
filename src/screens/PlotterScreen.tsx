@@ -131,11 +131,11 @@ function PlotterContent({
 
   // Auto-load preview when the plotter starts (or switches) a job.
   useEffect(() => {
-    if (wsState?.jobFile) {
+    if (wsState?.jobFile && wsState?.jobFile !== preview?.filename) {
       requestPreview(wsState.jobFile);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wsState?.jobFile, client]);
+  }, [wsState?.jobFile, client, preview]);
 
 
   useEffect(() => {

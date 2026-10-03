@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo } from "react";
 
 interface Props {
   workspaceWidthMm: number;
@@ -39,19 +39,20 @@ interface Bucket {
   boundary: number;
   /** Strokes of this bucket, joined into a single path string. */
   d: string;
+  strokes: Stroke[];
 }
 
 const BUCKET_BYTES = 65_536;
 
 function bucketize(strokes: Stroke[]): Bucket[] {
   const buckets: Bucket[] = [];
-  let current: string[] = [];
+  let current: Stroke[] = [];
   let currentBytes = 0;
   let boundary = -1;
 
   const flush = () => {
     if (current.length === 0) return;
-    buckets.push({ boundary, d: current.join(" ") });
+    buckets.push({ boundary, d: current.map((stroke) => stroke.d).join(" "), strokes: current });
     current = [];
     currentBytes = 0;
     boundary = -1;
@@ -59,7 +60,7 @@ function bucketize(strokes: Stroke[]): Bucket[] {
 
   for (const stroke of strokes) {
     if (current.length > 0 && currentBytes + stroke.d.length > BUCKET_BYTES) flush();
-    current.push(stroke.d);
+    current.push(stroke);
     currentBytes += stroke.d.length;
     boundary = stroke.endLine;
   }
@@ -229,11 +230,6 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
   );
 
   // Static fallbacks for a pure preview (no jobLine) — built once per file.
-  const pendingFallbacks = useMemo(
-    () => bucketedLayers.map((layer) => layer.buckets.map((bucket) => bucket.d).join(" ")),
-    [bucketedLayers],
-  );
-
   const travelPathsD = useMemo(() => travelPaths.join(" "), [travelPaths]);
 
   return (
@@ -260,7 +256,6 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
         <LayerBuckets
           key={i}
           layer={layer}
-          pendingFallback={pendingFallbacks[i]}
           currentLine={currentLine}
         />
       ))}
@@ -269,66 +264,51 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
 }
 interface LayerBucketsProps {
   layer: { color: string; width: number; buckets: Bucket[] };
-  pendingFallback: string;
   currentLine?: number;
 }
 
-// One layer's drawn/pending split, bucketed so a jobLine push only touches the
-// ~1 boundary bucket instead of re-joining thousands of strokes. `memo` keeps
-// the component (and its <path> DOM nodes) stable across pushes whenever the
-// chosen buckets haven't changed, so the browser keeps its parsed path cache.
-const LayerBuckets = memo(function LayerBuckets({ layer, pendingFallback, currentLine }: LayerBucketsProps) {
+// One layer's drawn/pending split. Whole buckets keep stable paths while the
+// single in-progress bucket is split at the exact current GCode line.
+const LayerBuckets = memo(function LayerBuckets({ layer, currentLine }: LayerBucketsProps) {
   const sharedProps = {
     stroke: layer.color,
     strokeWidth: layer.width,
     fill: "none",
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
+    style: { stroke: layer.color },
   };
-
   if (currentLine === undefined) {
     return (
       <g>
-        {pendingFallback && (
-          <path {...sharedProps} d={pendingFallback} opacity={0.7} strokeDasharray="2 3" />
-        )}
+        {layer.buckets.map((bucket, index) => (
+          <path key={index} {...sharedProps} d={bucket.d} opacity={0.7} strokeDasharray="2 3" />
+        ))}
       </g>
     );
   }
 
-  // Every bucket boundary is monotonic in tour order (each boundary is the
-  // endLine of its last stroke), so the drawn/pending split is a prefix walk:
-  // fully-drawn buckets go solid, later buckets go dashed. Only the single
-  // boundary bucket mixes styles — the few early strokes render one push
-  // early (solid) and the few pending strokes stay dashed, which converges
-  // within a handful of pushes and avoids re-joining anything.
-  const cacheRef = useRef(new Map<number, { drawn: string; pending: string }>());
-  const cacheKey = layer.buckets.reduce(
-    (key, bucket) => (bucket.boundary < currentLine ? key + 1 : key),
-    0,
-  );
-  const cache = cacheRef.current;
-  let split = cache.get(cacheKey);
-  if (!split) {
-    const drawnParts: string[] = [];
-    const pendingParts: string[] = [];
-    for (const bucket of layer.buckets) {
-      if (bucket.boundary < currentLine) drawnParts.push(bucket.d);
-      else pendingParts.push(bucket.d);
-    }
-    split = { drawn: drawnParts.join(" "), pending: pendingParts.join(" ") };
-    cache.set(cacheKey, split);
-    if (cache.size > 8) cache.delete(cache.keys().next().value as number);
-  }
-
   return (
     <g>
-      {split.drawn && (
-        <path {...sharedProps} d={split.drawn} opacity={1} />
-      )}
-      {split.pending && (
-        <path {...sharedProps} d={split.pending} opacity={0.7} strokeDasharray="2 3" />
-      )}
+      {layer.buckets.map((bucket, index) => {
+        if (bucket.boundary < currentLine) {
+          return <path key={index} {...sharedProps} d={bucket.d} opacity={1} />;
+        }
+
+        const pendingStart = bucket.strokes.findIndex((stroke) => stroke.endLine >= currentLine);
+        if (pendingStart === 0) {
+          return <path key={index} {...sharedProps} d={bucket.d} opacity={0.7} strokeDasharray="2 3" />;
+        }
+
+        const drawn = bucket.strokes.slice(0, pendingStart).map((stroke) => stroke.d).join(" ");
+        const pending = bucket.strokes.slice(pendingStart).map((stroke) => stroke.d).join(" ");
+        return (
+          <g key={index}>
+            <path {...sharedProps} d={drawn} opacity={1} />
+            <path {...sharedProps} d={pending} opacity={0.7} strokeDasharray="2 3" />
+          </g>
+        );
+      })}
     </g>
   );
 });
