@@ -26,6 +26,12 @@ interface PenLayer {
   strokes: Stroke[];
 }
 
+interface TravelPath {
+  /** 0-based index of the G0 line that performs this pen-up move. */
+  endLine: number;
+  d: string;
+}
+
 // ── Bucketed stroke rendering ───────────────────────────────────────────────
 // A layer's strokes are contiguous in tour order, so the drawn/pending split
 // for a moving jobLine is a single cut point. Joining strokes into ~64KB
@@ -76,7 +82,7 @@ function bucketize(strokes: Stroke[]): Bucket[] {
  *  Each stroke records the GCode line number of its closing M5 so the render
  *  can split drawn vs. pending paths using the live jobLine counter.
  */
-function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPaths: string[] } {
+function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPaths: TravelPath[] } {
   const byColor = new Map<string, { width: number; strokes: Stroke[] }>();
 
   console.log("Parsing GCode...");
@@ -87,8 +93,7 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
   let curColor = "#888888";
   let curWidth = 0.3;
   let pathD = "";
-  let travelD = "";
-  const travelPaths: string[] = [];
+  const travelPaths: TravelPath[] = [];
 
   const sy = (y: number) => (wsH - y).toFixed(3);
   const sx = (x: number) => x.toFixed(3);
@@ -132,13 +137,14 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
       const nx = param(parts, "X") ?? curX;
       const ny = param(parts, "Y") ?? curY;
       if (!penDown) {
-        if (!travelD) travelD = `M${sx(curX)} ${sy(curY)}`;
-        travelD += ` L${sx(nx)} ${sy(ny)}`;
+        travelPaths.push({
+          endLine: lineIdx,
+          d: `M${sx(curX)} ${sy(curY)} L${sx(nx)} ${sy(ny)}`,
+        });
       }
       curX = nx;
       curY = ny;
     } else if (cmd === "M3") {
-      if (travelD) { travelPaths.push(travelD); travelD = ""; }
       penDown = true;
       pathD = `M${sx(curX)} ${sy(curY)}`;
     } else if (cmd === "M5") {
@@ -197,7 +203,6 @@ function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPat
   }
 
   flushPath(lines.length); // safety flush in case file ends without M5
-  if (travelD) travelPaths.push(travelD);
 
   return {
     layers: Array.from(byColor.entries()).map(([color, { width, strokes }]) => ({
@@ -229,8 +234,13 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
     [layers],
   );
 
-  // Static fallbacks for a pure preview (no jobLine) — built once per file.
-  const travelPathsD = useMemo(() => travelPaths.join(" "), [travelPaths]);
+  const travelPathsD = useMemo(
+    () => travelPaths
+      .filter((path) => currentLine === undefined || path.endLine >= currentLine)
+      .map((path) => path.d)
+      .join(" "),
+    [travelPaths, currentLine],
+  );
 
   return (
     <g data-layer="body">
@@ -241,7 +251,7 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
         fill="#b6bbc6" stroke="#eea03b" strokeWidth={1} strokeDasharray="4 3"
       />
       {/* Pen-up travel moves (debug) */}
-      {travelPaths.length > 0 && (
+      {travelPathsD && (
         <path
           d={travelPathsD}
           stroke="#e07000"
