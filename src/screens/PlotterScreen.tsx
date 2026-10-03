@@ -52,18 +52,23 @@ function PlotterContent({
   const downloadQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   // Latest requested preview; older queued downloads exit before touching state.
   const previewRequestRef = useRef<string | null>(null);
+  const previewRequestIdRef = useRef(0);
   // Aborts the in-flight preview download when a newer one is requested.
   const previewAbortRef = useRef<AbortController | null>(null);
+
+  const [previewLoadingFilename, setPreviewLoadingFilename] = useState<string | null>(null);
 
   // Requests the given preview through the queue. Older queued requests are
   // skipped; an already-running download for another file keeps the network
   // to itself and the new one restarts it as soon as it frees up.
   function requestPreview(filename: string): void {
+    const requestId = ++previewRequestIdRef.current;
     previewRequestRef.current = filename;
+    setPreviewLoadingFilename(filename);
     downloadQueueRef.current = downloadQueueRef.current
       .catch(() => {})
       .then(async () => {
-        if (previewRequestRef.current !== filename) return;
+        if (previewRequestIdRef.current !== requestId) return;
         previewAbortRef.current?.abort();
         const controller = new AbortController();
         previewAbortRef.current = controller;
@@ -72,15 +77,18 @@ function PlotterContent({
           console.log(`Requesting preview for file: ${filename}`);
           const gcode = await downloadPreview(client, filename, controller.signal);
           console.log(`Downloaded preview for file: ${filename}`);
-          if (previewRequestRef.current !== filename || controller.signal.aborted) return;
+          if (previewRequestIdRef.current !== requestId || controller.signal.aborted) return;
           setPreview({ gcode, filename });
         } catch (e) {
           if (controller.signal.aborted || isRequestCancelled(e)) return;
           console.error(e);
-          if (previewRequestRef.current === filename) setPreview(undefined);
+          if (previewRequestIdRef.current === requestId) setPreview(undefined);
         } finally {
           if (previewAbortRef.current === controller) {
             previewAbortRef.current = null;
+          }
+          if (previewRequestIdRef.current === requestId) {
+            setPreviewLoadingFilename(null);
           }
           releasePoller();
         }
@@ -230,7 +238,9 @@ function PlotterContent({
               onFocusFile={filename => {
                 if (filename === null) {
                   previewRequestRef.current = null;
+                  previewRequestIdRef.current += 1;
                   previewAbortRef.current?.abort();
+                  setPreviewLoadingFilename(null);
                   setPreview(undefined);
                 } else if (!wsState?.jobActive) {
                   requestPreview(filename);
@@ -250,6 +260,7 @@ function PlotterContent({
                 workspaceHeightMm={info.workspaceY}
                 gcode={preview?.gcode}
                 currentLine={previewCurrentLine}
+                previewLoading={previewLoadingFilename !== null}
                 activePenColor="#2f69a2"
                 onHeadDrop={wsState?.jobActive ? undefined : handleHeadDrop}
               />

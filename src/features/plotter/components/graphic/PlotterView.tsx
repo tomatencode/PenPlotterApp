@@ -25,6 +25,7 @@ interface Props {
   workspaceHeightMm: number;
   gcode?: string;
   currentLine?: number;
+  previewLoading?: boolean;
   activePenColor: string;
   // Provide to enable drag-to-move manual control; omit for view-only
   onPositionChange?: (pos: PlotterPosition) => void;
@@ -35,7 +36,7 @@ interface Props {
   onHeadDrop?: (pos: PlotterPosition) => void;
 }
 
-export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcode, currentLine, activePenColor, onPositionChange, onHeadDrop }: Props) {
+export default function PlotterView({ position, workspaceWidthMm, workspaceHeightMm, gcode, currentLine, previewLoading, activePenColor, onPositionChange, onHeadDrop }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
   const headDragging = useRef(false);
@@ -96,6 +97,22 @@ export default function PlotterView({ position, workspaceWidthMm, workspaceHeigh
     >
       {/* Z-layer 0: Page boundary */}
       <PagePreview workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} gcode={gcode} currentLine={currentLine} />
+
+      {previewLoading && (
+        <g transform={`translate(${workspaceWidthMm / 2}, ${workspaceHeightMm / 2})`} pointerEvents="none">
+          <circle r={5} fill="none" stroke="#475569" strokeWidth={1.25} opacity={0.35} />
+          <circle r={5} fill="none" stroke="#60a5fa" strokeWidth={1.25} strokeLinecap="round" strokeDasharray="12 20">
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0"
+              to="360"
+              dur="1s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        </g>
+      )}
 
       {/* Z-layer 1: Static body (chassis + Y rails) */}
       <PlotterBody workspaceWidthMm={workspaceWidthMm} workspaceHeightMm={workspaceHeightMm} />
