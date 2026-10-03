@@ -43,15 +43,25 @@ const REQUEST_TIMEOUT_MS = 5_000;
 // much more generous budget. The device accepts up to 10 MB, which at the
 // transfer rates observed takes minutes — hence 5 minutes here.
 const UPLOAD_TIMEOUT_MS = 300_000;
+// Large downloads need the same budget for the same reason: a 1 MB+ body takes
+// tens of seconds, and without any timeout a stalled device hangs the UI.
+// (Previously downloads had no timeout at all.)
+const TRANSFER_TIMEOUT_MS = 300_000;
 
-/** Wraps the Tauri fetch with a per-request timeout. */
+/** Wraps the Tauri fetch with a per-request timeout. An optional caller signal
+ * aborts together with the timeout (whichever fires first), so sequenced UI
+ * requests can cancel a superseded transfer instead of racing it. */
 function fetch(
   input: string | URL,
-  init?: Parameters<typeof _fetch>[1],
+  init?: Parameters<typeof _fetch>[1] & { signal?: AbortSignal },
   timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): ReturnType<typeof _fetch> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
+  if (init?.signal) {
+    if (init.signal.aborted) controller.abort();
+    else init.signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
   return _fetch(input as string, { ...init, signal: controller.signal }).finally(() =>
     clearTimeout(id),
   );
@@ -63,6 +73,42 @@ async function checkResponse(res: Response): Promise<Response> {
     throw new PlotterApiError(res.status, body);
   }
   return res;
+}
+
+// Whether an error means our side cancelled the request (timeout, an
+// explicitly aborted transfer, or the Tauri HTTP plugin's wording for it).
+export function isRequestCancelled(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "AbortError" || /request\s*cancel(led|ed)/i.test(error.message))
+  );
+}
+
+async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Retries a preview download that died with a transport-level failure such as
+// "error decoding response body". Cancelled transfers are never retried.
+export async function downloadPreview(
+  client: Pick<PlotterClient, "downloadJob">,
+  filename: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await delay(1000 * 2 ** (attempt - 1));
+    }
+    try {
+      return await client.downloadJob(filename, signal);
+    } catch (error) {
+      lastError = error;
+      if (isRequestCancelled(error)) throw error;
+      console.warn(`Preview download of "${filename}" failed (attempt ${attempt + 1}/3): ${String(error)}`);
+    }
+  }
+  throw lastError;
 }
 
 // PlotterClient
@@ -199,12 +245,16 @@ export class PlotterClient {
   }
 
   // Download the raw gcode content of a stored file.
-  // Uses the raw Tauri fetch without a timeout — large files over WiFi can
-  // take well over the default REQUEST_TIMEOUT_MS.
-  async downloadJob(filename: string): Promise<string> {
+  // Large bodies routinely take tens of seconds over WiFi, so this uses the
+  // long transfer budget rather than the interactive one. A truncated body
+  // surfaces as "error decoding response body"; callers treat that as a
+  // transient transport glitch and handle it via the shared preview retry.
+  async downloadJob(filename: string, signal?: AbortSignal): Promise<string> {
     const url = new URL(`${this.baseUrl}/downloadJob`);
     url.searchParams.set("file", filename);
-    const res = await checkResponse(await _fetch(url.toString()));
+    const res = await checkResponse(
+      await fetch(url.toString(), signal ? { signal } : undefined, TRANSFER_TIMEOUT_MS),
+    );
     return res.text();
   }
 

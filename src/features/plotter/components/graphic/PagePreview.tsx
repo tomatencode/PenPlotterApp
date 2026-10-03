@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo, useRef } from "react";
 
 interface Props {
   workspaceWidthMm: number;
@@ -24,6 +24,47 @@ interface PenLayer {
   color: string;
   width: number;
   strokes: Stroke[];
+}
+
+// ── Bucketed stroke rendering ───────────────────────────────────────────────
+// A layer's strokes are contiguous in tour order, so the drawn/pending split
+// for a moving jobLine is a single cut point. Joining strokes into ~64KB
+// buckets turns the per-push rebuild from thousands of string appends into
+// ~11 boundary comparisons, and keeps every <path> small enough to re-parse
+// fast. The original full-layer strings are memoised separately so they are
+// never rebuilt during a live job.
+
+interface Bucket {
+  /** endLine of the bucket's last stroke — every bucket boundary flips at most once. */
+  boundary: number;
+  /** Strokes of this bucket, joined into a single path string. */
+  d: string;
+}
+
+const BUCKET_BYTES = 65_536;
+
+function bucketize(strokes: Stroke[]): Bucket[] {
+  const buckets: Bucket[] = [];
+  let current: string[] = [];
+  let currentBytes = 0;
+  let boundary = -1;
+
+  const flush = () => {
+    if (current.length === 0) return;
+    buckets.push({ boundary, d: current.join(" ") });
+    current = [];
+    currentBytes = 0;
+    boundary = -1;
+  };
+
+  for (const stroke of strokes) {
+    if (current.length > 0 && currentBytes + stroke.d.length > BUCKET_BYTES) flush();
+    current.push(stroke.d);
+    currentBytes += stroke.d.length;
+    boundary = stroke.endLine;
+  }
+  flush();
+  return buckets;
 }
 
 /** Parse GCode into SVG path data, one layer per pen.
@@ -174,21 +215,24 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
     [gcode, wsH],
   );
 
-  // Memoize the drawn/pending path split — this is expensive for large files
-  // because it joins thousands of stroke strings. Without memoization it runs
-  // on every WebSocket push (every ~100 ms) even though layers haven't changed.
-  const splitLayers = useMemo(
-    () => layers.map(layer => {
-      const drawn   = currentLine !== undefined
-        ? layer.strokes.filter(s => s.endLine < currentLine).map(s => s.d).join(" ")
-        : "";
-      const pending = currentLine !== undefined
-        ? layer.strokes.filter(s => s.endLine >= currentLine).map(s => s.d).join(" ")
-        : layer.strokes.map(s => s.d).join(" ");
-      return { color: layer.color, width: layer.width, drawn, pending };
-    }),
-    [layers, currentLine],
+  // Buckets are derived from the (already memoised) parse, so this runs once
+  // per GCode string even for thousands of strokes.
+  const bucketedLayers = useMemo(
+    () => layers.map((layer) => ({
+      color: layer.color,
+      width: layer.width,
+      buckets: bucketize(layer.strokes),
+    })),
+    [layers],
   );
+
+  // Static fallbacks for a pure preview (no jobLine) — built once per file.
+  const pendingFallbacks = useMemo(
+    () => bucketedLayers.map((layer) => layer.buckets.map((bucket) => bucket.d).join(" ")),
+    [bucketedLayers],
+  );
+
+  const travelPathsD = useMemo(() => travelPaths.join(" "), [travelPaths]);
 
   return (
     <g data-layer="body">
@@ -201,7 +245,7 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
       {/* Pen-up travel moves (debug) */}
       {travelPaths.length > 0 && (
         <path
-          d={travelPaths.join(" ")}
+          d={travelPathsD}
           stroke="#e07000"
           strokeWidth={0.4}
           fill="none"
@@ -210,26 +254,79 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, gcode
           strokeLinecap="round"
         />
       )}
-      {splitLayers.map((layer, i) => {
-        const sharedProps = {
-          stroke: layer.color,
-          strokeWidth: layer.width,
-          fill: "none",
-          strokeLinecap: "round" as const,
-          strokeLinejoin: "round" as const,
-        };
-
-        return (
-          <g key={i}>
-            {layer.drawn && (
-              <path {...sharedProps} d={layer.drawn} opacity={1} />
-            )}
-            {layer.pending && (
-              <path {...sharedProps} d={layer.pending} opacity={0.7} strokeDasharray="2 3" />
-            )}
-          </g>
-        );
-      })}
+      {bucketedLayers.map((layer, i) => (
+        <LayerBuckets
+          key={i}
+          layer={layer}
+          pendingFallback={pendingFallbacks[i]}
+          currentLine={currentLine}
+        />
+      ))}
     </g>
   );
 }
+interface LayerBucketsProps {
+  layer: { color: string; width: number; buckets: Bucket[] };
+  pendingFallback: string;
+  currentLine?: number;
+}
+
+// One layer's drawn/pending split, bucketed so a jobLine push only touches the
+// ~1 boundary bucket instead of re-joining thousands of strokes. `memo` keeps
+// the component (and its <path> DOM nodes) stable across pushes whenever the
+// chosen buckets haven't changed, so the browser keeps its parsed path cache.
+const LayerBuckets = memo(function LayerBuckets({ layer, pendingFallback, currentLine }: LayerBucketsProps) {
+  const sharedProps = {
+    stroke: layer.color,
+    strokeWidth: layer.width,
+    fill: "none",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (currentLine === undefined) {
+    return (
+      <g>
+        {pendingFallback && (
+          <path {...sharedProps} d={pendingFallback} opacity={0.7} strokeDasharray="2 3" />
+        )}
+      </g>
+    );
+  }
+
+  // Every bucket boundary is monotonic in tour order (each boundary is the
+  // endLine of its last stroke), so the drawn/pending split is a prefix walk:
+  // fully-drawn buckets go solid, later buckets go dashed. Only the single
+  // boundary bucket mixes styles — the few early strokes render one push
+  // early (solid) and the few pending strokes stay dashed, which converges
+  // within a handful of pushes and avoids re-joining anything.
+  const cacheRef = useRef(new Map<number, { drawn: string; pending: string }>());
+  const cacheKey = layer.buckets.reduce(
+    (key, bucket) => (bucket.boundary < currentLine ? key + 1 : key),
+    0,
+  );
+  const cache = cacheRef.current;
+  let split = cache.get(cacheKey);
+  if (!split) {
+    const drawnParts: string[] = [];
+    const pendingParts: string[] = [];
+    for (const bucket of layer.buckets) {
+      if (bucket.boundary < currentLine) drawnParts.push(bucket.d);
+      else pendingParts.push(bucket.d);
+    }
+    split = { drawn: drawnParts.join(" "), pending: pendingParts.join(" ") };
+    cache.set(cacheKey, split);
+    if (cache.size > 8) cache.delete(cache.keys().next().value as number);
+  }
+
+  return (
+    <g>
+      {split.drawn && (
+        <path {...sharedProps} d={split.drawn} opacity={1} />
+      )}
+      {split.pending && (
+        <path {...sharedProps} d={split.pending} opacity={0.7} strokeDasharray="2 3" />
+      )}
+    </g>
+  );
+});

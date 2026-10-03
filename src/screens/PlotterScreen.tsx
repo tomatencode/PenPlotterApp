@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ScreenHeader from "../shared/components/ScreenHeader";
 import PlotterView from "../features/plotter/components/graphic/PlotterView";
@@ -8,7 +8,8 @@ import PlotterDetailsPanel from "../features/plotter/components/PlotterDetailsPa
 import PlotterSettingsPanel from "../features/plotter/components/PlotterSettingsPanel";
 import PlotterFileList from "../features/plotter/components/PlotterFileList";
 import JobControlBar from "../features/plotter/components/JobControllBar";
-import { PlotterClient } from "../features/plotter/api/plotterClient";
+import { PlotterClient, downloadPreview, isRequestCancelled } from "../features/plotter/api/plotterClient";
+import { usePlotterDiscovery, type Plotter } from "../features/plotter/discoveryContext";
 import type { SettingKey, PlotterSettings, WsStateMessage } from "../features/plotter/api/plotterClient";
 import type { UiState } from "../features/plotter/components/PlotterStatusCard";
 import type { PlotterInfo } from "../features/plotter/components/PlotterDetailsPanel";
@@ -17,7 +18,7 @@ import type { PlotterInfo } from "../features/plotter/components/PlotterDetailsP
 export default function PlotterScreen() {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const plotter = state?.plotter ?? null;
+  const plotter: Plotter | null = state?.plotter ?? null;
 
   if (!plotter) {
     return (
@@ -31,6 +32,57 @@ export default function PlotterScreen() {
         </button>
       </div>
     );
+  }
+
+  return <PlotterContent plotter={plotter} onBack={() => navigate("/")} />;
+}
+
+function PlotterContent({
+  plotter,
+  onBack,
+}: {
+  plotter: Plotter;
+  onBack: () => void;
+}) {
+  const { holdPoller } = usePlotterDiscovery();
+
+  // Queues preview downloads behind each other: the plotter's single-threaded
+  // HTTP server degrades badly under concurrent transfers, and one active
+  // download at a time keeps a 1MB+ body from being truncated mid-stream.
+  const downloadQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Latest requested preview; older queued downloads exit before touching state.
+  const previewRequestRef = useRef<string | null>(null);
+  // Aborts the in-flight preview download when a newer one is requested.
+  const previewAbortRef = useRef<AbortController | null>(null);
+
+  // Requests the given preview through the queue. Older queued requests are
+  // skipped; an already-running download for another file keeps the network
+  // to itself and the new one restarts it as soon as it frees up.
+  function requestPreview(filename: string): void {
+    previewRequestRef.current = filename;
+    downloadQueueRef.current = downloadQueueRef.current
+      .catch(() => {})
+      .then(async () => {
+        if (previewRequestRef.current !== filename) return;
+        previewAbortRef.current?.abort();
+        const controller = new AbortController();
+        previewAbortRef.current = controller;
+        const releasePoller = holdPoller(plotter.url);
+        try {
+          const gcode = await downloadPreview(client, filename, controller.signal);
+          if (previewRequestRef.current !== filename || controller.signal.aborted) return;
+          setPreview({ gcode, filename });
+        } catch (e) {
+          if (controller.signal.aborted || isRequestCancelled(e)) return;
+          console.error(e);
+          if (previewRequestRef.current === filename) setPreview(undefined);
+        } finally {
+          if (previewAbortRef.current === controller) {
+            previewAbortRef.current = null;
+          }
+          releasePoller();
+        }
+      });
   }
 
   const client = useMemo(() => new PlotterClient(plotter.url), [plotter.url]);
@@ -70,10 +122,9 @@ export default function PlotterScreen() {
   // Auto-load preview when the plotter starts (or switches) a job.
   useEffect(() => {
     if (wsState?.jobFile) {
-      client.downloadJob(wsState.jobFile)
-        .then(gcode => setPreview({ gcode, filename: wsState.jobFile }))
-        .catch(console.error);
+      requestPreview(wsState.jobFile);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsState?.jobFile, client]);
 
 
@@ -156,7 +207,7 @@ export default function PlotterScreen() {
   return (
     <div className="h-full bg-[#0a0c10] text-gray-100 flex flex-col overflow-hidden">
       <ScreenHeader
-        onBack={() => navigate("/")}
+        onBack={onBack}
         title={plotter.displayInfo.name}
         subtitle={ `http://${plotter.displayInfo.mdnsName}.local`}
       >
@@ -176,14 +227,11 @@ export default function PlotterScreen() {
               onFetchFileInfo={filename => client.getFileInfo(filename)}
               onFocusFile={filename => {
                 if (filename === null) {
+                  previewRequestRef.current = null;
+                  previewAbortRef.current?.abort();
                   setPreview(undefined);
                 } else if (!wsState?.jobActive) {
-                  client.downloadJob(filename)
-                    .then(gcode => setPreview({ gcode, filename }))
-                    .catch(e => {
-                      console.error(e);
-                      setPreview(undefined);
-                    });
+                  requestPreview(filename);
                 }
               }}
             />
