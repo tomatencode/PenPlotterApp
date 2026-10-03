@@ -292,14 +292,17 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, headP
 
   const travelPathsD = useMemo(
     () => travelPaths
-      .filter((path) => currentLine === undefined || path.endLine >= currentLine)
+      .filter((path) => currentLine === undefined || path.endLine >= currentLine - 1)
       .map((path) => path.d)
       .join(" "),
     [travelPaths, currentLine],
   );
   const headInSvg = headPosition && { x: headPosition.x, y: wsH - headPosition.y };
-  const activeTravel = currentLine !== undefined && currentLine !== Infinity
-    ? travelPaths.find((path) => path.endLine === currentLine)
+  // Firmware advances jobLine when it starts a command, so the motion in
+  // progress belongs to the preceding GCode line.
+  const activeLine = currentLine !== undefined && currentLine !== Infinity ? currentLine - 1 : undefined;
+  const activeTravel = activeLine !== undefined
+    ? travelPaths.find((path) => path.endLine === activeLine)
     : undefined;
 
   return (
@@ -337,6 +340,7 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, headP
           key={i}
           layer={layer}
           currentLine={currentLine}
+          activeLine={activeLine}
           headInSvg={headInSvg}
         />
       ))}
@@ -346,12 +350,13 @@ export default function PagePreview({ workspaceWidthMm, workspaceHeightMm, headP
 interface LayerBucketsProps {
   layer: { color: string; width: number; buckets: Bucket[] };
   currentLine?: number;
+  activeLine?: number;
   headInSvg?: SvgPoint;
 }
 
 // One layer's drawn/pending split. Whole buckets keep stable paths while the
 // single in-progress bucket is split at the exact current GCode line.
-const LayerBuckets = memo(function LayerBuckets({ layer, currentLine, headInSvg }: LayerBucketsProps) {
+const LayerBuckets = memo(function LayerBuckets({ layer, currentLine, activeLine, headInSvg }: LayerBucketsProps) {
   const sharedProps = {
     stroke: layer.color,
     strokeWidth: layer.width,
@@ -370,13 +375,13 @@ const LayerBuckets = memo(function LayerBuckets({ layer, currentLine, headInSvg 
     );
   }
 
-  const activeStroke = currentLine !== Infinity
-    ? layer.buckets.flatMap((bucket) => bucket.strokes).find((stroke) => stroke.endLine >= currentLine && stroke.segments.some((segment) => segment.endLine <= currentLine))
+  const activeStroke = activeLine !== undefined
+    ? layer.buckets.flatMap((bucket) => bucket.strokes).find((stroke) => stroke.endLine >= activeLine && stroke.segments.some((segment) => segment.endLine <= activeLine))
     : undefined;
-  const activeSegmentsD = activeStroke
-    ? activeStroke.segments.filter((segment) => segment.endLine < currentLine).map((segment) => segment.d).join(" ")
+  const activeSegmentsD = activeStroke && activeLine !== undefined
+    ? activeStroke.segments.filter((segment) => segment.endLine < activeLine).map((segment) => segment.d).join(" ")
     : "";
-  const activeSegment = activeStroke?.segments.find((segment) => segment.endLine === currentLine);
+  const activeSegment = activeStroke?.segments.find((segment) => segment.endLine === activeLine);
 
   return (
     <g>
