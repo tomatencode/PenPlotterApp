@@ -1,67 +1,101 @@
 import { PlotterStroke } from "../../plotterMove";
-import type { Parameters } from "./types";
-import { buildNodes, buildHeuristicMatrix, buildPheromoneMatrix, buildCandidateList, buildGreedyTour } from "./acoSetup";
+import { DEFAULT_OR_OPT_WINDOW } from "./types";
+import type { Parameters, Tour } from "./types";
+import { buildProblem, buildGreedyTour } from "./acoSetup";
 import { doAntTour } from "./antTour";
-import { updatePheromoneMatrix } from "./updatePheromones";
 import { orOpt } from "./orOpt";
+import { applyTour, createPheromone, isStagnant, resetPheromone } from "./pheromone";
 import { tourToStrokes } from "./tourToStrokes";
-import { detectStagnation } from "./detectStagnation";
 
-export function runAco(strokes: PlotterStroke[], home: [number, number], params: Parameters): PlotterStroke[] {
+/**
+ * Order a batch of strokes into a short pen-up travel path.
+ *
+ * Complexity notes (the reasons this is fast enough for large files):
+ *  - one O(n²) pass builds the candidate lists, allocation-free;
+ *  - everything else is O(n·stride) or O(n·window) — no n × n matrices;
+ *  - or-opt runs once per *iteration* on the iteration-best tour, not once
+ *    per ant;
+ *  - `maxTimeMs` bounds setup *and* iterations together, so a large input
+ *    degrades to a greedy tour instead of running unbounded.
+ */
+export function runAco(
+    strokes: PlotterStroke[],
+    home: [number, number],
+    params: Parameters,
+): PlotterStroke[] {
     if (strokes.length === 0) return strokes;
-  
-    const nodes = buildNodes(strokes);
-    const n = nodes.length;
 
-    const heuristicMatrix = buildHeuristicMatrix(nodes, params.beta);
+    const startTime = Date.now();
+    const verbose = params.verbose ?? false;
+    const window = params.orOptWindow ?? DEFAULT_OR_OPT_WINDOW;
 
-    const candidateList = buildCandidateList(n, heuristicMatrix, params.candidateListSize);
+    const problem = buildProblem(strokes, params.beta, params.candidateListSize);
+    const { graph, n } = problem;
+    if (n === 0) return strokes;
 
-    let bestTour = buildGreedyTour(nodes, home, candidateList, params.beta);
-    console.log(`Initial greedy tour cost: ${bestTour.cost.toFixed(2)}`);
+    let bestTour = buildGreedyTour(problem, home, params.beta);
+    if (verbose) console.log(`Initial greedy tour cost: ${bestTour.cost.toFixed(2)}`);
 
-    let maxPheromone = 1 / (params.rho * bestTour.cost);
+    // Pheromone bounds come from the seed tour; guard the degenerate case where
+    // every stroke starts at home (cost 0 would produce infinite bounds).
+    let maxPheromone = 1 / (params.rho * (bestTour.cost > 0 ? bestTour.cost : 1));
     let minPheromone = maxPheromone / (2 * n);
-
-    let pheromoneMatrix = buildPheromoneMatrix(n, maxPheromone);
+    const pheromone = createPheromone(problem, maxPheromone, minPheromone, params.rho);
 
     let numResets = 0;
-    const startTime = Date.now();
-    // runn itterations
+    let iterations = 0;
+
     while (Date.now() - startTime < params.maxTimeMs) {
-        let ItterationBestTour = { nodes: [] as number[], cost: Infinity };
+        // Construct all ant tours and keep the cheapest.
+        let iterationBest: Tour | null = null;
         for (let ant = 0; ant < params.numAnts; ant++) {
-            const tour = doAntTour(nodes, home, candidateList, pheromoneMatrix, heuristicMatrix, params.alpha, params.beta, params.minUniqueStrokesInDecision);
-            const optimizedTour = orOpt(tour, nodes, home);
-            if (optimizedTour.cost < ItterationBestTour.cost) {
-                ItterationBestTour = optimizedTour;
+            const tour = doAntTour(
+                problem, pheromone, home,
+                params.alpha, params.beta, params.minUniqueStrokesInDecision,
+            );
+            if (iterationBest === null || tour.cost < iterationBest.cost) {
+                iterationBest = tour;
             }
         }
+        if (iterationBest === null) break;
 
-        updatePheromoneMatrix(n, pheromoneMatrix, ItterationBestTour, params.rho, maxPheromone, minPheromone);
-        
-        if (detectStagnation(pheromoneMatrix, n, maxPheromone, minPheromone, params.stagnationThreshold)) {
-            console.log("Stagnation detected, resetting pheromone matrix at score: " + ItterationBestTour.cost.toFixed(2));
-            pheromoneMatrix = buildPheromoneMatrix(n, maxPheromone);
+        // Polish the iteration-best tour only: or-opt is O(n·window), and
+        // running it for all numAnts used to dominate the whole optimiser.
+        const polished = orOpt(iterationBest, graph, home, window);
+
+        // Evaporate, then deposit onto this tour.
+        applyTour(pheromone, problem, polished);
+
+        if (isStagnant(pheromone, params.stagnationThreshold)) {
+            if (verbose) {
+                console.log(`Stagnation detected, resetting pheromone at cost ${polished.cost.toFixed(2)}`);
+            }
+            resetPheromone(pheromone);
             if (numResets >= params.maxStagnationResets) {
-                console.log("Maximum stagnation resets reached, stopping.");
+                if (verbose) console.log("Maximum stagnation resets reached, stopping.");
                 break;
             }
             numResets++;
         }
 
-        if (ItterationBestTour.cost < bestTour.cost) {
-            bestTour = ItterationBestTour;
-            maxPheromone = 1 / (params.rho * bestTour.cost);  // recompute
+        if (polished.cost < bestTour.cost) {
+            bestTour = polished;
+            maxPheromone = 1 / (params.rho * bestTour.cost);
             minPheromone = maxPheromone / (2 * n);
+            pheromone.max = maxPheromone;
+            pheromone.min = minPheromone;
+        }
+
+        iterations++;
+        if (verbose && iterations % 50 === 0) {
+            console.log(`Iteration ${iterations}, best tour cost ${bestTour.cost.toFixed(2)}`);
         }
     }
 
-    if (numResets < params.maxStagnationResets) {
-        console.log(`hit max time of ${params.maxTimeMs}ms, stopping.`);
+    if (verbose) {
+        const elapsed = Date.now() - startTime;
+        console.log(`Best tour cost ${bestTour.cost.toFixed(2)} after ${iterations} iterations in ${elapsed}ms`);
     }
 
-    console.log(`Best tour cost: ${bestTour.cost.toFixed(2)}`);
-
-    return tourToStrokes(bestTour, nodes, strokes);
+    return tourToStrokes(bestTour, graph.nodes, strokes);
 }
