@@ -20,6 +20,7 @@ pub fn run() {
             file_actions::save_file,
             file_actions::open_file,
             file_actions::delete_file,
+            file_actions::fetch_text,
             plotter_discovery::start_plotter_discovery,
             plotter_discovery::stop_plotter_discovery,
             plotter_discovery::forget_plotter,

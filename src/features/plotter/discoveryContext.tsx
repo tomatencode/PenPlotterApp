@@ -18,6 +18,31 @@ export interface Plotter {
   displayInfo: PlotterDisplayInfo;
 }
 
+/**
+ * Canonical key identifying a plotter by address.
+ *
+ * The held URL comes from the screen's navigation state while the poller's
+ * comes from the discovered list. Those are the same address today, but any
+ * difference in form — a trailing slash, surrounding whitespace, a default
+ * port, letter case in the host — would make the Set/Map lookup miss, leaving
+ * the poller running straight through a transfer it is meant to stay out of.
+ * Normalising both sides makes these maps depend on identity, not spelling.
+ */
+function holdKey(url: string): string {
+  try {
+    const u = new URL(url);
+    u.hash = "";
+    u.search = "";
+    if ((u.protocol === "http:" && u.port === "80") || (u.protocol === "https:" && u.port === "443")) {
+      u.port = "";
+    }
+    u.hostname = u.hostname.toLowerCase();
+    return u.toString().replace(/\/+$/, "");
+  } catch {
+    return url.trim().replace(/\/+$/, "");
+  }
+}
+
 interface PlotterDiscoveryContextValue {
   plotters: Plotter[];
   /**
@@ -48,19 +73,20 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   // Internal clients — not exposed, never put in React state
   const clientsRef = useRef<Map<string, PlotterClient>>(new Map());
   const iterationFetchedRef = useRef<Set<string>>(new Set());
-  // Timestamp of the last successful poll response per URL.
+  // Timestamp of the last successful poll response per plotter, keyed by `holdKey`.
   const lastSeenRef = useRef<Map<string, number>>(new Map());
   // URLs whose poller is currently suspended (see holdPoller).
   const heldRef = useRef<Set<string>>(new Set());
 
   const holdPoller = useCallback((url: string) => {
-    heldRef.current.add(url);
-    lastSeenRef.current.set(url, Date.now());
+    const key = holdKey(url);
+    heldRef.current.add(key);
+    lastSeenRef.current.set(key, Date.now());
     return () => {
-      heldRef.current.delete(url);
+      heldRef.current.delete(key);
       // Give a fresh grace window so the next poll isn't treated as "last seen
       // ages ago" and can't trigger an immediate removal.
-      lastSeenRef.current.set(url, Date.now());
+      lastSeenRef.current.set(key, Date.now());
     };
   }, []);
 
@@ -74,7 +100,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   function addPlotter(url: string) {
     // Refresh before the early-return so that a plotter-found event for an
     // already-known (but "connecting") plotter resets the timeout clock.
-    lastSeenRef.current.set(url, Date.now());
+    lastSeenRef.current.set(holdKey(url), Date.now());
     if (plottersRef.current.some((p) => p.url === url)) return;
     getClient(url); // ensure client exists
     setPlotters((prev) => {
@@ -87,7 +113,7 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
   function removePlotter(url: string) {
     clientsRef.current.delete(url);
     iterationFetchedRef.current.delete(url);
-    lastSeenRef.current.delete(url);
+    lastSeenRef.current.delete(holdKey(url));
     setPlotters((prev) => prev.filter((p) => p.url !== url));
     console.log(`Plotter lost: ${url}`);
   }
@@ -99,8 +125,8 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
         // A long request (e.g. an upload) owns the device right now — polling
         // concurrently would starve it and time out, flipping the state to
         // "connecting". Keep the last-seen clock fresh meanwhile.
-        if (heldRef.current.has(plotter.url)) {
-          lastSeenRef.current.set(plotter.url, Date.now());
+        if (heldRef.current.has(holdKey(plotter.url))) {
+          lastSeenRef.current.set(holdKey(plotter.url), Date.now());
           continue;
         }
 
@@ -170,10 +196,10 @@ export function PlotterDiscoveryProvider({ children }: { children: React.ReactNo
         // The plotter will re-appear naturally when mDNS fires plotter-found again.
         Promise.allSettled(proms).then((results) => {
           if (results.some((r) => r.status === "fulfilled")) {
-            lastSeenRef.current.set(plotter.url, Date.now());
+            lastSeenRef.current.set(holdKey(plotter.url), Date.now());
           }
           if (results.some((r) => r.status === "rejected")) {
-            const lastSeen = lastSeenRef.current.get(plotter.url) ?? Date.now();
+            const lastSeen = lastSeenRef.current.get(holdKey(plotter.url)) ?? Date.now();
             if (Date.now() - lastSeen > 10_000) {
               removePlotter(plotter.url);
               // Flush the mDNS daemon's cache for this plotter so it is

@@ -69,7 +69,9 @@ function PlotterContent({
         previewAbortRef.current = controller;
         const releasePoller = holdPoller(plotter.url);
         try {
+          console.log(`Requesting preview for file: ${filename}`);
           const gcode = await downloadPreview(client, filename, controller.signal);
+          console.log(`Downloaded preview for file: ${filename}`);
           if (previewRequestRef.current !== filename || controller.signal.aborted) return;
           setPreview({ gcode, filename });
         } catch (e) {

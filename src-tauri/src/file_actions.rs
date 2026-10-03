@@ -1,5 +1,49 @@
 use std::fs;
+use std::time::Duration;
+
 use tauri::{AppHandle, Manager};
+
+/// Fetch a URL and return its body in a **single** IPC response.
+///
+/// tauri-plugin-http's streaming `fetch` costs one IPC round trip *per network
+/// chunk*. The plotter firmware sends `downloadJob` bodies in 1460-byte chunks,
+/// so previewing a multi-MB GCode file needed thousands of serialized
+/// JS->Rust->JS hops — the reason large previews appeared to hang. One command
+/// that buffers the body in Rust and returns it once is O(1) in IPC round trips
+/// regardless of file size.
+///
+/// `timeout_ms` bounds the whole operation (connect + headers + body), so a
+/// stalled device fails visibly instead of hanging the UI.
+///
+/// Returns the response body as text. Non-2xx responses are returned as errors
+/// carrying the status and the device's own error text, which the frontend maps
+/// onto `PlotterApiError`.
+#[tauri::command]
+pub async fn fetch_text(url: String, timeout_ms: u64) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(timeout_ms))
+        .connect_timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let res = client.get(&url).send().await.map_err(|e| e.to_string())?;
+
+    let status = res.status();
+    // `text()` would fail on non-UTF-8; GCode is ASCII/UTF-8, but be lenient so a
+    // stray byte in a firmware string cannot fail an otherwise good download.
+    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    let body = String::from_utf8_lossy(&bytes).into_owned();
+
+    if !status.is_success() {
+        return Err(format!(
+            "HTTP {}: {}",
+            status.as_u16(),
+            if body.is_empty() { status.canonical_reason().unwrap_or("error") } else { &body }
+        ));
+    }
+
+    Ok(body)
+}
 
 // Paths
 

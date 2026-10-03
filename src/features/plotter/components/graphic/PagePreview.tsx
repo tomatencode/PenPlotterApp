@@ -78,6 +78,8 @@ function bucketize(strokes: Stroke[]): Bucket[] {
 function parseGcode(gcode: string, wsH: number): { layers: PenLayer[]; travelPaths: string[] } {
   const byColor = new Map<string, { width: number; strokes: Stroke[] }>();
 
+  console.log("Parsing GCode...");
+
   let curX = 0;
   let curY = 0;
   let penDown = false;
