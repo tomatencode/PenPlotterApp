@@ -51,14 +51,10 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
     if (strokes.length > 0) processed.push({ penIdx, strokes });
   }
 
-  // ── Phase 2 (80–85 %): accumulate stats ──────────────────────────────────
-  onProgress?.(80, "Computing stats…");
-  const stats = generateStats(processed, home);
+  // ── Phase 2 (80–90 %): emit GCode ────────────────────────────────────────
+  onProgress?.(80, "Writing GCode…");
 
-  // ── Phase 3 (85–95 %): emit GCode ────────────────────────────────────────
-  onProgress?.(85, "Writing GCode…");
-
-  let gcode = statsHeader(stats);
+  let gcode = "";
   gcode += "M5 ;ensure pen up\nG28 ; Home all axes\n\n";
 
   for (const { penIdx, strokes } of processed) {
@@ -72,6 +68,12 @@ export function documentToGcode(doc: PnplttrDocument, onProgress?: ProgressCallb
     gcode += "\n";
   }
   gcode += "G0 X0 Y0"; // return to origin
+
+  // ── Phase 3 (90–95 %): accumulate stats ──────────────────────────────────
+  onProgress?.(90, "Computing stats…");
+  const stats = generateStats(processed, home, gcode);
+
+  gcode = statsHeader(stats) + gcode;
 
   // ── Phase 4 (95–100 %): compress ─────────────────────────────────────────
   onProgress?.(95, "Compressing GCode…");

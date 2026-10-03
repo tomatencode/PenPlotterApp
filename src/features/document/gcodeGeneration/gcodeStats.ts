@@ -39,14 +39,12 @@ export function accumulateStats(
   penPos: [number, number],
 ): [number, number] {
   let [px, py] = penPos;
-  stats.executable_lines = 3; // 3 fixed lines at the start and end of the job
   for (const stroke of strokes) {
     stats.travel_mm += dist(px, py, stroke.start[0], stroke.start[1]);
     px = stroke.start[0];
     py = stroke.start[1];
     for (const m of stroke.moves) {
       stats.draw_mm += moveLength(m);
-      stats.executable_lines++; // each move translates to an executable line
     }
     stats.pen_lifts++;
     const last = stroke.moves[stroke.moves.length - 1];
@@ -65,13 +63,14 @@ export function statsHeader(stats: JobStats): string {
 export function generateStats(
   batches: { strokes: PlotterStroke[] }[],
   home: [number, number],
+  gcode: string,
 ): JobStats {
   const stats: JobStats = {
     travel_mm: 0,
     draw_mm: 0,
     pen_lifts: 0,
     pen_switches: Math.max(0, batches.length - 1),
-    executable_lines: 0,
+    executable_lines: gcode.split("\n").filter(line => line.split(";")[0].trim() !== "").length,
   };
   let penPos: [number, number] = home;
   for (const { strokes } of batches) {
