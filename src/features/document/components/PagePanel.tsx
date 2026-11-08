@@ -7,6 +7,11 @@ interface Props {
   onUpdatePage: (page: PageSettings) => void;
 }
 
+const ORIENTATION_OPTIONS = [
+  { label: "Portrait", value: "portrait" },
+  { label: "Landscape", value: "landscape" },
+];
+
 export default function PagePanel({ page, onUpdatePage }: Props) {
   const pagePresetIndex = PAGE_PRESETS.findIndex(
     (p) => p.width === page.page_width && p.height === page.page_height,
@@ -59,6 +64,23 @@ export default function PagePanel({ page, onUpdatePage }: Props) {
             <span className="text-xs text-slate-300 truncate">{p.label}</span>
           )}
           placeholder={<span className="text-xs text-slate-600 italic flex-1">Custom</span>}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-[11px] text-slate-400">Orientation</label>
+        <DropdownSelector
+          value={page.rotate_workspace ? { label: "Landscape", value: "landscape" } : { label: "Portrait", value: "portrait" }}
+          options={ORIENTATION_OPTIONS}
+          onChange={(p) => onUpdatePage({ ...page, rotate_workspace: p.value === "landscape" })}
+          keyOf={(p) => p.value}
+          isEqual={(a, b) => a.value === b.value}
+          renderSelected={(p) => (
+            <span className="text-xs text-slate-300 flex-1 truncate">{p.label}</span>
+          )}
+          renderOption={(p) => (
+            <span className="text-xs text-slate-300 truncate">{p.label}</span>
+          )}
         />
       </div>
     </div>

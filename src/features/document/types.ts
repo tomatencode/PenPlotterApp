@@ -21,6 +21,7 @@ export interface PageSettings {
   page_height: number;
   workspace_width: number;
   workspace_height: number;
+  rotate_workspace: boolean; 
 }
 
 export interface MetaSettings {

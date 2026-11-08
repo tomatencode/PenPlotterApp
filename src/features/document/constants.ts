@@ -31,6 +31,7 @@ export const DEFAULT_DOCUMENT = {
     page_height: 297,
     workspace_width: 200,
     workspace_height: 285,
+    rotate_workspace: false,
   },
   pens: [
     { name: "Pen 1", color: "#2236b2", width: 0.6 }

@@ -4,12 +4,30 @@ export function newId(): string {
   return Math.random().toString(36).slice(2, 9);
 }
 
-export function workspaceBounds(page: PageSettings): { x: number; y: number; w: number; h: number } {
+export function effectivePageDimensions(page: PageSettings): { pageWidth: number; pageHeight: number; workspaceWidth: number; workspaceHeight: number } {
+  if (page.rotate_workspace) {
+    return {
+      pageWidth: page.page_height,
+      pageHeight: page.page_width,
+      workspaceWidth: page.workspace_height,
+      workspaceHeight: page.workspace_width,
+    };
+  }
   return {
-    x: Math.max(page.page_width  / 2 - page.workspace_width  / 2, 0),
-    y: Math.max(page.page_height / 2 - page.workspace_height / 2, 0),
-    w: Math.min(page.workspace_width,  page.page_width),
-    h: Math.min(page.workspace_height, page.page_height),
+    pageWidth: page.page_width,
+    pageHeight: page.page_height,
+    workspaceWidth: page.workspace_width,
+    workspaceHeight: page.workspace_height,
+  };
+}
+
+export function workspaceBounds(page: PageSettings): { x: number; y: number; w: number; h: number } {
+  const { pageWidth, pageHeight, workspaceWidth, workspaceHeight } = effectivePageDimensions(page);
+  return {
+    x: Math.max(pageWidth / 2 - workspaceWidth / 2, 0),
+    y: Math.max(pageHeight / 2 - workspaceHeight / 2, 0),
+    w: Math.min(workspaceWidth, pageWidth),
+    h: Math.min(workspaceHeight, pageHeight),
   };
 }
 

@@ -6,7 +6,7 @@ import { getHandles } from "../canvas/DeformHandles";
 import { useCanvasPointer } from "../hooks/useCanvasPointer";
 import { Viewport } from "../canvas/viewport";
 import { getHints } from "../canvas/SelectionHints";
-import { elementBounds } from "../utils";
+import { effectivePageDimensions, elementBounds, workspaceBounds } from "../utils";
 
 interface Props {
   doc: PnplttrDocument;
@@ -63,6 +63,8 @@ export default function CanvasArea({
   const cursorClass = activeTool === "select" ? "cursor-default" : "cursor-crosshair";
   const transform   = `translate(${viewport.panX}, ${viewport.panY}) scale(${viewport.zoom})`;
   const ghostPaths  = ghostToSvgPaths(ghost, fonts);
+  const { pageWidth, pageHeight } = effectivePageDimensions(doc.page);
+  const workspace = workspaceBounds(doc.page);
 
   return (
     <main className={`flex-1 overflow-hidden bg-[#0a0c10] relative ${cursorClass} select-none`}>
@@ -87,7 +89,7 @@ export default function CanvasArea({
       >
         <g transform={transform}>
           {/* Paper */}
-          <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height} fill="#e8eaf1" />
+          <rect x={0} y={0} width={pageWidth} height={pageHeight} fill="#e8eaf1" />
 
           {/* Elements — rendered sorted by z */}
           {[...doc.elements].sort((a, b) => a.z - b.z).flatMap((el) => {
@@ -207,15 +209,15 @@ export default function CanvasArea({
           )}
 
           {/* Page border */}
-          <rect x={0} y={0} width={doc.page.page_width} height={doc.page.page_height}
+          <rect x={0} y={0} width={pageWidth} height={pageHeight}
             fill="none" stroke="#475569" strokeWidth={1 / viewport.zoom} />
 
           {/* Workspace border */}
           <rect
-            x={Math.max(doc.page.page_width  / 2 - doc.page.workspace_width  / 2, 0)}
-            y={Math.max(doc.page.page_height / 2 - doc.page.workspace_height / 2, 0)}
-            width={Math.min(doc.page.workspace_width,  doc.page.page_width)}
-            height={Math.min(doc.page.workspace_height, doc.page.page_height)}
+            x={workspace.x}
+            y={workspace.y}
+            width={workspace.w}
+            height={workspace.h}
             fill="none" stroke="#eea03b" strokeLinecap="round" strokeLinejoin="round"
             strokeDasharray={`${3} ${3}`}
             strokeWidth={0.4}
