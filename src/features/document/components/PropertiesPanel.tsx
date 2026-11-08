@@ -171,6 +171,7 @@ export default function PropertiesPanel({ elements, fonts, pens, selectedIds, on
                 />
               </div>
               <NumField label="Size (mm)"   value={el.size} onChange={(v) => update({ size: Math.max(0.5, v) })} />
+              <NumField label="Extra line height (mm)" value={el.extraLineHeight ?? 0} onChange={(v) => update({ extraLineHeight: Math.max(0, v) })} />
               <NumField label="X (mm)"      value={el.x}    onChange={(v) => update({ x: v })} />
               <NumField label="Y (mm)"      value={el.y}    onChange={(v) => update({ y: v })} />
               <NumField label="Width (mm)"  value={el.w}    onChange={(v) => update({ w: Math.max(1, v) })} />

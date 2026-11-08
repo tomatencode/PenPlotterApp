@@ -1150,7 +1150,7 @@ export const ROWMANS_FONT: PlttrFont = {
       ]
     },
     "-": {
-      "width": 26,
+      "width": 20,
       "paths": [
         {
           "start": [
@@ -1162,7 +1162,7 @@ export const ROWMANS_FONT: PlttrFont = {
               "type": "Line",
               "x1": 4,
               "y1": 9,
-              "x2": 22,
+              "x2": 16,
               "y2": 9
             }
           ]

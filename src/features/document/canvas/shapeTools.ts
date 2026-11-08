@@ -63,7 +63,7 @@ export const SHAPE_TOOLS: Record<ShapeTool, ShapeDescriptor> = {
 
   text: {
     makeGhost:   (sx, sy, mx, my)       => ({ type: "Rect", ...boxCoords(sx, sy, mx, my) }),
-    makeElement: (id, sx, sy, mx, my, _page, pen, z)   => ({ id, type: "Text", pen, z, ...boxCoords(sx, sy, mx, my), text: "Text", fontName: "Rowmans", size: 10 }),
+    makeElement: (id, sx, sy, mx, my, _page, pen, z)   => ({ id, type: "Text", pen, z, ...boxCoords(sx, sy, mx, my), text: "Text", fontName: "Rowmans", size: 10, extraLineHeight: 0 }),
   },
 
   handwriting: {

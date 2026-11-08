@@ -94,7 +94,7 @@ function wrapText(text: string, maxWidth: number, font: PlttrFont, scale: number
 
 export function textElementToStrokes(el: TextEl, font: PlttrFont): PlotterStroke[] {
   const scale      = el.size / font.height;
-  const lineHeight = el.size * 1.4;
+  const lineHeight = el.size * 1.4 + (el.extraLineHeight ?? 0);
   const strokes: PlotterStroke[] = [];
 
   const lines = wrapText(el.text, el.w, font, scale);
