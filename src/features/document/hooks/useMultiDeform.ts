@@ -26,6 +26,14 @@ function scaleElement(el: Element, fixedX: number, fixedY: number, sx: number, s
       return { ...el, points: el.points.map(([px, py]) => [tx(px), ty(py)]) };
     case "Line":
       return { ...el, x1: tx(el.x1), y1: ty(el.y1), x2: tx(el.x2), y2: ty(el.y2) };
+    case "Arc":
+      return {
+        ...el,
+        cx: tx(el.cx),
+        cy: ty(el.cy),
+        r: el.r * (Math.abs(sx) + Math.abs(sy)) / 2,
+        clockwise: sx * sy < 0 ? !el.clockwise : el.clockwise,
+      };
     case "Rect": {
       const nx = tx(el.x), ny = ty(el.y);
       const nx2 = tx(el.x + el.w), ny2 = ty(el.y + el.h);

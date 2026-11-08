@@ -9,6 +9,7 @@ export interface Pen {
 export type Element =
   | { id: string; type: "Drawing"; pen: number; z: number; points: [x: number, y: number][] }
   | { id: string; type: "Line";    pen: number; z: number; x1: number; y1: number; x2: number; y2: number }
+  | { id: string; type: "Arc";     pen: number; z: number; cx: number; cy: number; r: number; startAngle: number; endAngle: number; clockwise: boolean }
   | { id: string; type: "Rect";    pen: number; z: number; x: number;  y: number;  w: number;  h: number  }
   | { id: string; type: "Circle";  pen: number; z: number; cx: number; cy: number; r: number              }
   | { id: string; type: "Text";    pen: number; z: number; x: number;  y: number;  w: number;  h: number; text: string; fontName: string; size: number }
@@ -44,4 +45,4 @@ export interface PlttrFont {
   glyphs: Record<string, { width: number; paths: PlotterStroke[] }>;
 }
 
-export type Tool = "select" | "pen" | "line" | "rect" | "circle" | "text" | "handwriting";
+export type Tool = "select" | "pen" | "line" | "arc" | "rect" | "circle" | "text" | "handwriting";

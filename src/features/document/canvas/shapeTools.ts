@@ -11,7 +11,7 @@ import type { Element, PageSettings } from "../types";
 import type { Ghost } from "./Ghost";
 import { workspaceBounds } from "../utils";
 
-export type ShapeTool = "line" | "rect" | "text" | "handwriting" | "circle";
+export type ShapeTool = "line" | "arc" | "rect" | "text" | "handwriting" | "circle";
 
 export function isShapeTool(tool: string): tool is ShapeTool {
   return tool in SHAPE_TOOLS;
@@ -41,6 +41,19 @@ export const SHAPE_TOOLS: Record<ShapeTool, ShapeDescriptor> = {
   line: {
     makeGhost:   (sx, sy, mx, my)       => ({ type: "Line", x1: sx, y1: sy, x2: mx, y2: my }),
     makeElement: (id, sx, sy, mx, my, _page, pen, z)   => ({ id, type: "Line", pen, z, x1: sx, y1: sy, x2: mx, y2: my }),
+  },
+
+  arc: {
+    makeGhost: (sx, sy, mx, my) => {
+      const cx = (sx + mx) / 2;
+      const cy = (sy + my) / 2;
+      return { type: "Arc", cx, cy, r: Math.hypot(mx - sx, my - sy) / 2, startAngle: Math.atan2(sy - cy, sx - cx), endAngle: Math.atan2(my - cy, mx - cx), clockwise: true };
+    },
+    makeElement: (id, sx, sy, mx, my, _page, pen, z) => {
+      const cx = (sx + mx) / 2;
+      const cy = (sy + my) / 2;
+      return { id, type: "Arc", pen, z, cx, cy, r: Math.hypot(mx - sx, my - sy) / 2, startAngle: Math.atan2(sy - cy, sx - cx), endAngle: Math.atan2(my - cy, mx - cx), clockwise: true };
+    },
   },
 
   rect: {

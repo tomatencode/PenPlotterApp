@@ -12,6 +12,8 @@ function elementBBox(el: Element): BBox {
     case "Line":
       return { x1: Math.min(el.x1, el.x2), y1: Math.min(el.y1, el.y2),
                x2: Math.max(el.x1, el.x2), y2: Math.max(el.y1, el.y2) };
+    case "Arc":
+      return { x1: el.cx - el.r, y1: el.cy - el.r, x2: el.cx + el.r, y2: el.cy + el.r };
     case "Rect":
       return { x1: el.x, y1: el.y, x2: el.x + el.w, y2: el.y + el.h };
     case "Circle":

@@ -37,6 +37,18 @@ export function elementsToPlotterStrokes(
         });
         break;
 
+      case "Arc": {
+        const x1 = el.cx + el.r * Math.cos(el.startAngle);
+        const y1 = el.cy + el.r * Math.sin(el.startAngle);
+        const x2 = el.cx + el.r * Math.cos(el.endAngle);
+        const y2 = el.cy + el.r * Math.sin(el.endAngle);
+        strokes.push({
+          start: [x1, y1],
+          moves: [{ type: "Arc", x1, y1, cx: el.cx, cy: el.cy, x2, y2, clockwise: el.clockwise }],
+        });
+        break;
+      }
+
       case "Rect": {
         const { x, y, w, h } = el;
         strokes.push({

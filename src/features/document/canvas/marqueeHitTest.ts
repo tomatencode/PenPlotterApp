@@ -58,6 +58,23 @@ function elementCrossesRect(el: Element, rx: number, ry: number, rw: number, rh:
     }
     case "Line":
       return segmentCrossesRect(el.x1, el.y1, el.x2, el.y2, rx, ry, rw, rh);
+    case "Arc": {
+      const direction = el.clockwise ? 1 : -1;
+      const span = el.clockwise
+        ? (el.endAngle - el.startAngle + 2 * Math.PI) % (2 * Math.PI)
+        : (el.startAngle - el.endAngle + 2 * Math.PI) % (2 * Math.PI);
+      const segments = 12;
+      for (let i = 0; i < segments; i++) {
+        const a1 = el.startAngle + direction * span * i / segments;
+        const a2 = el.startAngle + direction * span * (i + 1) / segments;
+        if (segmentCrossesRect(
+          el.cx + el.r * Math.cos(a1), el.cy + el.r * Math.sin(a1),
+          el.cx + el.r * Math.cos(a2), el.cy + el.r * Math.sin(a2),
+          rx, ry, rw, rh,
+        )) return true;
+      }
+      return false;
+    }
     case "Rect": {
       const x2 = el.x + el.w, y2 = el.y + el.h;
       return segmentCrossesRect(el.x, el.y, x2, el.y,  rx, ry, rw, rh)  // top

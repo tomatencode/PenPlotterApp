@@ -11,6 +11,8 @@ function offsetElement(el: Element): Element {
       return { ...el, id: newId(), pen: el.pen, points: el.points.map(([x, y]) => [x + PASTE_OFFSET, y + PASTE_OFFSET]) };
     case "Line":
       return { ...el, id: newId(), pen: el.pen, x1: el.x1 + PASTE_OFFSET, y1: el.y1 + PASTE_OFFSET, x2: el.x2 + PASTE_OFFSET, y2: el.y2 + PASTE_OFFSET };
+    case "Arc":
+      return { ...el, id: newId(), pen: el.pen, cx: el.cx + PASTE_OFFSET, cy: el.cy + PASTE_OFFSET };
     case "Rect":
     case "Text":
     case "Handwriting":

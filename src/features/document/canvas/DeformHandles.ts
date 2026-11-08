@@ -34,6 +34,12 @@ export function getHandles(el: Element): Handle[] {
         { id: "p1", x: el.x1, y: el.y1 },
         { id: "p2", x: el.x2, y: el.y2 },
       ];
+    case "Arc":
+      return [
+        { id: "start", x: el.cx + el.r * Math.cos(el.startAngle), y: el.cy + el.r * Math.sin(el.startAngle) },
+        { id: "end", x: el.cx + el.r * Math.cos(el.endAngle), y: el.cy + el.r * Math.sin(el.endAngle) },
+        { id: "center", x: el.cx, y: el.cy },
+      ];
     case "Rect":
       return [
         { id: "tl", x: el.x,        y: el.y        },
@@ -87,6 +93,25 @@ export function applyHandleDrag(el: Element, handleId: string, x: number, y: num
       if (handleId === "p1") return { ...el, x1: x, y1: y };
       if (handleId === "p2") return { ...el, x2: x, y2: y };
       return el;
+
+    case "Arc": {
+      if (handleId === "center") {
+        const ws = workspaceBounds(page);
+        return {
+          ...el,
+          cx: Math.max(ws.x + el.r, Math.min(ws.x + ws.w - el.r, x)),
+          cy: Math.max(ws.y + el.r, Math.min(ws.y + ws.h - el.r, y)),
+        };
+      }
+      if (handleId === "start" || handleId === "end") {
+        const ws = workspaceBounds(page);
+        const maxR = Math.min(el.cx - ws.x, ws.x + ws.w - el.cx, el.cy - ws.y, ws.y + ws.h - el.cy);
+        const r = Math.max(0.5, Math.min(maxR, Math.hypot(x - el.cx, y - el.cy)));
+        const angle = Math.atan2(y - el.cy, x - el.cx);
+        return handleId === "start" ? { ...el, r, startAngle: angle } : { ...el, r, endAngle: angle };
+      }
+      return el;
+    }
 
     case "Rect": {
       // Each corner handle keeps its opposite corner fixed.

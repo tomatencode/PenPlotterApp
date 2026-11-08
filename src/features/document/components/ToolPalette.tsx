@@ -37,6 +37,15 @@ export const TOOLS: ToolDef[] = [
     ),
   },
   {
+    id: "arc",
+    label: "Arc",
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="w-4 h-4">
+        <path d="M2 12a6 6 0 0 1 12 0" />
+      </svg>
+    ),
+  },
+  {
     id: "rect",
     label: "Rectangle",
     icon: (
