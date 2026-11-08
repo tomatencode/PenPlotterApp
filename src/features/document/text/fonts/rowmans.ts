@@ -5,7 +5,7 @@ export const ROWMANS_FONT: PlttrFont = {
   height: 21,
   glyphs: {
     " ": {
-      "width": 16,
+      "width": 12,
       "paths": []
     },
     "!": {
@@ -8368,3 +8368,32 @@ export const ROWMANS_FONT: PlttrFont = {
     }
   }
 }
+
+const UMLAUT_DOTS: PlttrFont["glyphs"][string]["paths"] = [
+  {
+    start: [5, 21],
+    moves: [
+      { type: "Line", x1: 5, y1: 21, x2: 6, y2: 20 },
+      { type: "Line", x1: 6, y1: 20, x2: 7, y2: 21 },
+      { type: "Line", x1: 7, y1: 21, x2: 6, y2: 22 },
+      { type: "Line", x1: 6, y1: 22, x2: 5, y2: 21 },
+    ],
+  },
+  {
+    start: [12, 21],
+    moves: [
+      { type: "Line", x1: 12, y1: 21, x2: 13, y2: 20 },
+      { type: "Line", x1: 13, y1: 20, x2: 14, y2: 21 },
+      { type: "Line", x1: 14, y1: 21, x2: 13, y2: 22 },
+      { type: "Line", x1: 13, y1: 22, x2: 12, y2: 21 },
+    ],
+  },
+];
+
+function addUmlaut(base: PlttrFont["glyphs"][string]) {
+  return { width: base.width, paths: [...base.paths, ...UMLAUT_DOTS] };
+}
+
+ROWMANS_FONT.glyphs["ä"] = addUmlaut(ROWMANS_FONT.glyphs["a"]);
+ROWMANS_FONT.glyphs["ö"] = addUmlaut(ROWMANS_FONT.glyphs["o"]);
+ROWMANS_FONT.glyphs["ü"] = addUmlaut(ROWMANS_FONT.glyphs["u"]);

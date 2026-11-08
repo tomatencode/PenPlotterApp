@@ -53,28 +53,51 @@ function measureLine(text: string, font: PlttrFont, scale: number): number {
   return w;
 }
 
+function wrapText(text: string, maxWidth: number, font: PlttrFont, scale: number): string[] {
+  const lines: string[] = [];
+  const source = text.trim() ? text : "text...";
+
+  for (const paragraph of source.replace(/\r\n?/g, "\n").split("\n")) {
+    const words = paragraph.match(/\S+/g) ?? [];
+    if (words.length === 0) {
+      lines.push("");
+      continue;
+    }
+
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (current && measureLine(candidate, font, scale) > maxWidth) {
+        lines.push(current);
+        current = "";
+      }
+
+      if (measureLine(word, font, scale) <= maxWidth) {
+        current = current ? `${current} ${word}` : word;
+        continue;
+      }
+
+      for (const ch of word) {
+        if (current && measureLine(current + ch, font, scale) > maxWidth) {
+          lines.push(current);
+          current = ch;
+        } else {
+          current += ch;
+        }
+      }
+    }
+    if (current) lines.push(current);
+  }
+
+  return lines;
+}
+
 export function textElementToStrokes(el: TextEl, font: PlttrFont): PlotterStroke[] {
   const scale      = el.size / font.height;
   const lineHeight = el.size * 1.4;
   const strokes: PlotterStroke[] = [];
 
-  let words = el.text.split(" ");
-  // Ensure something gets rendered
-  if (words.length === 0 || (words.length === 1 && words[0] === "")) words = ["text..."];
-
-  // Word-wrap
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    if (current && (measureLine(test, font, scale) > el.w || word.includes("\n"))) {
-      lines.push(current);
-      current = word.replace("\n", "");
-    } else {
-      current = test.replace("\n", "");
-    }
-  }
-  if (current) lines.push(current);
+  const lines = wrapText(el.text, el.w, font, scale);
 
   const descenderFraction = 0.33; // |max descender| / capHeight for descent clipping
 
